@@ -1,0 +1,30 @@
+{% load static assets %}<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="same-origin">
+<script>
+  /* Apply the saved theme to <html> before paint to avoid a flash.
+     Default is light; the map/canvas pages may force dark via data-force-dark. */
+  (function () {
+    try {
+      var t = localStorage.getItem('shajara_theme') || 'light';
+      if (t !== 'dark') document.documentElement.classList.add('app-light');
+    } catch (e) { document.documentElement.classList.add('app-light'); }
+  })();
+</script>
+<title>{% block title %}e-Shajara{% endblock %}</title>
+<link rel="stylesheet" href="{% static_v 'css/style.css' %}">
+{% block theme_css %}<link rel="stylesheet" href="{% static_v 'css/app-light.css' %}">{% endblock %}
+<link rel="stylesheet" href="{% static_v 'css/platform.css' %}">
+{% block extra_head %}{% endblock %}
+</head>
+<body {% block body_attrs %}{% endblock %}>
+{% block body %}{% endblock %}
+{% if request.user.is_authenticated %}
+<script>window.SHAJARA_TOUR = {user: "{{ request.user.username|escapejs }}", page: "{{ request.resolver_match.url_name|default:''|escapejs }}", pending: {{ tour_pending|yesno:"true,false" }}, doneUrl: "{% url 'tour_done' %}", startUrl: "{% url 'my_trees' %}", csrf: "{{ csrf_token }}"};</script>
+<script src="{% static_v 'js/tour.js' %}"></script>
+{% endif %}
+</body>
+</html>

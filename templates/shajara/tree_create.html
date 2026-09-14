@@ -1,0 +1,126 @@
+{% extends "shajara/base.html" %}
+{% block title %}Yangi shajara — e-Shajara{% endblock %}
+{% block body %}
+{% include "shajara/_header.html" %}
+<main class="pf-shell pf-shell-narrow">
+  <a class="back-link" href="{% url 'my_trees' %}">← Shajaralarim</a>
+  <header class="pf-head" style="margin-top:14px;">
+    <div>
+      <p class="pf-kicker">Yangi shajara</p>
+      <h1 class="pf-h1">Nima tuzamiz?</h1>
+    </div>
+  </header>
+
+  <form method="post" class="pf-card" novalidate id="tree-create">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<p class="pf-error">{{ form.non_field_errors|join:" " }}</p>{% endif %}
+
+    <div class="pf-choices" role="radiogroup" aria-label="Shajara turi">
+      <label class="pf-choice is-fam">
+        <input type="radio" name="kind" value="oilaviy" {% if kind != "talimiy" %}checked{% endif %}>
+        <span class="pf-choice-box">
+          {% include "shajara/_icon.html" with name="fam" %}
+          <span>
+            <span class="pf-choice-title">Oilaviy shajara</span>
+            <span class="pf-choice-text">O'zingiz yoki bobongizdan boshlang. Keyin qarindoshlarni taklif qilasiz — har kim o'z shoxini qo'shadi.</span>
+          </span>
+        </span>
+      </label>
+      <label class="pf-choice is-edu">
+        <input type="radio" name="kind" value="talimiy" {% if kind == "talimiy" %}checked{% endif %}>
+        <span class="pf-choice-box">
+          {% include "shajara/_icon.html" with name="edu" %}
+          <span>
+            <span class="pf-choice-title">Ta'limiy shajara</span>
+            <span class="pf-choice-text">Sulola yoki tarixiy shaxs. O'rganish, darsda ko'rsatish, o'quvchilar bilan birga tuzish va test uchun.</span>
+          </span>
+        </span>
+      </label>
+    </div>
+
+    <div data-tour="tree-name">
+    <label class="pf-label" for="id_tree_name">Shajara nomi</label>
+    <input class="field" type="text" name="tree_name" id="id_tree_name" maxlength="150" required
+           value="{{ form.tree_name.value|default:'' }}"
+           data-ph-oilaviy="Masalan: Karimovlar oilasi" data-ph-talimiy="Masalan: Temuriylar sulolasi">
+    {% if form.tree_name.errors %}<p class="pf-error">{{ form.tree_name.errors|join:" " }}</p>{% endif %}
+    </div>
+
+    <div class="pf-edu-panel pf-edu-only" data-edu-only>
+      <div class="pf-row">
+        <div>
+          <label class="pf-label" for="id_subject">Fan / mavzu <small>(ixtiyoriy)</small></label>
+          {{ form.subject }}
+        </div>
+        <div>
+          <label class="pf-label" for="id_era">Davr <small>(ixtiyoriy)</small></label>
+          {{ form.era }}
+        </div>
+      </div>
+      <p class="pf-help">Mavzu va davr Kutubxonada qidirishda va sinf uchun tartiblashda yordam beradi. Manbalarni keyin sozlamalarda qo'shasiz.</p>
+    </div>
+
+    <label class="pf-label" for="id_description">Tavsif <small>(ixtiyoriy)</small></label>
+    <textarea class="field" name="description" id="id_description" rows="2"
+              data-ph-oilaviy="Kimlar haqida, qaysi qishloqdan…" data-ph-talimiy="Darsda nimani o'rganamiz, qaysi mavzuga tegishli…">{{ form.description.value|default:'' }}</textarea>
+
+    <div data-tour="visibility">
+    <label class="pf-label" for="id_visibility">Kimga ko'rinadi</label>
+    <select class="field" name="visibility" id="id_visibility">
+      <option value="private" {% if form.visibility.value != "public" %}selected{% endif %}>Shaxsiy — faqat siz va taklif qilganlaringiz</option>
+      <option value="public" {% if form.visibility.value == "public" %}selected{% endif %}>Ommaviy — Kutubxonada hamma ko'radi</option>
+    </select>
+    </div>
+    <p class="pf-help" data-edu-only>Ta'limiy shajarani ommaviy qilsangiz, boshqa o'quvchilar ham undan foydalana oladi.</p>
+
+    <hr class="pf-divider">
+
+    <div data-tour="root-person">
+    <label class="pf-label" for="id_first_name" data-label-oilaviy="Kimdan boshlaymiz?" data-label-talimiy="Bosh shaxs (sulola asoschisi yoki tarixiy shaxs)">Kimdan boshlaymiz?</label>
+    <div class="pf-row">
+      <div>
+        <input class="field" type="text" name="first_name" id="id_first_name" maxlength="100" required
+               value="{{ form.first_name.value|default:'' }}" data-ph-oilaviy="Ismi" data-ph-talimiy="Masalan: Amir Temur">
+        {% if form.first_name.errors %}<p class="pf-error">{{ form.first_name.errors|join:" " }}</p>{% endif %}
+      </div>
+      <input class="field" type="text" name="last_name" maxlength="100" value="{{ form.last_name.value|default:'' }}"
+             data-ph-oilaviy="Familyasi (ixtiyoriy)" data-ph-talimiy="Laqabi yoki sulolasi (ixtiyoriy)">
+    </div>
+    <p class="pf-help" data-fam-only>Odatda o'zingizdan boshlanadi — keyin ota-ona, bobo-buvi, farzandlarni qo'shasiz.</p>
+
+    <div class="jins-toggle small" style="justify-content:flex-start; margin:12px 0 0;">
+      <button type="button" class="jins-opt{% if form.gender.value != 'ayol' %} active{% endif %}" data-val="erkak">Erkak</button>
+      <button type="button" class="jins-opt{% if form.gender.value == 'ayol' %} active{% endif %}" data-val="ayol">Ayol</button>
+    </div>
+    <input type="hidden" name="gender" id="gender-input" value="{{ form.gender.value|default:'erkak' }}">
+    </div>
+
+    <div class="pf-actions">
+      <button class="pf-btn pf-btn-primary" type="submit" data-tour="create-submit">{% include "shajara/_icon.html" with name="check" %}Shajarani yaratish</button>
+      <a class="pf-btn" href="{% url 'my_trees' %}">Bekor qilish</a>
+    </div>
+  </form>
+</main>
+<script>
+(function () {
+  var form = document.getElementById("tree-create");
+  function sync() {
+    var kind = form.querySelector('input[name="kind"]:checked').value;
+    var learning = kind === "talimiy";
+    form.querySelectorAll("[data-edu-only]").forEach(function (el) { el.hidden = !learning; });
+    form.querySelectorAll("[data-fam-only]").forEach(function (el) { el.hidden = learning; });
+    form.querySelectorAll("[data-ph-" + kind + "]").forEach(function (el) { el.placeholder = el.getAttribute("data-ph-" + kind); });
+    form.querySelectorAll("[data-label-" + kind + "]").forEach(function (el) { el.textContent = el.getAttribute("data-label-" + kind); });
+  }
+  form.querySelectorAll('input[name="kind"]').forEach(function (r) { r.addEventListener("change", sync); });
+  sync();
+  form.querySelectorAll(".jins-opt").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      form.querySelectorAll(".jins-opt").forEach(function (b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      document.getElementById("gender-input").value = btn.dataset.val;
+    });
+  });
+})();
+</script>
+{% endblock %}

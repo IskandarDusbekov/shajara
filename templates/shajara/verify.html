@@ -1,0 +1,30 @@
+{% extends "shajara/base.html" %}
+{% block title %}Hujjatni tekshirish — e-Shajara{% endblock %}
+{% block body %}
+<main class="pf-center">
+  <div class="pf-card pf-invite-card verify-card">
+    <a href="{% url 'landing' %}" class="pf-kicker" style="display:inline-block; text-decoration:none;">e-Shajara · hujjatni tekshirish</a>
+    {% if record %}
+      <span class="verify-mark is-ok">{% include "shajara/_icon.html" with name="shield" %}</span>
+      <h1 class="pf-h1">Hujjat haqiqiy</h1>
+      <p class="pf-lead" style="margin-left:auto; margin-right:auto;">Bu {{ record.get_kind_display|lower }} e-Shajara platformasida tuzilgan va o'zgartirilmagan ma'lumotlarga mos keladi.</p>
+      <dl class="verify-list">
+        <div><dt>Tekshirish kodi</dt><dd><b>{{ record.pretty_code }}</b></dd></div>
+        <div><dt>Shajara</dt><dd>{{ record.tree_name }}</dd></div>
+        <div><dt>Turi</dt><dd>{{ record.get_tree_kind_display }}</dd></div>
+        {% if record.root_name %}<div><dt>Bosh shaxs</dt><dd>{{ record.root_name }}</dd></div>{% endif %}
+        <div><dt>Tuzilgan vaqti</dt><dd>{{ record.created_at|date:"d.m.Y H:i" }}</dd></div>
+        <div><dt>Tuzgan foydalanuvchi</dt><dd>{% if record.created_by %}@{{ record.created_by.username }}{% else %}o'chirilgan hisob{% endif %}</dd></div>
+        <div><dt>O'sha paytdagi hajmi</dt><dd>{{ record.people_count }} shaxs · {{ record.generations }} avlod</dd></div>
+        <div><dt>Hissa qo'shganlar</dt><dd>{{ record.contributors }} kishi</dd></div>
+      </dl>
+      {% if not record.tree %}<p class="pf-help">Shajaraning o'zi keyinchalik o'chirilgan.</p>{% endif %}
+      <p class="pf-help">Ma'lumotlar shajara a'zolari tomonidan kiritilgan. Hujjatdagi shaxslar soni yuqoridagiga mos kelishini solishtiring.</p>
+    {% else %}
+      <span class="verify-mark is-bad">{% include "shajara/_icon.html" with name="x" %}</span>
+      <h1 class="pf-h1">Kod topilmadi</h1>
+      <p class="pf-lead" style="margin-left:auto; margin-right:auto;">«{{ code }}» kodli hujjat platformada ro'yxatga olinmagan. Kodni to'g'ri yozganingizni tekshiring — u hujjatning muqovasi va har bir sahifaning pastida yozilgan.</p>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}

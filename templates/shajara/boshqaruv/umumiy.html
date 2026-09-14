@@ -1,0 +1,73 @@
+{% extends "shajara/boshqaruv/base.html" %}
+{% block adm_title %}Umumiy shajara{% endblock %}
+{% block adm_content %}
+<header class="adm-head">
+  <div>
+    <h1 class="adm-title">Umumiy shajara</h1>
+    <p class="adm-sub">Platformadagi barcha shajaralar bitta katta grafga jamlangan: tizim bir xil deb topgan shaxslar (ism, yillar, tug'ilgan joy, ota-ona va farzandlar mosligi) avtomatik bitta shaxsga birlashtiriladi. Foydalanuvchi ma'lumotlari o'zgarmaydi — faqat adminlar ko'radi.</p>
+  </div>
+  <div class="head-actions">
+    <div class="seg" aria-label="Avtomatik birlashtirish chegarasi">
+      {% for t in thresholds %}<a class="seg-item{% if t == min_score %} is-on{% endif %}" href="?chegara={{ t }}{% if region %}&viloyat={{ region|urlencode }}{% endif %}">{{ t }}%</a>{% endfor %}
+    </div>
+  </div>
+</header>
+
+<section class="kpi-grid">
+  <div class="kpi"><span class="kpi-label">Manba yozuvlar</span><span class="kpi-value">{{ stats.records }}</span><span class="kpi-foot">foydalanuvchilar kiritgan shaxslar{% if stats.orphans %} · <b class="warn">{{ stats.orphans }}</b> shajarasiz hisobga olinmadi{% endif %}</span></div>
+  <div class="kpi kpi-accent"><span class="kpi-label">Haqiqiy shaxslar</span><span class="kpi-value">{{ stats.people }}</span><span class="kpi-foot"><b>{{ stats.duplicates }}</b> dublikat birlashtirildi ({{ stats.dup_pct }}%)</span></div>
+  <div class="kpi"><span class="kpi-label">Oila tarmoqlari</span><span class="kpi-value">{{ stats.networks }}</span><span class="kpi-foot"><b>{{ stats.multi }}</b> tasi bir necha shajaradan yig'ilgan</span></div>
+  <div class="kpi"><span class="kpi-label">Birlashtirish asoslari</span><span class="kpi-value">{{ stats.links|add:stats.structural }}</span><span class="kpi-foot"><b>{{ stats.links }}</b> moslik ≥{{ min_score }}% · <b>{{ stats.structural }}</b> oila tuzilmasi bo'yicha{% if stats.conflicts %} · <b class="warn">{{ stats.conflicts }}</b> ziddiyat{% endif %}</span></div>
+</section>
+
+{% if biggest %}
+<section class="panel hero-net">
+  <div class="hero-net-main">
+    <p class="region-kicker">Eng katta umumiy shajara</p>
+    <h2 class="hero-net-title">{{ biggest.people }} shaxs · {{ biggest.trees|length }} ta shajaradan</h2>
+    <p class="adm-sub">
+      {% for t in biggest.trees %}«{{ t.name }}»{% if not forloop.last %}, {% endif %}{% endfor %} —
+      egalari: {% for o in biggest.owners %}@{{ o }}{% if not forloop.last %}, {% endif %}{% endfor %}.
+      {% if biggest.year_from %}Yillar: {{ biggest.year_from }}–{{ biggest.year_to }}.{% endif %}
+      {% if biggest.duplicates %}{{ biggest.duplicates }} ta takroriy yozuv birlashtirilgan.{% endif %}
+    </p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'boshqaruv:unified_board' biggest.key %}?chegara={{ min_score }}">Sof ko'rinishda ochish</a>
+</section>
+{% endif %}
+
+<form class="filters" method="get">
+  <input type="hidden" name="chegara" value="{{ min_score }}">
+  <select class="f-select" name="viloyat" onchange="this.form.submit()" aria-label="Viloyat">
+    <option value="">Barcha viloyatlar</option>
+    {% for r in regions %}<option value="{{ r }}" {% if r == region %}selected{% endif %}>{{ r }}</option>{% endfor %}
+  </select>
+  <a class="btn" href="{% url 'boshqaruv:map' %}?chegara={{ min_score }}">Xaritada ko'rish</a>
+  <span class="adm-count">{{ network_total }} ta tarmoq</span>
+</form>
+
+<div class="panel panel-flush">
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Oila tarmog'i</th><th class="num">Shaxslar</th><th>Hajmi</th><th class="num">Dublikat</th><th>Manba shajaralar</th><th>Viloyat</th><th>Yillar</th><th></th></tr></thead>
+      <tbody>
+        {% for r in networks %}
+        <tr>
+          <td class="nowrap"><b>#{{ r.key }}</b>{% if r.trees|length > 1 %} <span class="tag tag-admin">birlashgan</span>{% endif %}{% if r.conflicts %} <span class="tag tag-bad">{{ r.conflicts }} ziddiyat</span>{% endif %}</td>
+          <td class="num">{{ r.people }}</td>
+          <td class="size-cell"><span class="hbar"><i style="width: {{ r.pct }}%"></i></span></td>
+          <td class="num">{{ r.duplicates|default:"—" }}</td>
+          <td class="wrap">{% for t in r.trees %}<a href="{% url 'boshqaruv:tree_detail' t.pk %}">{{ t.name }}</a> <span class="muted">@{{ t.owner.username }}</span>{% if not forloop.last %}<br>{% endif %}{% endfor %}</td>
+          <td class="nowrap">{{ r.region|default:"—" }}</td>
+          <td class="nowrap muted">{% if r.year_from %}{{ r.year_from }}–{{ r.year_to }}{% else %}—{% endif %}</td>
+          <td class="nowrap"><a class="btn" href="{% url 'boshqaruv:unified_board' r.key %}?chegara={{ min_score }}">Sof ko'rinish</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="empty-line">{% if region %}Bu viloyatga bog'langan oila tarmog'i yo'q — shaxslarning tug'ilgan joyi kiritilmagan bo'lishi mumkin.{% else %}Ma'lumot yo'q.{% endif %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% if network_total > 40 %}<p class="panel-foot">Eng katta 40 tasi ko'rsatilgan.</p>{% endif %}
+{% endblock %}

@@ -1,0 +1,225 @@
+{% load static %}
+{% comment %}
+The pan/zoom board, shared by the Xarita (editable) and Sof ko'rinish (read
+only) pages. Generation names live on each card rather than as row captions,
+because a caption would stay behind when a card is dragged away from it.
+{% endcomment %}
+<div class="map-shell" data-tree-key="{% firstof board_key tree.url_key %}"{% if clear_right %} data-clear-right="{{ clear_right }}"{% endif %}
+     data-csrf="{{ csrf_token }}"
+     {% if tree %}data-tree-name="{{ tree.name }}" data-record-url="{% url 'picture_record' tree.url_key %}"{% endif %}
+     {% if can_edit %}data-add-url="{% url 'add_relative' tree.url_key %}" data-layout-url="{% url 'tree_layout' tree.url_key %}" data-preview-url="{% url 'preview_upload' tree.url_key %}"{% endif %}>
+  <div class="map-viewport" id="map-viewport" tabindex="0"
+       role="application" aria-label="{% firstof board_title tree.name %} shajara xaritasi">
+    <div class="map-canvas" id="map-canvas">
+      <div class="content" id="tree-content">
+        <svg id="lines-svg" class="lines-svg"></svg>
+        {% for row in rows %}
+        <div class="row">
+          <div class="row-items">
+            {% for group in row.groups %}
+            <div class="person-group">
+              <div class="sibling-set">
+                {% for p in group.persons %}
+                <div id="node-{{ p.id }}"
+                     class="leaf-node preview-node{% if p.id == root.id %} leaf-node-root{% elif p.gender == 'ayol' %} leaf-node-ayol{% endif %}"
+                     data-person="{{ p.id }}"
+                     data-name="{{ p.full_name }}"
+                     data-year="{{ p.display_year }}"
+                     data-level="{{ row.label }}"
+                     data-role="{% if p.id == root.id %}Bosh shaxs{% elif p.gender == 'ayol' %}Ayol{% else %}Erkak{% endif %}"
+                     data-gender="{% if p.id == root.id %}root{% else %}{{ p.gender }}{% endif %}"
+                     data-death="{{ p.death_year }}"
+                     data-occupation="{{ p.occupation }}"
+                     data-location="{{ p.location }}"
+                     data-place="{{ p.birth_place }}"
+                     data-patronymic="{{ p.patronymic }}"
+                     data-bio="{{ p.bio|truncatechars:240 }}"
+                     {% if p.photo %}data-photo="{{ p.photo.url }}"{% endif %}
+                     {% if p.merged_count > 1 %}data-merged="{{ p.merged_count }}"{% endif %}
+                     data-url="{% if p.detail_url %}{{ p.detail_url }}{% else %}{% url 'person_detail' tree.url_key p.id %}{% endif %}">
+                  <span class="leaf-icon">
+                    {% if p.id == root.id %}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16"/><path d="m3 8 4.5 3.5L12 5l4.5 6.5L21 8l-1.6 7.5H4.6z"/></svg>
+                    {% elif p.gender == 'ayol' %}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.4"/><path d="M12 9.6c0-2.6 1-4.6 0-5.6-1 1-0 3 0 5.6M14.4 12c2.6 0 4.6-1 5.6 0-1 1-3 0-5.6 0M12 14.4c0 2.6-1 4.6 0 5.6 1-1 0-3 0-5.6M9.6 12c-2.6 0-4.6 1-5.6 0 1-1 3 0 5.6 0"/></svg>
+                    {% else %}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c8.5 0 15-4.5 15-14-8 0-15 3-15 10z"/><path d="M4 20c2-5 5.5-8.5 10-10.5"/></svg>
+                    {% endif %}
+                  </span>
+                  <span class="leaf-name">{{ p.full_name }}</span>
+                  {% if p.display_year %}<span class="leaf-year">{{ p.display_year }}</span>{% endif %}
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {% if messages %}
+  <div class="map-toasts">
+    {% for message in messages %}
+    <div class="toast-msg{% if message.tags == 'success' %} toast-success{% endif %}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% comment %}Shown once cards have been moved: keep the new arrangement or drop it.{% endcomment %}
+  <div class="layout-bar" id="layout-bar" role="status" hidden>
+    <span class="layout-bar-text">Tartib o'zgardi</span>
+    <button type="button" class="layout-bar-btn" id="layout-cancel">Bekor qilish</button>
+    <button type="button" class="layout-bar-btn layout-bar-save" id="layout-save">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+      <span>Tartibni saqlash</span>
+    </button>
+  </div>
+
+  <div class="map-hint" id="map-hint">
+    <span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m8 9-3 3 3 3M16 9l3 3-3 3"/></svg>
+      Surish uchun torting
+    </span>
+    <span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 10 4 4M4 9V4h5"/><path d="m14 14 6 6M20 15v5h-5"/></svg>
+      Ikki barmoq — kattalashtirish
+    </span>
+    <span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="8" height="6" rx="1.6"/><path d="M13 10h4m0 0-2-2m2 2-2 2"/><rect x="17" y="14" width="4" height="4" rx="1"/></svg>
+      <span class="hint-mouse">Kartani bosing yoki suring</span>
+      <span class="hint-touch">Kartani surish: bosib turing</span>
+    </span>
+  </div>
+
+  <div class="map-hud">
+    <span class="map-zoom-level" id="map-zoom-level">100%</span>
+    <button type="button" class="map-btn" data-map-action="zoom-in" aria-label="Kattalashtirish" title="Kattalashtirish">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <button type="button" class="map-btn" data-map-action="zoom-out" aria-label="Kichiklashtirish" title="Kichiklashtirish">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg>
+    </button>
+    <button type="button" class="map-btn" data-map-action="fit" aria-label="Hammasini ko'rsatish" title="Hammasini ko'rsatish">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+    </button>
+    {% if tree %}
+    <button type="button" class="map-btn" id="map-export-btn" aria-haspopup="true" aria-expanded="false" aria-controls="export-menu" aria-label="Yuklab olish" title="Yuklab olish: PDF kitob yoki rasm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>
+    </button>
+    {% endif %}
+    <button type="button" class="map-btn map-btn-accent" data-map-action="root" aria-label="Bosh shaxsga qaytish" title="Bosh shaxsga qaytish">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16"/><path d="m3 8 4.5 3.5L12 5l4.5 6.5L21 8l-1.6 7.5H4.6z"/></svg>
+    </button>
+    <button type="button" class="map-btn map-btn-reset" data-map-action="reset-layout" id="map-reset-layout"
+            aria-label="Avtomatik tartiblash" title="Avtomatik tartiblash" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="4.5" rx="1.2"/><rect x="3" y="16.5" width="6" height="4.5" rx="1.2"/><rect x="15" y="16.5" width="6" height="4.5" rx="1.2"/><path d="M12 7.5V12M6 16.5V12h12v4.5"/></svg>
+    </button>
+  </div>
+
+  {% if tree %}
+  <div class="export-menu" id="export-menu" role="dialog" aria-label="Yuklab olish" hidden>
+    <p class="export-title">Yuklab olish</p>
+    <a class="export-item" href="{% url 'tree_pdf' tree.url_key %}">
+      <span class="export-ic export-ic-book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 11h6"/></svg></span>
+      <span class="export-text"><b>PDF kitob</b><small>Muqova, mundarija, har bir inson haqida maqola — chop etish uchun</small></span>
+    </a>
+    <button type="button" class="export-item" data-export="png">
+      <span class="export-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg></span>
+      <span class="export-text"><b>Rasm (PNG)</b><small>Yuqori sifatli — Telegram'da ulashish va chop etish uchun</small></span>
+    </button>
+    <button type="button" class="export-item" data-export="svg">
+      <span class="export-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 10 4 4M4 9V4h5"/><path d="m14 14 6 6M20 15v5h-5"/></svg></span>
+      <span class="export-text"><b>Vektor rasm (SVG)</b><small>Cheksiz kattalashtiriladi, har bir ism tiniq qoladi</small></span>
+    </button>
+    <p class="export-note">Har bir nusxada tekshirish kodi va QR bo'ladi — uni ochgan kishi hujjat haqiqiyligini tekshira oladi.{% if can_edit %} Rasm taklif havolasini ulashganda ko'rinish sifatida ham saqlanadi.{% endif %}</p>
+    <p class="export-status" id="export-status" role="status" hidden></p>
+  </div>
+  {% endif %}
+
+  <button type="button" class="map-legend-btn" id="map-legend-btn" aria-expanded="false" aria-controls="map-legend" aria-label="Belgilar izohi">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1 .8-1 1.7M12 17h.01"/></svg>
+  </button>
+
+  <div class="map-legend" id="map-legend" hidden>
+    <p class="map-legend-title">Belgilar</p>
+    <span class="legend-row">
+      <svg class="legend-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16"/><path d="m3 8 4.5 3.5L12 5l4.5 6.5L21 8l-1.6 7.5H4.6z"/></svg>
+      Bosh shaxs
+    </span>
+    <span class="legend-row">
+      <svg class="legend-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c8.5 0 15-4.5 15-14-8 0-15 3-15 10z"/><path d="M4 20c2-5 5.5-8.5 10-10.5"/></svg>
+      Erkak
+    </span>
+    <span class="legend-row">
+      <svg class="legend-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.4"/><path d="M12 9.6c0-2.6 1-4.6 0-5.6-1 1-0 3 0 5.6M14.4 12c2.6 0 4.6-1 5.6 0-1 1-3 0-5.6 0M12 14.4c0 2.6-1 4.6 0 5.6 1-1 0-3 0-5.6M9.6 12c-2.6 0-4.6 1-5.6 0 1-1 3 0 5.6 0"/></svg>
+      Ayol
+    </span>
+    <span class="legend-row">
+      <svg class="legend-ic legend-ic-line" viewBox="0 0 30 12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M2 6c6 0 6 0 13 0s7 0 13 0"/></svg>
+      Ota-farzand
+    </span>
+    <span class="legend-row">
+      <svg class="legend-ic legend-ic-line legend-ic-knot" viewBox="0 0 30 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 6h7M21 6h7"/><circle cx="13" cy="6" r="3.2"/><circle cx="17" cy="6" r="3.2"/></svg>
+      Turmush o'rtoqlik
+    </span>
+    <p class="map-legend-note">
+      Kartaga bosing — unga tegishli chiziqlar yorqinlashadi va pastda amallar chiqadi.
+      Kartani surib ko'chirsangiz (telefonda — avval bosib turing), er-xotin doim birga siljiydi. Yangi tartibni
+      «Tartibni saqlash» bilan saqlang; pastdagi tugma hammasini qayta avtomatik tartiblaydi.
+    </p>
+  </div>
+
+  {% comment %}
+  The person panel. A side card on wide screens, a bottom sheet on phones.
+  Its body is built by tree-board.js from the card's data and the family
+  links, so it always matches what the board shows.
+  {% endcomment %}
+  <aside class="person-panel" id="person-panel" aria-labelledby="pp-name" hidden>
+    <button type="button" class="pp-grab" id="pp-grab" aria-label="Batafsil ma'lumot" aria-expanded="false"><span></span></button>
+    <header class="pp-head">
+      <span class="pp-avatar" id="pp-avatar" aria-hidden="true"></span>
+      <div class="pp-title">
+        <h2 class="pp-name" id="pp-name"></h2>
+        <div class="pp-chips" id="pp-chips"></div>
+      </div>
+      <button type="button" class="pp-close" id="pp-close" aria-label="Yopish" title="Yopish (Esc)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </header>
+
+    <div class="pp-actions">
+      <a class="pp-btn pp-btn-primary" id="pp-open" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
+        <span>Profilni ochish</span>
+      </a>
+      <button type="button" class="pp-btn pp-more" id="pp-more" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg>
+        <span>Batafsil</span>
+      </button>
+      {% if can_edit %}
+      <button type="button" class="pp-btn pp-add" id="pp-add" aria-expanded="false" aria-controls="pp-relations" aria-label="Qarindosh qo'shish">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        <span>Qarindosh qo'shish</span>
+      </button>
+      {% endif %}
+    </div>
+
+    {% if can_edit %}
+    <div class="pp-relations" id="pp-relations" hidden>
+      <p class="pp-relations-title">Kimni qo'shasiz?</p>
+      <div class="pp-relations-grid">
+        <a data-relation="ota" href="#">Otasi</a>
+        <a data-relation="ona" href="#">Onasi</a>
+        <a data-relation="turmush" href="#">Turmush o'rtog'i</a>
+        <a data-relation="farzand" href="#">Farzandi</a>
+        <a data-relation="akauka" href="#">Aka-uka / opa-singil</a>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="pp-body" id="pp-body"></div>
+  </aside>
+</div>

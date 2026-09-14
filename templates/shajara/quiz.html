@@ -1,0 +1,151 @@
+{% extends "shajara/base.html" %}
+{% block title %}Test — {{ tree.name }}{% endblock %}
+{% block body %}
+{% include "shajara/_header.html" %}
+<main class="pf-shell">
+  <div class="pf-quiz">
+    <a class="back-link" href="{% url 'tree_overview' tree.url_key %}">← {{ tree.name }}</a>
+
+    {% if not count %}
+    <div class="pf-empty pf-section">
+      {% include "shajara/_icon.html" with name="quiz" %}
+      <h3>Test uchun ma'lumot hali yetarli emas</h3>
+      <p>Savollar shajaradagi bog'lanishlardan tuziladi: kim kimning otasi, onasi, farzandi, turmush o'rtog'i, qachon tug'ilgan, kim bo'lgan. Kamida {{ min_people }} kishi va ular orasidagi bog'lanishlar kerak.</p>
+      <div class="pf-actions"><a class="pf-btn pf-btn-primary" href="{% url 'index' tree.url_key %}">{% include "shajara/_icon.html" with name="map" %}Xaritaga qaytish</a></div>
+    </div>
+    {% else %}
+    <section class="pf-card pf-section" id="quiz" data-answer-url="{% url 'tree_quiz_answer' tree.url_key %}" data-csrf="{{ csrf_token }}">
+      <p class="pf-kicker" style="margin:0;">{% if tree.is_learning %}O'zingizni sinang{% else %}Oilangizni qanchalik bilasiz?{% endif %}</p>
+      <h1 class="pf-h1" style="font-size:22px;">{{ tree.name }}</h1>
+
+      <div id="quiz-play">
+        <div class="pf-quiz-top">
+          <span id="quiz-step">1 / {{ count }}</span>
+          <span id="quiz-score">0 to'g'ri</span>
+        </div>
+        <div class="pf-progress" aria-hidden="true"><i id="quiz-bar"></i></div>
+        <h2 class="pf-question" id="quiz-question" style="margin-top:18px;" aria-live="polite"></h2>
+        <div class="pf-options" id="quiz-options"></div>
+        <div class="pf-feedback" id="quiz-feedback" role="status" hidden></div>
+        <div class="pf-actions" style="justify-content:flex-end;">
+          <button type="button" class="pf-btn pf-btn-primary" id="quiz-next" hidden>Keyingi savol{% include "shajara/_icon.html" with name="arrow" %}</button>
+        </div>
+      </div>
+
+      <div class="pf-result" id="quiz-result" hidden>
+        <div class="pf-ring" id="quiz-ring"><b id="quiz-percent">0%</b></div>
+        <h2 class="pf-question" id="quiz-verdict" style="margin-bottom:6px;"></h2>
+        <p class="pf-lead" id="quiz-summary" style="margin:0 auto;"></p>
+        <div class="pf-actions" style="justify-content:center;">
+          <a class="pf-btn pf-btn-primary" href="{% url 'tree_quiz' tree.url_key %}">{% include "shajara/_icon.html" with name="quiz" %}Yana ishlash</a>
+          <a class="pf-btn" href="{% url 'index' tree.url_key %}">{% include "shajara/_icon.html" with name="map" %}Xaritada takrorlash</a>
+        </div>
+      </div>
+    </section>
+
+    {% if history %}
+    <section class="pf-section" style="margin-top:18px; text-align:center;">
+      <p class="pf-help" style="margin:0;">Oldingi natijalaringiz</p>
+      <div class="pf-history">
+        {% for a in history %}<span class="pf-score{% if a.percent < 50 %} is-low{% endif %}" title="{{ a.created_at|date:'d.m.Y H:i' }}">{{ a.score }}/{{ a.total }}</span>{% endfor %}
+      </div>
+    </section>
+    {% endif %}
+    {% endif %}
+  </div>
+</main>
+{% if count %}
+{{ questions_json|json_script:"quiz-data" }}
+<script>
+(function () {
+  var root = document.getElementById("quiz");
+  var questions = JSON.parse(document.getElementById("quiz-data").textContent);
+  var el = function (id) { return document.getElementById(id); };
+  var index = 0, score = 0, busy = false;
+  var KEYS = ["A", "B", "C", "D"];
+
+  function render() {
+    var q = questions[index];
+    el("quiz-step").textContent = (index + 1) + " / " + questions.length;
+    el("quiz-bar").style.width = (index / questions.length * 100) + "%";
+    el("quiz-question").textContent = q.text;
+    el("quiz-feedback").hidden = true;
+    el("quiz-next").hidden = true;
+    var box = el("quiz-options");
+    box.innerHTML = "";
+    q.options.forEach(function (text, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "pf-option";
+      b.innerHTML = '<span class="pf-option-key"></span><span class="pf-option-text"></span>';
+      b.querySelector(".pf-option-key").textContent = KEYS[i];
+      b.querySelector(".pf-option-text").textContent = text;
+      b.addEventListener("click", function () { answer(i); });
+      box.appendChild(b);
+    });
+    var first = box.querySelector("button");
+    if (first && index > 0) first.focus({ preventScroll: true });
+  }
+
+  function answer(choice) {
+    if (busy) return;
+    busy = true;
+    var buttons = el("quiz-options").querySelectorAll("button");
+    buttons.forEach(function (b) { b.disabled = true; });
+    fetch(root.dataset.answerUrl, {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": root.dataset.csrf },
+      body: JSON.stringify({ q: index, choice: choice })
+    }).then(function (r) {
+      return r.json().then(function (data) { if (!r.ok) throw new Error(data.error || r.status); return data; });
+    }).then(function (data) {
+      buttons[data.correct].classList.add("is-right");
+      if (!data.ok) buttons[choice].classList.add("is-wrong");
+      score = data.score;
+      el("quiz-score").textContent = score + " to'g'ri";
+      var fb = el("quiz-feedback");
+      fb.className = "pf-feedback " + (data.ok ? "is-right" : "is-wrong");
+      fb.textContent = (data.ok ? "To'g'ri! " : "Noto'g'ri. ") + data.explain;
+      fb.hidden = false;
+      if (data.done) {
+        el("quiz-next").textContent = "Natijani ko'rish";
+        el("quiz-next").onclick = function () { finish(data.score, data.total); };
+      } else {
+        el("quiz-next").onclick = function () { index += 1; render(); };
+      }
+      el("quiz-next").hidden = false;
+      el("quiz-next").focus({ preventScroll: true });
+    }).catch(function (err) {
+      buttons.forEach(function (b) { b.disabled = false; });
+      var fb = el("quiz-feedback");
+      fb.className = "pf-feedback is-wrong";
+      fb.textContent = String(err.message || "Javob yuborilmadi. Internetni tekshiring.");
+      fb.hidden = false;
+    }).then(function () { busy = false; });
+  }
+
+  function finish(s, total) {
+    var pct = Math.round(100 * s / total);
+    el("quiz-play").hidden = true;
+    el("quiz-result").hidden = false;
+    el("quiz-ring").style.setProperty("--p", pct);
+    el("quiz-percent").textContent = pct + "%";
+    el("quiz-verdict").textContent = pct >= 90 ? "A'lo natija!" : pct >= 70 ? "Yaxshi natija" : pct >= 50 ? "Yomon emas" : "Yana takrorlash kerak";
+    el("quiz-summary").textContent = total + " ta savoldan " + s + " tasiga to'g'ri javob berdingiz." +
+      (pct < 70 ? " Xaritada shaxslarni bosib, bog'lanishlarni yana ko'rib chiqing." : "");
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (el("quiz-play").hidden) return;
+    var k = KEYS.indexOf(e.key.toUpperCase());
+    var nums = ["1", "2", "3", "4"].indexOf(e.key);
+    var pick = k !== -1 ? k : nums;
+    var buttons = el("quiz-options").querySelectorAll("button");
+    if (pick !== -1 && buttons[pick] && !buttons[pick].disabled) answer(pick);
+  });
+
+  render();
+})();
+</script>
+{% endif %}
+{% endblock %}

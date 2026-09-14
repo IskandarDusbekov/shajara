@@ -1,0 +1,31 @@
+{% extends "shajara/page_base.html" %}
+{% block title %}Bog'lash — e-Shajara{% endblock %}
+{% block back_link %}<a class="back-link" href="{% url 'requests' %}">← So'rovlarga qaytish</a>{% endblock %}
+{% block card_content %}
+<div class="card-badge">Bog'lash</div>
+<h2 class="card-name">{{ req.from_user.username }}ni qayerga ulaymiz?</h2>
+<p class="sub" style="margin:0 0 16px; max-width:none;">Sizning shajarangizdagi qaysi odamga bog'lanadi va qanday qarindosh, tanlang. Ular haqiqatan ham qarindoshingiz bo'lsa, shajaralar to'liq birlashadi — u orqali ko'rgan odamlarning barchasini keyin siz ham ko'ra olasiz.</p>
+
+{% if error %}<div class="form-error">{{ error }}</div>{% endif %}
+
+<form method="post">
+  {% csrf_token %}
+  <span class="label-sm">Mening shajaramdagi odam</span>
+  <select class="field" name="anchor">
+    {% for p in form.fields.anchor.queryset %}
+    <option value="{{ p.id }}">{{ p.full_name }}</option>
+    {% endfor %}
+  </select>
+
+  <span class="label-sm">{{ req.from_user.username }} bu odamning kimi bo'ladi?</span>
+  <select class="field" name="relation">
+    <option value="ota">Otasi</option>
+    <option value="ona">Onasi</option>
+    <option value="farzand">Farzandi</option>
+    <option value="akauka">Aka/uka, opa/singili</option>
+    <option value="turmush">Turmush o'rtog'i</option>
+  </select>
+
+  <button class="btn-primary full" type="submit">Tasdiqlash va birlashtirish</button>
+</form>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% if rows %}
+<div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>Vaqt</th><th>Kim</th><th>Amal</th><th>Tafsilot</th><th>IP</th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td class="nowrap muted" title="{{ r.created_at|date:'d.m.Y H:i:s' }}">{{ r.created_at|date:"d.m H:i" }}</td>
+        <td class="nowrap">
+          {% if r.user %}<a href="{% url 'boshqaruv:user_detail' r.user_id %}">{{ r.user.username }}</a>{% else %}<span class="muted">—</span>{% endif %}
+        </td>
+        <td class="nowrap"><span class="tag{% if 'failed' in r.action or 'delete' in r.action %} tag-bad{% elif r.action|slice:':6' == 'admin_' %} tag-admin{% elif r.action == 'register' %} tag-good{% endif %}">{{ r.get_action_display }}</span></td>
+        <td class="wrap">
+          {{ r.detail }}
+          {% if r.tree %}<a class="muted-link" href="{% url 'boshqaruv:tree_detail' r.tree_id %}">«{{ r.tree.name }}»</a>{% endif %}
+        </td>
+        <td class="nowrap muted mono">{{ r.ip_address|default:"" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="empty-line">Yozuvlar yo'q.</p>
+{% endif %}

@@ -1,0 +1,62 @@
+{% extends "shajara/base.html" %}
+{% load static assets %}
+{% block title %}{{ board_title }} — Boshqaruv{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static_v 'css/boshqaruv.css' %}">{% endblock %}
+{% block body_attrs %}class="map-page"{% endblock %}
+{% block body %}
+{% include "shajara/_header.html" %}
+{% include "shajara/_map.html" with can_edit=False clear_right=340 %}
+
+<div class="board-chip">
+  <a href="{% url 'boshqaruv:unified' %}?chegara={{ min_score }}">← Umumiy shajara</a>
+  <span>chegara {{ min_score }}%</span>
+</div>
+
+<button type="button" class="insight-toggle" id="insight-toggle" aria-expanded="true" aria-controls="insight">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+  <span>Tahlil</span>
+</button>
+
+<aside class="insight" id="insight" aria-label="Tahlil">
+  <p class="region-kicker">Umumiy shajara tahlili</p>
+  <h2 class="insight-title">{{ root.full_name }} oilasi</h2>
+  <dl class="insight-grid">
+    <div><dt>Shaxslar</dt><dd>{{ a.people }}</dd></div>
+    <div><dt>Avlodlar</dt><dd>{{ a.generations }}</dd></div>
+    <div><dt>Manba yozuvlar</dt><dd>{{ a.records }}</dd></div>
+    <div><dt>Birlashgan shaxslar</dt><dd>{{ a.merged_people }}</dd></div>
+    <div><dt>Erkak / ayol</dt><dd>{{ a.men }} / {{ a.women }}</dd></div>
+    <div><dt>Yillar</dt><dd>{% if a.year_from %}{{ a.year_from }}–{{ a.year_to }}{% else %}—{% endif %}</dd></div>
+  </dl>
+
+  <p class="insight-sub">Manba shajaralar ({{ a.trees|length }})</p>
+  <ul class="insight-list">
+    {% for t in a.trees %}<li><a href="{% url 'boshqaruv:tree_detail' t.pk %}">{{ t.name }}</a><span>@{{ t.owner.username }}{% if not t.is_public %} · shaxsiy{% endif %}</span></li>{% endfor %}
+  </ul>
+
+  <p class="insight-sub">Tug'ilgan joylar</p>
+  <ul class="hbars insight-bars">
+    {% for name, n, pct in a.regions %}<li><span class="hbar-label">{{ name }}</span><span class="hbar"><i style="width: {{ pct }}%"></i></span><b>{{ n }}</b></li>{% endfor %}
+  </ul>
+
+  <p class="insight-note">
+    Ma'lumot to'liqligi: yili bor — {{ a.with_year }}/{{ a.people }}, joyi bor — {{ a.with_place }}/{{ a.people }}.
+    {% if a.conflicts %}<b class="warn">{{ a.conflicts }} ta shaxsda ota-ona bo'yicha ziddiyat bor.</b>{% endif %}
+    Kartadagi raqam — shu shaxs nechta yozuvdan birlashtirilganini bildiradi.
+  </p>
+</aside>
+
+{{ families_json|json_script:"families-data" }}
+<script src="{% static_v 'js/tree-map.js' %}"></script>
+<script src="{% static_v 'js/tree-board.js' %}"></script>
+<script>
+(function () {
+  var btn = document.getElementById("insight-toggle"), box = document.getElementById("insight");
+  if (window.matchMedia("(max-width: 899px)").matches) { box.hidden = true; btn.setAttribute("aria-expanded", "false"); }
+  btn.addEventListener("click", function () {
+    box.hidden = !box.hidden;
+    btn.setAttribute("aria-expanded", String(!box.hidden));
+  });
+})();
+</script>
+{% endblock %}

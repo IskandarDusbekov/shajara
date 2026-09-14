@@ -1,0 +1,176 @@
+{% extends "shajara/base.html" %}
+{% block title %}A'zolar — {{ tree.name }}{% endblock %}
+{% block body %}
+{% include "shajara/_header.html" %}
+<main class="pf-shell">
+  <a class="back-link" href="{% url 'tree_overview' tree.url_key %}">← {{ tree.name }}</a>
+
+  <header class="pf-head" style="margin-top:14px;">
+    <div>
+      <p class="pf-kicker">{% if tree.is_learning %}Sinf va hamkorlar{% else %}Oila a'zolari{% endif %}</p>
+      <h1 class="pf-h1">Kimlar quryapti</h1>
+      <p class="pf-lead">
+        {% if tree.is_learning %}
+        O'quvchilar, talabalar yoki hamkasblaringizni taklif qiling. Muharrirlar shajarani to'ldiradi, kuzatuvchilar o'rganadi va test ishlaydi — natijalar shu yerda ko'rinadi.
+        {% else %}
+        Bitta shajarani butun oila bilan tuzing: siz boshlaysiz, qarindoshlar havola orqali qo'shilib, o'z shoxini — farzandlari, nevaralari, turmush o'rtoqlarini kiritadi.
+        {% endif %}
+      </p>
+    </div>
+  </header>
+
+  {% for message in messages %}
+  <div class="pf-alert{% if message.tags == 'success' %} pf-alert-good{% elif message.tags == 'error' %} pf-alert-bad{% endif %}">{{ message }}</div>
+  {% endfor %}
+
+  <div class="pf-split">
+    <section class="pf-card">
+      <h2 class="pf-h2">{% include "shajara/_icon.html" with name="users" %}A'zolar <small>{{ members|length|add:1 }}</small></h2>
+      <ul class="pf-list">
+        <li class="pf-member">
+          <span class="pf-avatar pf-avatar-owner">{{ tree.owner.username|first }}</span>
+          <span class="pf-member-main">
+            <span class="pf-member-name">{{ tree.owner.get_full_name|default:tree.owner.username }}{% if tree.owner_id == request.user.id %} (siz){% endif %}</span>
+            <span class="pf-member-sub">@{{ tree.owner.username }} · {{ owner_contributions }} ta hissa</span>
+          </span>
+          <span class="pf-member-tools">
+            {% if tree.is_learning and owner_quiz %}<span class="pf-score{% if owner_quiz.best < 50 %} is-low{% endif %}">Test: {{ owner_quiz.best }}%</span>{% endif %}
+            <span class="pf-role pf-role-owner">Muallif</span>
+          </span>
+        </li>
+        {% for m in members %}
+        <li class="pf-member">
+          <span class="pf-avatar">{{ m.user.username|first }}</span>
+          <span class="pf-member-main">
+            <span class="pf-member-name">{{ m.user.get_full_name|default:m.user.username }}{% if m.user_id == request.user.id %} (siz){% endif %}</span>
+            <span class="pf-member-sub">@{{ m.user.username }} · {{ m.joined_at|date:"d.m.Y" }} qo'shilgan · {{ m.contributions }} ta hissa</span>
+          </span>
+          <span class="pf-member-tools">
+            {% if tree.is_learning %}
+              {% if m.quiz %}<span class="pf-score{% if m.quiz.best < 50 %} is-low{% endif %}" title="{{ m.quiz.count }} marta ishlagan">Test: {{ m.quiz.best }}%</span>
+              {% else %}<span class="pf-pill">Test ishlamagan</span>{% endif %}
+            {% endif %}
+            {% if is_owner %}
+            <form method="post" action="{% url 'member_update' tree.url_key m.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="role">
+              <select class="pf-select-sm" name="role" aria-label="@{{ m.user.username }} huquqi" onchange="this.form.submit()">
+                <option value="muharrir" {% if m.role == "muharrir" %}selected{% endif %}>Muharrir</option>
+                <option value="kuzatuvchi" {% if m.role == "kuzatuvchi" %}selected{% endif %}>Kuzatuvchi</option>
+              </select>
+              <noscript><button class="pf-btn pf-btn-sm" type="submit">OK</button></noscript>
+            </form>
+            <form method="post" action="{% url 'member_update' tree.url_key m.pk %}" onsubmit="return confirm('@{{ m.user.username|escapejs }} shajaradan chiqarilsinmi? U kiritgan ma\'lumotlar saqlanib qoladi.');">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="remove">
+              <button class="pf-btn pf-btn-sm pf-btn-danger" type="submit" aria-label="@{{ m.user.username }}ni chiqarish" title="Chiqarish">{% include "shajara/_icon.html" with name="x" %}</button>
+            </form>
+            {% elif m.user_id == request.user.id %}
+            <span class="pf-role pf-role-{{ m.role }}">{{ m.get_role_display }}</span>
+            <form method="post" action="{% url 'member_update' tree.url_key m.pk %}" onsubmit="return confirm('Bu shajaradan chiqmoqchimisiz? Qayta qo\'shilish uchun yangi taklif kerak bo\'ladi.');">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="leave">
+              <button class="pf-btn pf-btn-sm pf-btn-danger" type="submit">{% include "shajara/_icon.html" with name="logout" %}Chiqish</button>
+            </form>
+            {% else %}
+            <span class="pf-role pf-role-{{ m.role }}">{{ m.get_role_display }}</span>
+            {% endif %}
+          </span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% if not members %}
+      <p class="pf-help" style="margin-top:10px;">Hozircha faqat {% if is_owner %}siz{% else %}muallif{% endif %}. {% if is_owner %}O'ngdagi taklif havolasini yarating va yuboring.{% endif %}</p>
+      {% endif %}
+    </section>
+
+    <aside>
+      {% if is_owner %}
+      <section class="pf-card" id="taklif">
+        <h2 class="pf-h2">{% include "shajara/_icon.html" with name="link" %}Taklif havolasi</h2>
+        <form method="post" action="{% url 'invite_create' tree.url_key %}" class="pf-invite-form">
+          {% csrf_token %}
+          <label>
+            <span class="pf-label" style="margin-top:0;">Huquq</span>
+            <select class="field" name="role">
+              <option value="muharrir" {% if not tree.is_learning %}selected{% endif %}>Muharrir</option>
+              <option value="kuzatuvchi" {% if tree.is_learning %}selected{% endif %}>Kuzatuvchi</option>
+            </select>
+          </label>
+          <label>
+            <span class="pf-label" style="margin-top:0;">Muddati</span>
+            <select class="field" name="ttl">
+              <option value="1">1 kun</option>
+              <option value="7" selected>7 kun</option>
+              <option value="30">30 kun</option>
+              <option value="0">Muddatsiz</option>
+            </select>
+          </label>
+          <button class="pf-btn pf-btn-primary" type="submit">{% include "shajara/_icon.html" with name="plus" %}Yaratish</button>
+        </form>
+        <ul class="pf-steps-mini" style="margin-top:14px;">
+          <li><span><b>Muharrir</b> — {{ role_help.muharrir }}.</span></li>
+          <li><span><b>Kuzatuvchi</b> — {{ role_help.kuzatuvchi }}.</span></li>
+        </ul>
+
+        {% if invites %}
+        <hr class="pf-divider">
+        {% for inv in invites %}
+        <div class="pf-invite{% if just_created == inv.pk|stringformat:'d' %} is-new{% endif %}">
+          <div class="pf-invite-head">
+            <span class="pf-role pf-role-{{ inv.role }}">{{ inv.get_role_display }}</span>
+            <span>{% if inv.expires_at %}{{ inv.expires_at|date:"d.m.Y H:i" }} gacha{% else %}muddatsiz{% endif %}</span>
+            <span>· {{ inv.uses }} kishi qo'shildi</span>
+          </div>
+          <div class="pf-copy">
+            <input type="text" value="{{ inv.url }}" readonly aria-label="Taklif havolasi" onclick="this.select()">
+            <button type="button" class="pf-btn pf-btn-sm" data-copy="{{ inv.url }}">{% include "shajara/_icon.html" with name="copy" %}<span>Nusxa</span></button>
+            <a class="pf-btn pf-btn-sm pf-btn-edu" target="_blank" rel="noopener"
+               href="{{ inv.telegram }}">{% include "shajara/_icon.html" with name="telegram" %}Telegram</a>
+            <form method="post" action="{% url 'invite_revoke' tree.url_key inv.pk %}">
+              {% csrf_token %}
+              <button class="pf-btn pf-btn-sm pf-btn-danger" type="submit" title="Havolani bekor qilish">Bekor qilish</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+        <p class="pf-help" style="margin-top:12px;">Havolani faqat ishonchli odamlarga yuboring — uni ochgan har kim shajaraga qo'shila oladi. Kerak bo'lmay qolsa, bekor qiling.</p>
+      </section>
+      {% else %}
+      <section class="pf-card">
+        <h2 class="pf-h2">{% include "shajara/_icon.html" with name="shield" %}Sizning huquqingiz</h2>
+        {% if role == "muharrir" %}
+        <p class="pf-help" style="margin:0;"><b>Muharrir</b> — {{ role_help.muharrir }}. Xaritada shaxsni bosing va «Qarindosh qo'shish»ni tanlang. O'zingiz qo'shgan shaxslarni o'chira olasiz.</p>
+        {% else %}
+        <p class="pf-help" style="margin:0;"><b>Kuzatuvchi</b> — {{ role_help.kuzatuvchi }}. Tahrirlash kerak bo'lsa, muallifdan (@{{ tree.owner.username }}) muharrir huquqini so'rang.</p>
+        {% endif %}
+        <div class="pf-actions">
+          <a class="pf-btn pf-btn-primary pf-btn-sm" href="{% url 'index' tree.url_key %}">{% include "shajara/_icon.html" with name="map" %}Xarita</a>
+          <a class="pf-btn pf-btn-edu pf-btn-sm" href="{% url 'tree_quiz' tree.url_key %}">{% include "shajara/_icon.html" with name="quiz" %}Test</a>
+        </div>
+      </section>
+      {% endif %}
+    </aside>
+  </div>
+</main>
+<script>
+document.querySelectorAll("[data-copy]").forEach(function (btn) {
+  btn.addEventListener("click", function () {
+    var text = btn.getAttribute("data-copy");
+    var label = btn.querySelector("span");
+    function done() {
+      label.textContent = "Nusxa olindi";
+      setTimeout(function () { label.textContent = "Nusxa"; }, 1800);
+    }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done, function () {});
+    } else {
+      var input = btn.parentNode.querySelector("input");
+      input.select();
+      try { document.execCommand("copy"); done(); } catch (e) { /* the field stays selected for a manual copy */ }
+    }
+  });
+});
+</script>
+{% endblock %}

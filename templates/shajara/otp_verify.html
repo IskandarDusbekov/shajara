@@ -1,0 +1,33 @@
+{% extends "shajara/base.html" %}
+{% load static %}
+{% block title %}{{ title }} — e-Shajara{% endblock %}
+{% block body %}
+<div class="center-screen">
+  <div class="big-leaf"><svg class="hero-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="12" r="4.5"/><path d="M12.5 12H22M18.5 12v3.5M15.5 12v2.5"/></svg></div>
+  <h1>{{ title }}</h1>
+  <p class="sub">{{ subtitle }}{% if email_hint %} <b>{{ email_hint }}</b>{% endif %}</p>
+
+  {% if messages %}
+  <div style="width:100%; max-width:300px;">
+    {% for message in messages %}
+    <div class="form-error{% if message.tags == 'success' %} form-success{% endif %}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <form method="post" novalidate style="width:100%; max-width:300px;">
+    {% csrf_token %}
+    <input class="stack-input" type="text" name="code" placeholder="6 xonali kod" inputmode="numeric"
+           autocomplete="one-time-code" maxlength="6" autofocus required
+           style="text-align:center; letter-spacing:0.4em; font-size:22px;">
+    {% if form.code.errors %}<div class="form-error">{{ form.code.errors|join:" " }}</div>{% endif %}
+    <button class="btn-primary full" type="submit">Tasdiqlash</button>
+  </form>
+
+  {% if otp %}
+  <p class="note">Kod {{ otp.attempts_left }} marta kiritilishi mumkin va 3 daqiqa amal qiladi.</p>
+  {% endif %}
+  <p class="note"><a href="{% url resend_url %}" style="color:#e9c869;">Kod kelmadimi? Qayta yuborish</a></p>
+  {% if skip_url %}<p class="note"><a href="{{ skip_url }}">Keyinroq tasdiqlayman →</a></p>{% endif %}
+</div>
+{% endblock %}

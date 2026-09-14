@@ -1,0 +1,22 @@
+{% extends "shajara/base.html" %}
+{% load static %}
+{% block title %}Kirish — e-Shajara{% endblock %}
+{% block body %}
+<div class="center-screen">
+  <div class="big-leaf"><svg class="hero-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c9 0 16-4.8 16-15C11.5 5 4 8.2 4 15.5z"/><path d="M4 20c2.2-5.5 6-9.2 11-11.5"/></svg></div>
+  <h1>e-Shajara</h1>
+  <p class="sub">{% if next and "/taklif/" in next %}Taklifni qabul qilish uchun hisobingizga kiring.{% else %}Foydalanuvchi nomi yoki email va parolingizni kiriting.{% endif %}</p>
+
+  <form method="post" novalidate style="width:100%; max-width:300px;">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+    <input class="stack-input" type="text" name="username" placeholder="Foydalanuvchi nomi yoki email" autofocus autocomplete="username" required>
+    <input class="stack-input" type="password" name="password" placeholder="Parol" required>
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    <button class="btn-primary full" type="submit">Kirish</button>
+  </form>
+
+  <p class="note"><a href="{% url 'password_reset' %}" style="color:#e9c869;">Parolni unutdingizmi?</a></p>
+  <p class="note">Hisobingiz yo'qmi? <a href="{% url 'register' %}{% if next %}?next={{ next|urlencode }}{% endif %}" style="color:#e9c869;">Ro'yxatdan o'tish</a></p>
+</div>
+{% endblock %}

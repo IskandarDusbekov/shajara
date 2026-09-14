@@ -1,0 +1,71 @@
+{% extends "shajara/base.html" %}
+{% block title %}So'rovlar — e-Shajara{% endblock %}
+{% block body %}
+{% include "shajara/_header.html" %}
+<main class="page-wrap">
+  <header class="page-head">
+    <span class="page-head-ic" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>
+    </span>
+    <h1 class="page-title">So'rovlar</h1>
+    <p class="page-sub">Boshqa foydalanuvchilar sizning shajarangizga bog'lanish uchun yuborgan so'rovlar.</p>
+  </header>
+
+  {% if messages %}
+  <div class="toast-stack page-toasts">
+    {% for message in messages %}
+    <div class="toast-msg{% if message.tags == 'success' %} toast-success{% endif %}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if my_requests %}
+  <ul class="request-list">
+    {% for r in my_requests %}
+    <li class="request-card{% if r.status != 'pending' %} is-done{% endif %}">
+      <div class="request-top">
+        <span class="person-row-avatar" aria-hidden="true">{{ r.from_user.username|first|upper }}</span>
+        <span class="person-row-text">
+          <span class="person-row-name">{{ r.from_user.username }}</span>
+          <span class="person-row-handle">
+            {% if r.from_tree %}«{{ r.from_tree.name }}» shajarasi orqali · {% endif %}{{ r.created_at|date:"d.m.Y" }}
+          </span>
+        </span>
+        <span class="status-pill status-{{ r.status }}">{{ r.get_status_display }}</span>
+      </div>
+      {% if r.message %}
+      <blockquote class="request-message">{{ r.message }}</blockquote>
+      {% endif %}
+      {% if r.status == 'pending' %}
+      <div class="request-actions">
+        <a class="row-action row-action-primary" href="{% url 'accept_request' r.id %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          <span>Qabul qilib bog'lash</span>
+        </a>
+        <form method="post" action="{% url 'decline_request' r.id %}">
+          {% csrf_token %}
+          <button class="row-action row-action-muted" type="submit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            <span>Rad etish</span>
+          </button>
+        </form>
+      </div>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="empty-block">
+    <span class="empty-block-ic" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>
+    </span>
+    <p class="empty-block-title">Hozircha so'rovlar yo'q</p>
+    <p class="empty-block-text">Kimdir sizga bog'lanish so'rovi yuborsa, u shu yerda paydo bo'ladi.</p>
+    <a class="row-action row-action-primary" href="{% url 'search_users' %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+      <span>Qarindosh qidirish</span>
+    </a>
+  </div>
+  {% endif %}
+</main>
+{% endblock %}

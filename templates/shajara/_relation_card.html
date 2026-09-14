@@ -1,0 +1,13 @@
+<a class="relation-card" href="{% url 'person_detail' tree.url_key rel.id %}">
+  {% if rel.photo %}
+    <img class="rel-av" src="{{ rel.photo.url }}" alt="">
+  {% else %}
+    <span class="rel-av {% if rel.gender == 'ayol' %}av-female{% else %}av-male{% endif %}">{{ rel.first_name|first|upper }}</span>
+  {% endif %}
+  <span class="rel-info">
+    <span class="rel-name">{{ rel.full_name }}</span>
+    {% if rel.display_year %}<span class="rel-year">{{ rel.display_year }}</span>{% endif %}
+  </span>
+  {% if badge %}<span class="rel-badge">{{ badge }}</span>{% endif %}
+  <svg class="rel-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+</a>

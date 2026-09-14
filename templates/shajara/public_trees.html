@@ -1,0 +1,71 @@
+{% extends "shajara/base.html" %}
+{% block title %}Kutubxona — e-Shajara{% endblock %}
+{% block body %}
+{% include "shajara/_header.html" %}
+<main class="pf-shell">
+  <header class="pf-head">
+    <div>
+      <p class="pf-kicker">Kutubxona</p>
+      <h1 class="pf-h1">{% if kind == "talimiy" %}Ta'limiy shajaralar{% else %}Ommaviy oila shajaralari{% endif %}</h1>
+      <p class="pf-lead">
+        {% if kind == "talimiy" %}
+        Sulolalar va tarixiy shaxslar shajaralari: xaritada o'rganing, manbalarini ko'ring va test bilan o'zingizni sinang. Darsda ko'rsatish uchun ham qulay.
+        {% else %}
+        Egalari hamma ko'rishi uchun ochgan oila shajaralari — o'z shajarangiz uchun ilhom oling.
+        {% endif %}
+      </p>
+    </div>
+  </header>
+
+  <div class="pf-toolbar">
+    <nav class="pf-tabs" aria-label="Shajara turi">
+      <a class="pf-tab{% if kind == 'talimiy' %} is-on{% endif %}" href="?tur=talimiy{% if q %}&q={{ q|urlencode }}{% endif %}">{% include "shajara/_icon.html" with name="edu" %}Ta'limiy <b>{{ learning_total }}</b></a>
+      <a class="pf-tab{% if kind == 'oilaviy' %} is-on{% endif %}" href="?tur=oilaviy{% if q %}&q={{ q|urlencode }}{% endif %}">{% include "shajara/_icon.html" with name="fam" %}Oilaviy <b>{{ family_total }}</b></a>
+      <a class="pf-tab" href="{% url 'maps' %}">{% include "shajara/_icon.html" with name="map" %}Tarixiy xaritalar</a>
+    </nav>
+    <form class="pf-search" method="get" role="search">
+      <input type="hidden" name="tur" value="{{ kind }}">
+      <input type="search" name="q" value="{{ q }}" placeholder="{% if kind == 'talimiy' %}Mavzu, davr yoki shaxs: Temuriylar, XV asr…{% else %}Shajara nomi yoki shaxs…{% endif %}" aria-label="Qidirish">
+      <button class="pf-btn" type="submit" aria-label="Qidirish">{% include "shajara/_icon.html" with name="search" %}</button>
+    </form>
+  </div>
+
+  {% if trees %}
+  <div class="pf-grid">
+    {% for tree in trees %}
+    <a class="pf-tree is-{{ tree.kind }}" href="{% url 'tree_overview' tree.url_key %}">
+      <div class="pf-tree-top">
+        <span class="pf-tree-name">{{ tree.name }}</span>
+        <span class="pf-kind pf-kind-{{ tree.kind }}">{% if tree.is_learning %}{% include "shajara/_icon.html" with name="edu" %}Ta'limiy{% else %}{% include "shajara/_icon.html" with name="fam" %}Oilaviy{% endif %}</span>
+      </div>
+      {% if tree.subject or tree.era %}<span class="pf-tree-subject">{{ tree.subject }}{% if tree.subject and tree.era %} · {% endif %}{{ tree.era }}</span>{% endif %}
+      {% if tree.description %}<p class="pf-tree-desc">{{ tree.description|truncatewords:22 }}</p>{% endif %}
+      <div class="pf-tree-meta">
+        <span class="pf-pill">{% include "shajara/_icon.html" with name="crown" %}{{ tree.root_person.full_name }}</span>
+        <span class="pf-pill">@{{ tree.owner.username }}</span>
+        <span class="pf-pill">{% include "shajara/_icon.html" with name="star" %}{{ tree.num_gratitude }}</span>
+        {% if tree.num_comments %}<span class="pf-pill">{{ tree.num_comments }} izoh</span>{% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="pf-empty">
+    {% include "shajara/_icon.html" with name="book" %}
+    {% if q %}
+    <h3>«{{ q }}» bo'yicha hech narsa topilmadi</h3>
+    <p>Boshqa so'z bilan qidirib ko'ring yoki o'zingiz shunday shajara tuzing.</p>
+    {% elif kind == "talimiy" %}
+    <h3>Hozircha ommaviy ta'limiy shajara yo'q</h3>
+    <p>Birinchi bo'ling: sulola yoki tarixiy shaxs shajarasini manbalari bilan tuzing va ommaviy qiling — boshqa o'quvchilar ham foydalanadi.</p>
+    {% else %}
+    <h3>Hozircha ommaviy oila shajarasi yo'q</h3>
+    <p>Oila shajarangizni sozlamalardan ommaviy qilishingiz mumkin.</p>
+    {% endif %}
+    <div class="pf-actions">
+      <a class="pf-btn pf-btn-primary" href="{% url 'tree_create' %}?tur={{ kind }}">{% include "shajara/_icon.html" with name="plus" %}Shajara tuzish</a>
+    </div>
+  </div>
+  {% endif %}
+</main>
+{% endblock %}

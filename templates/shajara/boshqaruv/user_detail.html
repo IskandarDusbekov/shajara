@@ -1,0 +1,103 @@
+{% extends "shajara/boshqaruv/base.html" %}
+{% block adm_title %}{{ member.username }}{% endblock %}
+{% block adm_content %}
+<a class="crumb" href="{% url 'boshqaruv:users' %}">← Foydalanuvchilar</a>
+
+<header class="profile-head panel">
+  <span class="avatar avatar-lg">{{ member.username|first|upper }}</span>
+  <div class="profile-main">
+    <h1 class="adm-title">{{ member.get_full_name|default:member.username }}</h1>
+    <p class="adm-sub">@{{ member.username }} · {{ member.email|default:"email kiritilmagan" }}
+      {% if profile.email_verified %}<span class="tag tag-good">tasdiqlangan</span>{% elif member.email %}<span class="tag">tasdiqlanmagan</span>{% endif %}
+    </p>
+    <div class="chips">
+      {% if not member.is_active %}<span class="tag tag-bad">Bloklangan</span>{% endif %}
+      {% if member.is_superuser %}<span class="tag tag-admin">Superadmin</span>{% elif member.is_staff %}<span class="tag tag-admin">Admin</span>{% endif %}
+      {% if profile.role %}<span class="tag tag-admin">{{ profile.get_role_display }}</span>{% endif %}
+      {% if profile.region %}<span class="tag">{{ profile.region }}</span>{% endif %}
+      <span class="tag">Ro'yxatdan o'tgan: {{ member.date_joined|date:"d.m.Y H:i" }}</span>
+      <span class="tag">Oxirgi kirish: {{ member.last_login|date:"d.m.Y H:i"|default:"hech qachon" }}</span>
+      {% if profile.is_online %}<span class="tag tag-good"><i class="dot dot-live"></i> Hozir onlayn</span>{% elif profile.last_seen %}<span class="tag">Saytda bo'lgan: {{ profile.last_seen|date:"d.m.Y H:i" }}</span>{% endif %}
+    </div>
+  </div>
+  {% if member != request.user %}
+  <div class="profile-actions">
+    {% if not member.is_superuser or request.user.is_superuser %}
+    <form method="post" onsubmit="return confirm('{% if member.is_active %}Bu hisobni bloklaysizmi? U tizimga kira olmaydi.{% else %}Hisobni qayta faollashtirasizmi?{% endif %}');">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="toggle_active">
+      <button class="btn {% if member.is_active %}btn-danger{% else %}btn-primary{% endif %}" type="submit">{% if member.is_active %}Bloklash{% else %}Faollashtirish{% endif %}</button>
+    </form>
+    {% endif %}
+    {% if request.user.is_superuser %}
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="toggle_staff">
+      <button class="btn" type="submit">{% if member.is_staff %}Adminlikdan olish{% else %}Admin qilish{% endif %}</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endif %}
+</header>
+
+<section class="kpi-grid kpi-grid-6">
+  <div class="kpi kpi-sm"><span class="kpi-label">Shajaralar</span><span class="kpi-value">{{ trees|length }}</span></div>
+  <div class="kpi kpi-sm"><span class="kpi-label">Kiritgan shaxslar</span><span class="kpi-value">{{ counts.persons }}</span></div>
+  <div class="kpi kpi-sm"><span class="kpi-label">Hikoyalar</span><span class="kpi-value">{{ counts.stories }}</span></div>
+  <div class="kpi kpi-sm"><span class="kpi-label">Izohlar</span><span class="kpi-value">{{ counts.comments }}</span></div>
+  <div class="kpi kpi-sm"><span class="kpi-label">So'rovlar</span><span class="kpi-value">{{ counts.requests_sent }} <small>/ {{ counts.requests_received }}</small></span></div>
+  <div class="kpi kpi-sm"><span class="kpi-label">Kirishlar</span><span class="kpi-value">{{ counts.logins }}</span></div>
+</section>
+
+<div class="adm-grid-2 adm-grid-wide-left">
+  <section class="panel">
+    <header class="panel-head"><h2 class="panel-title">Shajaralari</h2></header>
+    {% if trees %}
+    <ul class="list">
+      {% for t in trees %}
+      <li>
+        <a class="list-row" href="{% url 'boshqaruv:tree_detail' t.pk %}">
+          <span class="list-main"><b>{{ t.name }}</b><small>{{ t.created_at|date:"d.m.Y" }} · {{ t.people_count }} shaxs</small></span>
+          <span class="tag {% if t.is_public %}tag-good{% endif %}">{{ t.get_visibility_display }}</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty-line">Shajara yaratmagan.</p>
+    {% endif %}
+    {% if memberships %}
+    <header class="panel-head"><h2 class="panel-title">A'zo bo'lgan shajaralari</h2></header>
+    <ul class="list">
+      {% for m in memberships %}
+      <li>
+        <a class="list-row" href="{% url 'boshqaruv:tree_detail' m.tree_id %}">
+          <span class="list-main"><b>{{ m.tree.name }}</b><small>@{{ m.tree.owner.username }} · {{ m.joined_at|date:"d.m.Y" }}</small></span>
+          <span class="tag">{{ m.get_role_display }}</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <header class="panel-head"><h2 class="panel-title">Qaysi manzillardan kirgan</h2></header>
+    {% if ips %}
+    <ul class="list">
+      {% for ip in ips %}
+      <li class="list-row list-static"><span class="list-main mono"><b>{{ ip.ip_address }}</b><small>oxirgi: {{ ip.last|date:"d.m.Y H:i" }}</small></span><span class="list-num">{{ ip.n }} marta</span></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty-line">Ma'lumot yo'q.</p>
+    {% endif %}
+  </section>
+</div>
+
+<section class="panel">
+  <header class="panel-head"><h2 class="panel-title">Nimalar qilgan</h2><span class="panel-meta">{{ page.paginator.count }} ta yozuv</span></header>
+  {% include "shajara/boshqaruv/_activity_rows.html" with rows=page %}
+</section>
+{% include "shajara/boshqaruv/_pagination.html" %}
+{% endblock %}

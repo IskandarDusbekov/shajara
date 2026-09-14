@@ -1,0 +1,304 @@
+{% extends "shajara/boshqaruv/base.html" %}
+{% load static assets %}
+{% block adm_title %}Viloyatlar xaritasi{% endblock %}
+{% block adm_head %}<link rel="stylesheet" href="{% static 'vendor/leaflet/leaflet.css' %}">{% endblock %}
+{% block adm_content %}
+<header class="adm-head">
+  <div>
+    <h1 class="adm-title">Viloyatlar kesimida</h1>
+    <p class="adm-sub">Kim qayerdan ro'yxatdan o'tgan, hozir kim saytda, shajaralar qaysi viloyatga tegishli va ular boshqa viloyatlar bilan qanday bog'langan. Onlayn ko'rsatkichlar har 20 soniyada o'zi yangilanadi.</p>
+  </div>
+  <div class="head-actions">
+    <span class="adm-count"><i class="dot dot-live"></i> Yangilandi: <span data-live-at>{% now "H:i:s" %}</span></span>
+    <div class="seg" aria-label="Moslik ishonch chegarasi">
+      {% for t in thresholds %}<a class="seg-item{% if t == min_score %} is-on{% endif %}" href="?olchov={{ metric }}&chegara={{ t }}" title="Shajaralarni kamida {{ t }}% ishonch bilan bitta tarmoq deb hisoblash">{{ t }}%</a>{% endfor %}
+    </div>
+  </div>
+</header>
+
+<section class="kpi-grid kpi-grid-5" aria-label="Umumiy ko'rsatkichlar">
+  <div class="kpi">
+    <span class="kpi-label">Ro'yxatdan o'tganlar</span>
+    <span class="kpi-value">{{ totals.users }}</span>
+    <span class="kpi-foot"><b>{{ totals.users_known_pct }}%</b> viloyatini ko'rsatgan · <b>+{{ totals.new_30 }}</b> 30 kunda</span>
+  </div>
+  <div class="kpi kpi-live">
+    <span class="kpi-label">Hozir onlayn</span>
+    <span class="kpi-value" data-live-total>{{ totals.online }}</span>
+    <span class="kpi-foot">so'nggi 5 daqiqada saytda bo'lganlar</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Shajaralar</span>
+    <span class="kpi-value">{{ totals.trees }}</span>
+    <span class="kpi-foot">{% if totals.trees_unplaced %}<b>{{ totals.trees_unplaced }}</b> tasining viloyati noma'lum{% else %}hammasi viloyatga biriktirilgan{% endif %}</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Bog'langan shajaralar</span>
+    <span class="kpi-value">{{ totals.trees_connected }}<small> / {{ totals.trees }}</small></span>
+    <span class="kpi-foot"><b>{{ totals.networks_multi }}</b> umumiy oila tarmog'ida</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Viloyatlararo aloqalar</span>
+    <span class="kpi-value">{{ totals.marriage_ties|add:totals.cross_links }}</span>
+    <span class="kpi-foot"><b>{{ totals.marriage_ties }}</b> nikoh · <b>{{ totals.cross_links }}</b> umumiy tarmoq</span>
+  </div>
+</section>
+
+<div class="map-layout">
+  <section class="panel map-panel">
+    <div class="map-toolbar">
+      <div class="seg" role="tablist" aria-label="Xaritada nima bo'yicha bo'yalsin" id="metric-seg">
+        {% for key, label, hint in metrics %}
+        <button type="button" role="tab" class="seg-item{% if key == metric %} is-on{% endif %}" data-metric="{{ key }}" title="{{ hint }}" aria-selected="{% if key == metric %}true{% else %}false{% endif %}">{{ label }}</button>
+        {% endfor %}
+      </div>
+      <div class="map-toggles">
+        <label><input type="checkbox" data-layer="live" checked><i class="is-live"></i>Onlayn</label>
+        <label><input type="checkbox" data-layer="links" checked><i></i>Umumiy tarmoq</label>
+        <label><input type="checkbox" data-layer="kin" checked><i class="is-kin"></i>Nikoh aloqasi</label>
+      </div>
+    </div>
+    <div class="rmap" id="rmap" data-geo="{% static 'data/uz-regions.geojson' %}" role="region" aria-label="O'zbekiston viloyatlari xaritasi"></div>
+    <div class="rmap-foot">
+      <div class="rmap-legend" id="rmap-legend"></div>
+      <span class="rmap-attrib">Chegaralar: geoBoundaries (CC BY 4.0) · Fon: © OpenStreetMap ishtirokchilari</span>
+    </div>
+  </section>
+
+  <aside class="panel region-card" id="region-card" aria-live="polite">
+    <div class="region-card-head">
+      <p class="region-kicker">Viloyat</p>
+      <h2 class="region-name" id="rc-name">Viloyatni tanlang</h2>
+      <span class="region-live"><i class="dot dot-live"></i><b id="rc-online">0</b> kishi hozir onlayn</span>
+    </div>
+    <div class="region-sec">
+      <dl class="region-stats">
+        <div><dt>Ro'yxatdan o'tgan</dt><dd id="rc-users">—</dd></div>
+        <div><dt>Yangi (30 kun)</dt><dd id="rc-new">—</dd></div>
+        <div><dt>Shaxslar</dt><dd id="rc-people">—</dd></div>
+        <div><dt>Shajaralar</dt><dd id="rc-trees">—</dd></div>
+        <div><dt>Bog'langan</dt><dd id="rc-connected">—</dd></div>
+        <div><dt>Dublikatlar</dt><dd id="rc-dups">—</dd></div>
+      </dl>
+    </div>
+    <div class="region-sec">
+      <p class="region-sec-title">Hozir onlayn</p>
+      <ul class="mini-list" id="rc-online-list"></ul>
+    </div>
+    <div class="region-sec">
+      <p class="region-sec-title">Qaysi viloyatlar bilan bog'langan</p>
+      <ul class="mini-list" id="rc-partners"></ul>
+    </div>
+    <div class="region-sec">
+      <p class="region-sec-title">Shajaralari <a id="rc-networks" href="#">Tarmoqlar →</a></p>
+      <ul class="mini-list" id="rc-trees-list"></ul>
+    </div>
+    <div class="region-sec region-actions" id="rc-actions"></div>
+  </aside>
+</div>
+
+<section class="panel panel-flush">
+  <header class="panel-head panel-head-pad">
+    <h2 class="panel-title">Barcha viloyatlar</h2>
+    <span class="panel-meta">«{{ metric_label }}» bo'yicha tartiblangan · qatorni bosing — xaritada ochiladi</span>
+  </header>
+  <div class="table-wrap">
+    <table class="table" id="region-table">
+      <thead><tr>
+        <th>Viloyat</th><th class="num">Ro'yxatdan o'tgan</th><th class="num">Yangi 30 kun</th><th class="num">Onlayn</th>
+        <th class="num">Shajaralar</th><th class="num">Bog'langan</th><th class="num">Shaxslar</th><th class="num">Dublikat</th><th>Aloqador viloyatlar</th>
+      </tr></thead>
+      <tbody>
+        {% for r in table %}
+        <tr data-region="{{ r.name }}">
+          <td class="nowrap"><b>{{ r.name }}</b></td>
+          <td class="num">{{ r.users }}{% if r.users_guess %} <span class="muted">+{{ r.users_guess }}</span>{% endif %}</td>
+          <td class="num">{{ r.new_30 }}</td>
+          <td class="num"><span class="cell-live{% if not r.online %} is-zero{% endif %}" data-live-cell="{{ r.name }}">{{ r.online }}</span></td>
+          <td class="num">{{ r.trees }}</td>
+          <td class="num">{{ r.trees_connected }}</td>
+          <td class="num">{{ r.people }}</td>
+          <td class="num">{{ r.duplicates }}</td>
+          <td><div class="partner-chips">{% for k in r.kin|slice:":4" %}<span class="tag">{{ k.short }} · {{ k.n }}</span>{% endfor %}{% for k in r.partners|slice:":3" %}<span class="tag tag-good">{{ k.short }} · {{ k.n }}</span>{% endfor %}{% if not r.kin and not r.partners %}<span class="muted">—</span>{% endif %}</div></td>
+        </tr>
+        {% endfor %}
+        {% if abroad.users or abroad.trees or abroad.people %}
+        <tr data-region="{{ abroad.name }}">
+          <td class="nowrap"><b>Chet el</b></td>
+          <td class="num">{{ abroad.users }}</td><td class="num">{{ abroad.new_30 }}</td>
+          <td class="num"><span class="cell-live{% if not abroad.online %} is-zero{% endif %}" data-live-cell="{{ abroad.name }}">{{ abroad.online }}</span></td>
+          <td class="num">{{ abroad.trees }}</td><td class="num">{{ abroad.trees_connected }}</td><td class="num">{{ abroad.people }}</td><td class="num">{{ abroad.duplicates }}</td><td></td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+  <p class="panel-foot" style="padding: 0 18px 14px;">
+    Viloyat foydalanuvchining profilidan olinadi; ko'rsatmaganlar kiritgan shaxslari bo'yicha taxmin qilinadi (<span class="muted">+N</span>).
+    Shajara bosh shaxsning tug'ilgan joyiga biriktiriladi. «Nikoh aloqasi» — turli viloyatda tug'ilgan er-xotinlar,
+    «umumiy tarmoq» — tizim bitta oilaga ulangan deb topgan turli viloyat shajaralari.
+    {% if totals.online_unknown %}Viloyati noma'lum yana <b>{{ totals.online_unknown }}</b> kishi onlayn.{% endif %}
+  </p>
+</section>
+
+{{ map_data|json_script:"map-data" }}
+{% endblock %}
+
+{% block adm_scripts %}
+<script src="{% static 'vendor/leaflet/leaflet.js' %}"></script>
+<script src="{% static_v 'js/adm-region-map.js' %}"></script>
+<script>
+(function () {
+  "use strict";
+  var data = JSON.parse(document.getElementById("map-data").textContent);
+  var rows = data.rows;
+  var params = new URLSearchParams(location.search);
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function set(id, v) { document.getElementById(id).textContent = v; }
+  function empty(list, text) { var li = el("li", "muted", text); list.appendChild(li); }
+
+  var current = null;
+  var liveUsers = null;
+
+  function renderOnline(name) {
+    var list = document.getElementById("rc-online-list");
+    list.textContent = "";
+    var users = liveUsers ? liveUsers.filter(function (u) { return u.region === name; }) : rows[name].online_users;
+    set("rc-online", liveUsers ? users.length : rows[name].online);
+    if (!users.length) { empty(list, "Hozir hech kim yo'q"); return; }
+    users.slice(0, 10).forEach(function (u) {
+      var li = el("li");
+      li.appendChild(el("i", "dot dot-live"));
+      var a = el("a", null, u.name);
+      a.href = u.url;
+      a.title = "@" + u.username + (u.how ? " · viloyati: " + u.how : "");
+      li.appendChild(a);
+      if (u.staff) li.appendChild(el("span", "tag tag-admin", "admin"));
+      li.appendChild(el("small", null, u.ago));
+      list.appendChild(li);
+    });
+  }
+
+  function show(name) {
+    var r = rows[name];
+    if (!r) return;
+    current = name;
+    set("rc-name", r.name === "Boshqa" ? "Chet el" : r.name);
+    set("rc-users", r.users + (r.users_guess ? " +" + r.users_guess : ""));
+    set("rc-new", r.new_30);
+    set("rc-people", r.people);
+    set("rc-trees", r.trees);
+    document.getElementById("rc-connected").innerHTML = "";
+    document.getElementById("rc-connected").append(String(r.trees_connected), el("small", null, " / " + r.trees));
+    set("rc-dups", r.duplicates);
+    renderOnline(name);
+
+    var partners = document.getElementById("rc-partners");
+    partners.textContent = "";
+    var merged = {};
+    r.kin.forEach(function (k) { merged[k.name] = merged[k.name] || { short: k.short, kin: 0, net: 0 }; merged[k.name].kin = k.n; });
+    r.partners.forEach(function (k) { merged[k.name] = merged[k.name] || { short: k.short, kin: 0, net: 0 }; merged[k.name].net = k.n; });
+    var names = Object.keys(merged).sort(function (a, b) { return (merged[b].kin + merged[b].net) - (merged[a].kin + merged[a].net); });
+    if (!names.length) empty(partners, r.inner_links ? "Faqat viloyat ichida: " + r.inner_links + " ta umumiy tarmoq" : "Hali boshqa viloyat bilan aloqa topilmadi");
+    names.slice(0, 6).forEach(function (n) {
+      var li = el("li");
+      var a = el("a", null, merged[n].short);
+      a.href = "#";
+      a.addEventListener("click", function (e) { e.preventDefault(); pick(n); });
+      li.appendChild(a);
+      var parts = [];
+      if (merged[n].kin) parts.push(merged[n].kin + " nikoh");
+      if (merged[n].net) parts.push(merged[n].net + " tarmoq");
+      li.appendChild(el("small", null, parts.join(" · ")));
+      partners.appendChild(li);
+    });
+
+    var trees = document.getElementById("rc-trees-list");
+    trees.textContent = "";
+    if (!r.top_trees.length) empty(trees, "Bu viloyatga biriktirilgan shajara yo'q");
+    r.top_trees.forEach(function (t) {
+      var li = el("li");
+      var a = el("a", null, t.name);
+      a.href = t.url;
+      a.title = "@" + t.owner;
+      li.appendChild(a);
+      if (t.kind === "talimiy") li.appendChild(el("span", "tag", "ta'limiy"));
+      li.appendChild(el("small", null, t.people + " shaxs" + (t.joined ? " · +" + t.joined + " shajara" : "")));
+      trees.appendChild(li);
+    });
+    document.getElementById("rc-networks").href = r.networks_url;
+
+    var actions = document.getElementById("rc-actions");
+    actions.textContent = "";
+    if (r.biggest) {
+      var big = el("a", "btn btn-primary", "Eng katta umumiy shajarani ochish (" + r.biggest.people + " shaxs, " + r.biggest.trees + " shajara)");
+      big.href = r.biggest.url;
+      actions.appendChild(big);
+    }
+    var users = el("a", "btn", "Foydalanuvchilar ro'yxati");
+    users.href = "{% url 'boshqaruv:users' %}";
+    actions.appendChild(users);
+
+    document.querySelectorAll("#region-table tr[data-region]").forEach(function (tr) {
+      tr.classList.toggle("is-selected", tr.dataset.region === name);
+    });
+    try { history.replaceState(null, "", "#" + encodeURIComponent(name)); } catch (e) {}
+  }
+
+  var initial = decodeURIComponent(location.hash.slice(1));
+  if (!rows[initial]) {
+    initial = Object.keys(rows).filter(function (n) { return n !== "Boshqa"; })
+      .sort(function (a, b) { return (rows[b][data.metric] || 0) - (rows[a][data.metric] || 0); })[0];
+  }
+
+  var ctl = AdmRegionMap.mount(document.getElementById("rmap"), data, {
+    legend: document.getElementById("rmap-legend"),
+    onSelect: show,
+    initial: initial
+  });
+
+  function pick(name) {
+    if (name !== "Boshqa") ctl.select(name);
+    show(name);
+  }
+
+  document.querySelectorAll("#metric-seg [data-metric]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll("#metric-seg [data-metric]").forEach(function (b) {
+        b.classList.toggle("is-on", b === btn);
+        b.setAttribute("aria-selected", b === btn ? "true" : "false");
+      });
+      ctl.setMetric(btn.dataset.metric);
+      params.set("olchov", btn.dataset.metric);
+      try { history.replaceState(null, "", "?" + params.toString() + location.hash); } catch (e) {}
+    });
+  });
+  document.querySelectorAll("[data-layer]").forEach(function (box) {
+    box.addEventListener("change", function () { ctl.toggle(box.dataset.layer, box.checked); });
+  });
+  document.querySelectorAll("#region-table tr[data-region]").forEach(function (tr) {
+    tr.addEventListener("click", function () {
+      pick(tr.dataset.region);
+      document.getElementById("rmap").scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  });
+
+  AdmRegionMap.pollLive(data.live_url, function (d) {
+    liveUsers = d.users;
+    ctl.setLive(d.regions);
+    document.querySelectorAll("[data-live-cell]").forEach(function (cell) {
+      var n = d.regions[cell.dataset.liveCell] || 0;
+      cell.textContent = n;
+      cell.classList.toggle("is-zero", !n);
+    });
+    if (current) renderOnline(current);
+  }, 20)();
+})();
+</script>
+{% endblock %}

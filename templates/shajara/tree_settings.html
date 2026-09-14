@@ -1,0 +1,78 @@
+{% extends "shajara/base.html" %}
+{% block title %}Sozlamalar — {{ tree.name }}{% endblock %}
+{% block body %}
+{% include "shajara/_header.html" %}
+<main class="pf-shell pf-shell-narrow">
+  <a class="back-link" href="{% url 'tree_overview' tree.url_key %}">← {{ tree.name }}</a>
+  <header class="pf-head" style="margin-top:14px;">
+    <div>
+      <p class="pf-kicker">Sozlamalar</p>
+      <h1 class="pf-h1">{{ tree.name }}</h1>
+    </div>
+    <a class="pf-btn pf-btn-sm" href="{% url 'tree_members' tree.url_key %}">{% include "shajara/_icon.html" with name="users" %}A'zolar va ulashish</a>
+  </header>
+
+  <form method="post" class="pf-card" novalidate id="tree-settings">
+    {% csrf_token %}
+    <label class="pf-label" for="id_name">Shajara nomi</label>
+    {{ form.name }}
+    {% if form.name.errors %}<p class="pf-error">{{ form.name.errors|join:" " }}</p>{% endif %}
+
+    <label class="pf-label">Turi</label>
+    <div class="pf-choices" role="radiogroup" aria-label="Shajara turi">
+      <label class="pf-choice is-fam">
+        <input type="radio" name="kind" value="oilaviy" {% if form.kind.value != "talimiy" %}checked{% endif %}>
+        <span class="pf-choice-box">{% include "shajara/_icon.html" with name="fam" %}<span><span class="pf-choice-title">Oilaviy</span><span class="pf-choice-text">Qarindoshlar birga tuzadigan oila shajarasi</span></span></span>
+      </label>
+      <label class="pf-choice is-edu">
+        <input type="radio" name="kind" value="talimiy" {% if form.kind.value == "talimiy" %}checked{% endif %}>
+        <span class="pf-choice-box">{% include "shajara/_icon.html" with name="edu" %}<span><span class="pf-choice-title">Ta'limiy</span><span class="pf-choice-text">Sulola yoki tarixiy shaxs — o'rganish va o'rgatish uchun</span></span></span>
+      </label>
+    </div>
+
+    <div class="pf-edu-panel" data-edu-only>
+      <div class="pf-row">
+        <div><label class="pf-label" for="id_subject">Fan / mavzu</label>{{ form.subject }}</div>
+        <div><label class="pf-label" for="id_era">Davr</label>{{ form.era }}</div>
+      </div>
+      <label class="pf-label" for="id_sources">Manbalar</label>
+      {{ form.sources }}
+      <p class="pf-help">Darslik, kitob, maqola yoki havolalar. «Shajara haqida» sahifasida ro'yxat bo'lib ko'rinadi — o'quvchilar ma'lumot qayerdan olinganini biladi.</p>
+    </div>
+
+    <label class="pf-label" for="id_description">Tavsif</label>
+    {{ form.description }}
+
+    <label class="pf-label" for="id_visibility">Kimga ko'rinadi</label>
+    {{ form.visibility }}
+    <p class="pf-help">Shaxsiy shajarani faqat siz va taklif qilgan a'zolaringiz ko'radi. Ommaviy shajara Kutubxonada chiqadi: tizimga kirgan har kim ko'rishi, izoh qoldirishi va test ishlashi mumkin, lekin tahrirlay olmaydi.</p>
+
+    <div class="pf-actions">
+      <button class="pf-btn pf-btn-primary" type="submit">{% include "shajara/_icon.html" with name="check" %}Saqlash</button>
+    </div>
+  </form>
+
+  <section class="pf-card" style="margin-top:16px;">
+    <h2 class="pf-h2">Xavfli hudud</h2>
+    <p class="pf-help" style="margin:0 0 12px;">Shajara o'chirilsa, undagi barcha shaxslar, hikoyalar va a'zoliklar ham yo'qoladi. Avval JSON zaxira yuklab olishni maslahat beramiz.</p>
+    <div class="pf-actions" style="margin-top:0;">
+      <a class="pf-btn pf-btn-sm" href="{% url 'tree_export' tree.url_key %}">{% include "shajara/_icon.html" with name="upload" %}JSON zaxira</a>
+      <form method="post" action="{% url 'tree_delete' tree.url_key %}" onsubmit="return confirm('Rostdan ham &quot;{{ tree.name|escapejs }}&quot; shajarasini butunlay o\'chirmoqchimisiz? Bu amalni orqaga qaytarib bo\'lmaydi.');">
+        {% csrf_token %}
+        <button class="pf-btn pf-btn-sm pf-btn-danger" type="submit">{% include "shajara/_icon.html" with name="x" %}Shajarani o'chirish</button>
+      </form>
+    </div>
+  </section>
+</main>
+<script>
+(function () {
+  var form = document.getElementById("tree-settings");
+  function sync() {
+    var learning = form.querySelector('input[name="kind"]:checked').value === "talimiy";
+    form.querySelectorAll("[data-edu-only]").forEach(function (el) { el.hidden = !learning; });
+  }
+  form.querySelectorAll('input[name="kind"]').forEach(function (r) { r.addEventListener("change", sync); });
+  sync();
+})();
+</script>
+{% endblock %}

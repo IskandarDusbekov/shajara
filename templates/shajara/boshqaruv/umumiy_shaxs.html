@@ -1,0 +1,56 @@
+{% extends "shajara/boshqaruv/base.html" %}
+{% block adm_title %}{{ ind.full_name }}{% endblock %}
+{% block adm_content %}
+<a class="crumb" href="{% url 'boshqaruv:unified_board' key %}?chegara={{ min_score }}">← Umumiy shajaraga qaytish</a>
+
+<header class="adm-head">
+  <div>
+    <h1 class="adm-title">{{ ind.full_name }}</h1>
+    <p class="adm-sub">
+      {{ ind.get_gender_display }}{% if ind.display_year %} · {{ ind.display_year }}{% endif %}{% if ind.death_year %}–{{ ind.death_year }}{% endif %}{% if ind.region %} · {{ ind.region }}{% if ind.region_how == 'matndan' %} (joy matnidan aniqlangan){% endif %}{% endif %}
+    </p>
+  </div>
+  <span class="adm-count">{{ records|length }} ta manba yozuv</span>
+</header>
+
+<div class="callout">
+  Bu umumiy shajaradagi bitta shaxs. U quyidagi {{ records|length }} ta yozuvdan tuzilgan — har bir yozuv o'z shajarasida o'zgarishsiz turibdi.
+  {% if records|length > 1 %}Bo'sh maydonlar boshqa yozuvlardan to'ldirilgan.{% endif %}
+</div>
+
+<div class="panel panel-flush">
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>#</th><th>F.I.Sh</th><th>Yillari</th><th>Tug'ilgan joyi</th><th>Kasbi</th><th>Shajara</th></tr></thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td class="muted">{{ r.p.id }}</td>
+          <td>{{ r.p.full_name_with_patronymic|default:r.p.full_name }}</td>
+          <td class="nowrap">{{ r.p.display_year|default:"—" }}{% if r.p.death_year %}–{{ r.p.death_year }}{% endif %}</td>
+          <td>{{ r.p.birth_place|default:r.p.location|default:"—" }}</td>
+          <td>{{ r.p.occupation|default:"—" }}</td>
+          <td class="wrap">{% for t in r.trees %}<a href="{% url 'boshqaruv:tree_detail' t.pk %}">{{ t.name }}</a> <span class="muted">@{{ t.owner.username }}</span>{% if not forloop.last %}<br>{% endif %}{% empty %}<span class="muted">shajarasiz</span>{% endfor %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<section class="panel">
+  <header class="panel-head"><h2 class="panel-title">Nima asosida birlashtirildi</h2></header>
+  {% if links %}
+  <ul class="list">
+    {% for c in links %}
+    <li><a class="list-row" href="{% url 'boshqaruv:match_detail' c.pk %}">{% include "shajara/boshqaruv/_score.html" with score=c.score %}<span class="list-main"><span class="pair"><b>#{{ c.person_a_id }}</b> <i>↔</i> <b>#{{ c.person_b_id }}</b></span><small>{% for part in c.breakdown %}{% if part.points > 0 %}{{ part.label }}{% if not forloop.last %}, {% endif %}{% endif %}{% endfor %}</small></span></a></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if records|length > 1 %}
+  <p class="panel-foot">To'g'ridan-to'g'ri moslik bo'lmagan yozuvlar oila tuzilmasi orqali qo'shilgan: ular birlashtirilgan shaxsning ota-onasi, turmush o'rtog'i yoki farzandi bo'lib, ismi mos keladi.</p>
+  {% else %}
+  <p class="empty-line">Bu shaxs boshqa hech qaysi yozuv bilan birlashtirilmagan.</p>
+  {% endif %}
+</section>
+{% endblock %}

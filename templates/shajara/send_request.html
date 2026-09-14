@@ -1,0 +1,26 @@
+{% extends "shajara/page_base.html" %}
+{% block title %}So'rov yuborish — e-Shajara{% endblock %}
+{% block back_link %}<a class="back-link" href="{% url 'search_users' %}">← Qidirishga qaytish</a>{% endblock %}
+{% block card_content %}
+<div class="card-badge">So'rov yuborish</div>
+<h2 class="card-name">{{ target.username }}ga bog'lanish so'rovi</h2>
+
+{% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
+
+{% if not form.fields.tree.queryset %}
+  <div class="empty-hint">Avval kamida bitta shajara yaratishingiz kerak.</div>
+{% else %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <label class="label-sm">Qaysi shajarangiz orqali bog'lanasiz</label>
+  {{ form.tree }}
+  {% if form.tree.errors %}<div class="form-error">{{ form.tree.errors|join:" " }}</div>{% endif %}
+
+  <label class="label-sm">Xabar</label>
+  {{ form.message }}
+  <p class="note" style="margin:-4px 0 12px;">Masalan: "Men sizning jiyaningizman" — unga qanday qarindosh ekanligingizni yozing.</p>
+
+  <button class="btn-primary full" type="submit">So'rov yuborish</button>
+</form>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,157 @@
+{% extends "shajara/base.html" %}
+{% load assets %}
+{% block title %}{{ form_title }} — e-Shajara{% endblock %}
+{% block body %}
+{% include "shajara/_header.html" %}
+<main class="pf-shell pf-formpage">
+  <a class="back-link" href="{% url 'person_detail' cancel_tree_key cancel_pk %}">← Orqaga</a>
+
+  <header class="pf-head" style="margin-top:14px; margin-bottom:16px;">
+    <div>
+      <p class="pf-kicker">{% if is_add %}{{ anchor.full_name }} uchun{% else %}Ma'lumotlarni tahrirlash{% endif %}</p>
+      <h1 class="pf-h1">{% if is_add %}{{ form_title }}{% else %}{{ subject_person.full_name }}{% endif %}</h1>
+      <p class="pf-lead">Faqat ismi majburiy. Qolganini bilganingizcha to'ldiring — keyin istalgan payt qo'shish mumkin.</p>
+    </div>
+  </header>
+
+  {% if error or form.errors %}
+  <div class="pf-alert pf-alert-bad pf-errors" role="alert">
+    {% if error %}{{ error }}{% else %}Formada xato bor — qizil bilan belgilangan maydonlarni tekshiring.{% endif %}
+  </div>
+  {% endif %}
+
+  <form method="post" id="person-form" action="{% if is_add %}{% url 'add_relative' tree_key %}{% endif %}" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% if is_add %}
+      <input type="hidden" name="anchor" value="{{ anchor_id }}">
+      <input type="hidden" name="relation" value="{{ relation }}">
+      {% if family_id %}<input type="hidden" name="family" value="{{ family_id }}">{% endif %}
+    {% endif %}
+    {% if form.non_field_errors %}<p class="pf-error">{{ form.non_field_errors|join:" " }}</p>{% endif %}
+
+    {# ------------------------------------------------------- who #}
+    <section class="pf-card pf-formcard">
+      <h2 class="pf-section-head">{% include "shajara/_icon.html" with name="student" %}Shaxs</h2>
+      <div class="pf-row" data-tour="person-name">
+        <div>
+          <label class="pf-label" for="id_first_name">Ismi<span class="pf-req" aria-hidden="true">*</span></label>
+          <input class="pf-input{% if form.first_name.errors %} has-error{% endif %}" type="text" id="id_first_name" name="first_name"
+                 value="{{ form.first_name.value|default:'' }}" placeholder="Masalan: Aziz" autocomplete="off" required {% if not form.first_name.value %}autofocus{% endif %}>
+          {% if form.first_name.errors %}<p class="pf-error">{{ form.first_name.errors|join:" " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="pf-label" for="id_last_name">Familyasi</label>
+          <input class="pf-input" type="text" id="id_last_name" name="last_name" value="{{ form.last_name.value|default:'' }}" placeholder="Masalan: Karimov" autocomplete="off">
+        </div>
+      </div>
+      <label class="pf-label" for="id_patronymic">Otasining ismi</label>
+      <input class="pf-input" type="text" id="id_patronymic" name="patronymic" value="{{ form.patronymic.value|default:'' }}" placeholder="Masalan: Ahmadovich yoki Ahmad o'g'li" autocomplete="off">
+
+      {% if ask_gender %}
+      <span class="pf-label">Jinsi</span>
+      <div class="pf-seg" role="radiogroup" aria-label="Jinsi">
+        <label><input type="radio" name="gender" value="erkak" {% if form.gender.value != 'ayol' %}checked{% endif %}><span>Erkak</span></label>
+        <label><input type="radio" name="gender" value="ayol" {% if form.gender.value == 'ayol' %}checked{% endif %}><span>Ayol</span></label>
+      </div>
+      {% endif %}
+    </section>
+
+    {# ----------------------------------------------------- years #}
+    <section class="pf-card pf-formcard" data-tour="years">
+      <h2 class="pf-section-head">{% include "shajara/_icon.html" with name="clock" %}Yillari <small>ixtiyoriy</small></h2>
+
+      <div class="pform-year">
+        <label class="pf-label" for="id_birth_year">Tug'ilgan yili</label>
+        <div class="pform-year-row">
+          <input class="pf-input{% if form.birth_year.errors %} has-error{% endif %}" type="text" id="id_birth_year" name="birth_year" inputmode="numeric"
+                 autocomplete="off" maxlength="4" placeholder="1956" value="{{ form.birth_year_digits }}">
+          <label class="pform-check"><input type="checkbox" name="birth_year_approx" {% if form.birth_year_approx %}checked{% endif %}> taxminan</label>
+        </div>
+        <p class="pform-note" data-note-for="birth_year" aria-live="polite"></p>
+        <p class="pf-error" data-error-for="birth_year" hidden></p>
+        {% if form.birth_year.errors %}<p class="pf-error">{{ form.birth_year.errors|join:" " }}</p>{% endif %}
+
+        <button type="button" class="pform-link" data-date-toggle aria-expanded="{% if form.birth_date.value %}true{% else %}false{% endif %}">Aniq sanasini bilaman</button>
+        <div data-date-box {% if not form.birth_date.value %}hidden{% endif %}>
+          <input class="pf-input" style="max-width:220px;" type="date" name="birth_date" max="{% now 'Y-m-d' %}" value="{{ form.birth_date.value|date:'Y-m-d'|default:form.birth_date.value|default:'' }}">
+          {% if form.birth_date.errors %}<p class="pf-error">{{ form.birth_date.errors|join:" " }}</p>{% endif %}
+        </div>
+      </div>
+
+      <label class="pform-check pform-deceased"><input type="checkbox" data-deceased {% if form.death_year_digits %}checked{% endif %}> Vafot etgan</label>
+      <div class="pform-year" data-death-box {% if not form.death_year_digits %}hidden{% endif %}>
+        <label class="pf-label" for="id_death_year">Vafot etgan yili</label>
+        <div class="pform-year-row">
+          <input class="pf-input{% if form.death_year.errors %} has-error{% endif %}" type="text" id="id_death_year" name="death_year" inputmode="numeric"
+                 autocomplete="off" maxlength="4" placeholder="2010" value="{{ form.death_year_digits }}">
+          <label class="pform-check"><input type="checkbox" name="death_year_approx" {% if form.death_year_approx %}checked{% endif %}> taxminan</label>
+        </div>
+        <p class="pform-note" data-note-for="death_year" aria-live="polite"></p>
+        <p class="pf-error" data-error-for="death_year" hidden></p>
+        <p class="pf-error" data-error-for="death_order" hidden>Vafot yili tug'ilgan yildan oldin bo'lishi mumkin emas.</p>
+        {% if form.death_year.errors %}<p class="pf-error">{{ form.death_year.errors|join:" " }}</p>{% endif %}
+      </div>
+    </section>
+
+    {# ----------------------------------------------- birth place #}
+    <section class="pf-card pf-formcard" data-tour="birth-place">
+      <h2 class="pf-section-head">{% include "shajara/_icon.html" with name="flag" %}Tug'ilgan joyi <small>ixtiyoriy</small></h2>
+      <p class="pf-section-note">Boshqa shajaralardagi qarindoshlarni topishga yordam beradi. Bilmasangiz, bo'sh qoldiring.</p>
+      <div class="pf-row">
+        <div>
+          <label class="pf-label" for="id_birth_region">Viloyat</label>
+          <select id="id_birth_region" name="birth_region" data-combo data-combo-placeholder="Bilmayman / tanlanmagan">
+            <option value="">Bilmayman / tanlanmagan</option>
+            {% for value, label in form.fields.birth_region.choices %}{% if value %}
+            <option value="{{ value }}" {% if form.birth_region.value == value %}selected{% endif %}>{{ label }}</option>
+            {% endif %}{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="pf-label" for="id_birth_district">Tuman yoki shahar</label>
+          <input type="text" id="id_birth_district" name="birth_district" value="{{ form.birth_district.value|default:'' }}"
+                 data-combo data-combo-custom data-combo-source="birth_region"
+                 data-combo-placeholder="Tumanni qidiring yoki tanlang" data-combo-wait="Avval viloyatni tanlang">
+        </div>
+      </div>
+      <label class="pf-label" for="id_birth_village">Qishloq yoki mahalla</label>
+      <input class="pf-input" type="text" id="id_birth_village" name="birth_village" value="{{ form.birth_village.value|default:'' }}" placeholder="Masalan: Qoratepa" autocomplete="off">
+    </section>
+
+    {# ---------------------------------------------------- more #}
+    <section class="pf-card pf-formcard">
+      <h2 class="pf-section-head">{% include "shajara/_icon.html" with name="book" %}Hayoti <small>ixtiyoriy</small></h2>
+      <div class="pf-row">
+        <div>
+          <label class="pf-label" for="id_occupation">Kasbi</label>
+          <input class="pf-input" type="text" id="id_occupation" name="occupation" value="{{ form.occupation.value|default:'' }}" placeholder="Masalan: o'qituvchi, hunarmand">
+        </div>
+        <div>
+          <label class="pf-label" for="id_location">Hozir yashash joyi</label>
+          <input class="pf-input" type="text" id="id_location" name="location" value="{{ form.location.value|default:'' }}" placeholder="Masalan: Toshkent">
+        </div>
+      </div>
+      <label class="pf-label" for="id_bio">Qisqacha ma'lumot</label>
+      <textarea class="pf-input" id="id_bio" name="bio" rows="4" placeholder="Qayerda o'qigan, nima bilan mashhur, oila uchun nimasi bilan esda qolgan…">{{ form.bio.value|default:'' }}</textarea>
+      <p class="pf-help">PDF kitobda shu matn shaxs haqidagi maqola bo'lib chiqadi.</p>
+
+      <span class="pf-label">Surati</span>
+      <div class="pf-photo">
+        <span class="pf-photo-thumb" id="photo-thumb">
+          {% if subject_person.photo %}<img src="{{ subject_person.photo.url }}" alt="">{% else %}{% include "shajara/_icon.html" with name="student" %}{% endif %}
+        </span>
+        <input type="file" name="photo" id="id_photo" accept="image/*">
+      </div>
+      {% if form.photo.errors %}<p class="pf-error">{{ form.photo.errors|join:" " }}</p>{% endif %}
+    </section>
+
+    <div class="pf-savebar">
+      <a class="pf-btn" href="{% url 'person_detail' cancel_tree_key cancel_pk %}">Bekor qilish</a>
+      <button class="pf-btn pf-btn-primary" type="submit" data-tour="save">{% include "shajara/_icon.html" with name="check" %}Saqlash</button>
+    </div>
+  </form>
+</main>
+<script src="{% static_v 'js/uz-regions.js' %}"></script>
+<script src="{% static_v 'js/combobox.js' %}"></script>
+<script src="{% static_v 'js/person-form.js' %}"></script>
+{% endblock %}

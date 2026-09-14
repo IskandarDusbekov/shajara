@@ -1,0 +1,73 @@
+{% extends "shajara/boshqaruv/base.html" %}
+{% block adm_title %}Foydalanuvchilar{% endblock %}
+{% block adm_content %}
+<header class="adm-head">
+  <div>
+    <h1 class="adm-title">Foydalanuvchilar</h1>
+    <p class="adm-sub">Kim ro'yxatdan o'tgan, qancha shajara va shaxs kiritgan, oxirgi marta qachon faol bo'lgan.</p>
+  </div>
+  <span class="adm-count">{{ total }} ta</span>
+</header>
+
+<form class="filters" method="get">
+  <input class="f-input" type="search" name="q" value="{{ q }}" placeholder="Nom, ism, email bo'yicha qidirish…">
+  <select class="f-select" name="status" aria-label="Holat">
+    <option value="all" {% if status == 'all' %}selected{% endif %}>Barchasi</option>
+    <option value="online" {% if status == 'online' %}selected{% endif %}>Hozir onlayn</option>
+    <option value="active" {% if status == 'active' %}selected{% endif %}>Faol</option>
+    <option value="blocked" {% if status == 'blocked' %}selected{% endif %}>Bloklangan</option>
+    <option value="staff" {% if status == 'staff' %}selected{% endif %}>Adminlar</option>
+    <option value="verified" {% if status == 'verified' %}selected{% endif %}>Email tasdiqlangan</option>
+    <option value="unverified" {% if status == 'unverified' %}selected{% endif %}>Email tasdiqlanmagan</option>
+  </select>
+  <select class="f-select" name="sort" aria-label="Saralash">
+    <option value="joined" {% if sort == 'joined' %}selected{% endif %}>Yangi ro'yxatdan o'tganlar</option>
+    <option value="login" {% if sort == 'login' %}selected{% endif %}>Oxirgi kirish</option>
+    <option value="persons" {% if sort == 'persons' %}selected{% endif %}>Eng ko'p shaxs</option>
+    <option value="trees" {% if sort == 'trees' %}selected{% endif %}>Eng ko'p shajara</option>
+    <option value="activity" {% if sort == 'activity' %}selected{% endif %}>Eng faol</option>
+    <option value="name" {% if sort == 'name' %}selected{% endif %}>Nomi bo'yicha</option>
+  </select>
+  <button class="btn" type="submit">Qo'llash</button>
+</form>
+
+<div class="panel panel-flush">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Foydalanuvchi</th><th>Email</th><th class="num">Shajara</th><th class="num">Shaxs</th><th class="num">Amallar</th><th>Qo'shilgan</th><th>Oxirgi kirish</th><th>Holat</th></tr>
+      </thead>
+      <tbody>
+        {% for u in page %}
+        <tr class="row-link">
+          <td>
+            <a class="user-cell" href="{% url 'boshqaruv:user_detail' u.pk %}">
+              <span class="avatar">{{ u.username|first|upper }}</span>
+              <span><b>{{ u.get_full_name|default:u.username }}</b><small>@{{ u.username }}</small></span>
+            </a>
+          </td>
+          <td class="nowrap cell-clip" title="{{ u.email }}">
+            {% if u.email %}{{ u.email }}{% if u.profile.email_verified %} <span class="dot dot-ok" title="Tasdiqlangan"></span>{% endif %}{% else %}<span class="muted">—</span>{% endif %}
+          </td>
+          <td class="num">{{ u.tree_count }}</td>
+          <td class="num">{{ u.person_count }}</td>
+          <td class="num">{{ u.activity_count }}</td>
+          <td class="nowrap muted">{{ u.date_joined|date:"d.m.Y" }}</td>
+          <td class="nowrap muted">{{ u.last_login|date:"d.m.y H:i"|default:"—" }}</td>
+          <td class="nowrap">
+            {% if not u.is_active %}<span class="tag tag-bad">Bloklangan</span>
+            {% elif u.is_superuser %}<span class="tag tag-admin">Superadmin</span>
+            {% elif u.is_staff %}<span class="tag tag-admin">Admin</span>
+            {% else %}<span class="tag tag-good">Faol</span>{% endif %}
+            {% if u.profile.is_online %}<span class="tag tag-good" title="So'nggi 5 daqiqada saytda"><i class="dot dot-live"></i> onlayn</span>{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="empty-line">Hech kim topilmadi.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include "shajara/boshqaruv/_pagination.html" %}
+{% endblock %}

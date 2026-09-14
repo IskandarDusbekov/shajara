@@ -1,0 +1,28 @@
+{% extends "shajara/page_base.html" %}
+{% block title %}JSON zaxiradan tiklash — e-Shajara{% endblock %}
+{% block card_content %}
+<div class="card-badge"><svg class="ui-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg><span>Zaxiradan tiklash</span></div>
+<h2 class="card-name">JSON fayldan yangi shajara</h2>
+<p class="sub" style="max-width:none; margin:0 0 18px;">Avval "PDF/JSON yuklab olish" orqali saqlangan .json faylni tanlang — shu fayldan yangi, alohida shajara yaratiladi (mavjud shajaralaringizga tegmaydi).</p>
+
+{% if error %}<div class="form-error">{{ error }}</div>{% endif %}
+
+<form method="post" enctype="multipart/form-data" novalidate>
+  {% csrf_token %}
+  <label class="label-sm">Shajara nomi</label>
+  {{ form.tree_name }}
+  {% if form.tree_name.errors %}<div class="form-error">{{ form.tree_name.errors|join:" " }}</div>{% endif %}
+
+  <label class="label-sm">Ko'rinishi</label>
+  {{ form.visibility }}
+
+  <label class="label-sm">Turi</label>
+  {{ form.kind }}
+
+  <label class="label-sm">JSON fayl</label>
+  {{ form.backup_file }}
+  {% if form.backup_file.errors %}<div class="form-error">{{ form.backup_file.errors|join:" " }}</div>{% endif %}
+
+  <button class="btn-primary full" type="submit">Tiklash</button>
+</form>
+{% endblock %}

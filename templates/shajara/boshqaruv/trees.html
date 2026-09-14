@@ -1,0 +1,58 @@
+{% extends "shajara/boshqaruv/base.html" %}
+{% block adm_title %}Shajaralar{% endblock %}
+{% block adm_content %}
+<header class="adm-head">
+  <div>
+    <h1 class="adm-title">Shajaralar</h1>
+    <p class="adm-sub">Barcha shajaralar: egasi, hajmi va boshqa shajaralar bilan bog'langanligi.</p>
+  </div>
+  <span class="adm-count">{{ total }} ta</span>
+</header>
+
+<form class="filters" method="get">
+  <input class="f-input" type="search" name="q" value="{{ q }}" placeholder="Shajara nomi, egasi yoki bosh shaxs…">
+  <select class="f-select" name="visibility" aria-label="Ko'rinishi">
+    <option value="all" {% if visibility == 'all' %}selected{% endif %}>Barchasi</option>
+    <option value="public" {% if visibility == 'public' %}selected{% endif %}>Ommaviy</option>
+    <option value="private" {% if visibility == 'private' %}selected{% endif %}>Shaxsiy</option>
+  </select>
+  <select class="f-select" name="kind" aria-label="Turi">
+    <option value="all" {% if kind == 'all' %}selected{% endif %}>Barcha turlar</option>
+    <option value="oilaviy" {% if kind == 'oilaviy' %}selected{% endif %}>Oilaviy</option>
+    <option value="talimiy" {% if kind == 'talimiy' %}selected{% endif %}>Ta'limiy</option>
+  </select>
+  <select class="f-select" name="sort" aria-label="Saralash">
+    <option value="created" {% if sort == 'created' %}selected{% endif %}>Yangilari</option>
+    <option value="people" {% if sort == 'people' %}selected{% endif %}>Eng katta</option>
+    <option value="name" {% if sort == 'name' %}selected{% endif %}>Nomi</option>
+    <option value="owner" {% if sort == 'owner' %}selected{% endif %}>Egasi</option>
+  </select>
+  <button class="btn" type="submit">Qo'llash</button>
+</form>
+
+<div class="panel panel-flush">
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Shajara</th><th>Turi</th><th>Egasi</th><th>Bosh shaxs</th><th class="num">Shaxslar</th><th class="num">A'zolar</th><th class="num">Bog'langan</th><th>Ko'rinishi</th><th>Yaratilgan</th></tr></thead>
+      <tbody>
+        {% for t in page %}
+        <tr>
+          <td><a class="strong-link" href="{% url 'boshqaruv:tree_detail' t.pk %}">{{ t.name }}</a></td>
+          <td class="nowrap"><span class="tag{% if t.is_learning %} tag-admin{% endif %}">{{ t.get_kind_display }}</span></td>
+          <td class="nowrap"><a href="{% url 'boshqaruv:user_detail' t.owner_id %}">{{ t.owner.username }}</a></td>
+          <td class="nowrap">{{ t.root_person.full_name }}</td>
+          <td class="num">{{ t.people_count }}</td>
+          <td class="num">{{ t.member_n|default:"—" }}</td>
+          <td class="num">{% if t.linked_count %}<span class="tag tag-admin">+{{ t.linked_count }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+          <td class="nowrap"><span class="tag {% if t.is_public %}tag-good{% endif %}">{{ t.get_visibility_display }}</span></td>
+          <td class="nowrap muted">{{ t.created_at|date:"d.m.Y" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" class="empty-line">Shajara topilmadi.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include "shajara/boshqaruv/_pagination.html" %}
+{% endblock %}

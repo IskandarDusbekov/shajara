@@ -1,0 +1,36 @@
+{% extends "shajara/boshqaruv/base.html" %}
+{% block adm_title %}Faollik jurnali{% endblock %}
+{% block adm_content %}
+<header class="adm-head">
+  <div>
+    <h1 class="adm-title">Faollik jurnali</h1>
+    <p class="adm-sub">Kim, qachon, qaysi manzildan nima qilgan. Adminlarning shaxsiy shajaralarni ko'rishi ham shu yerga yoziladi.</p>
+  </div>
+  <span class="adm-count">{{ total }} ta</span>
+</header>
+
+<form class="filters" method="get">
+  <input class="f-input" type="search" name="q" value="{{ q }}" placeholder="Foydalanuvchi, tafsilot yoki IP…">
+  <select class="f-select" name="action" aria-label="Amal turi">
+    <option value="">Barcha amallar</option>
+    {% for group, items in action_groups.items %}
+    <optgroup label="{{ group }}">
+      {% for key, label in items %}<option value="{{ key }}" {% if action == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </optgroup>
+    {% endfor %}
+  </select>
+  <select class="f-select" name="period" aria-label="Davr">
+    <option value="1" {% if period == '1' %}selected{% endif %}>Bugun</option>
+    <option value="7" {% if period == '7' %}selected{% endif %}>7 kun</option>
+    <option value="30" {% if period == '30' %}selected{% endif %}>30 kun</option>
+    <option value="90" {% if period == '90' %}selected{% endif %}>90 kun</option>
+    <option value="all" {% if period == 'all' %}selected{% endif %}>Hammasi</option>
+  </select>
+  <button class="btn" type="submit">Qo'llash</button>
+</form>
+
+<div class="panel panel-flush">
+  {% include "shajara/boshqaruv/_activity_rows.html" with rows=page %}
+</div>
+{% include "shajara/boshqaruv/_pagination.html" %}
+{% endblock %}

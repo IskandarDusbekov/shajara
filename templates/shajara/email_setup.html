@@ -1,0 +1,28 @@
+{% extends "shajara/base.html" %}
+{% load static %}
+{% block title %}Emailni tasdiqlash — e-Shajara{% endblock %}
+{% block body %}
+<div class="center-screen">
+  <div class="big-leaf"><svg class="hero-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/></svg></div>
+  <h1>Emailni tasdiqlash</h1>
+  <p class="sub">Emailingizni kiriting — unga 6 xonali tasdiqlash kodi yuboramiz. Bu keyinchalik parolingizni tiklash uchun kerak bo'ladi.</p>
+
+  {% if messages %}
+  <div style="width:100%; max-width:300px;">
+    {% for message in messages %}
+    <div class="form-error{% if message.tags == 'success' %} form-success{% endif %}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <form method="post" novalidate style="width:100%; max-width:300px;">
+    {% csrf_token %}
+    <input class="stack-input" type="email" name="email" placeholder="email@example.com"
+           value="{{ form.email.value|default:'' }}" autocomplete="email" autofocus required>
+    {% if form.email.errors %}<div class="form-error">{{ form.email.errors|join:" " }}</div>{% endif %}
+    <button class="btn-primary full" type="submit">Kod yuborish</button>
+  </form>
+
+  <p class="note"><a href="{% url 'my_trees' %}" style="color:#9fb8a6;">← Keyinroq qilaman</a></p>
+</div>
+{% endblock %}

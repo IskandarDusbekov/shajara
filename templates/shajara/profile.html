@@ -1,0 +1,71 @@
+{% extends "shajara/base.html" %}
+{% load assets %}
+{% block title %}Profil — e-Shajara{% endblock %}
+{% block body %}
+{% include "shajara/_header.html" %}
+<main class="pf-shell pf-formpage">
+  {% for message in messages %}
+  <div class="pf-alert{% if message.tags == 'success' %} pf-alert-good{% elif message.tags == 'error' %} pf-alert-bad{% endif %}">{{ message }}</div>
+  {% endfor %}
+
+  <header class="pf-head">
+    <div style="display:flex; gap:14px; align-items:center;">
+      <span class="pf-avatar pf-avatar-owner" style="width:56px; height:56px; font-size:22px;">{{ request.user.first_name|first|default:request.user.username|first }}</span>
+      <div>
+        <p class="pf-kicker">Profil</p>
+        <h1 class="pf-h1">{{ request.user.get_full_name|default:request.user.username }}</h1>
+        <p class="pf-help" style="margin:2px 0 0;">@{{ request.user.username }} · {{ request.user.date_joined|date:"d.m.Y" }} dan beri</p>
+      </div>
+    </div>
+  </header>
+
+  <section class="pf-stats" style="margin-bottom:14px;">
+    <div class="pf-stat"><b>{{ trees_count }}</b><span>shajara</span></div>
+    <div class="pf-stat"><b>{{ shared_count }}</b><span>menga ulashilgan</span></div>
+    <div class="pf-stat"><b>{{ stories_count }}</b><span>hikoya</span></div>
+    <div class="pf-stat"><b>{{ accepted_count }}</b><span>bog'lanish</span></div>
+  </section>
+
+  <form method="post" class="pf-card pf-formcard" novalidate>
+    {% csrf_token %}
+    <h2 class="pf-section-head">{% include "shajara/_icon.html" with name="student" %}Men haqimda</h2>
+    <p class="pf-section-note">Bosh sahifadagi maslahatlar va viloyatlar statistikasi shunga qarab tuziladi.</p>
+    <div class="pf-row">
+      <div>
+        <label class="pf-label" for="id_role">Kimsiz</label>
+        <select id="id_role" name="role" data-combo data-combo-placeholder="Tanlanmagan">
+          {% for value, label in region_form.fields.role.choices %}
+          <option value="{{ value }}" {% if region_form.role.value == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="pf-label" for="id_region">Viloyat</label>
+        <select id="id_region" name="region" data-combo data-combo-placeholder="Tanlanmagan">
+          {% for value, label in region_form.fields.region.choices %}
+          <option value="{{ value }}" {% if region_form.region.value == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="pf-savebar" style="margin-top:18px;">
+      <button class="pf-btn pf-btn-primary" type="submit">{% include "shajara/_icon.html" with name="check" %}Saqlash</button>
+    </div>
+  </form>
+
+  <section class="pf-card pf-formcard">
+    <h2 class="pf-section-head">{% include "shajara/_icon.html" with name="shield" %}Hisob xavfsizligi</h2>
+    <dl class="verify-list" style="margin-top:10px;">
+      <div><dt>Email</dt><dd>{{ request.user.email|default:"kiritilmagan" }}</dd></div>
+      <div><dt>Email holati</dt><dd>{% if email_verified %}<span class="pf-score">Tasdiqlangan</span>{% else %}<span class="pf-score is-low">Tasdiqlanmagan</span>{% endif %}</dd></div>
+    </dl>
+    {% if not email_verified %}
+    <p class="pf-help">Parolni unutsangiz, uni faqat tasdiqlangan email orqali tiklash mumkin.</p>
+    <div class="pf-actions" style="margin-top:12px;">
+      <a class="pf-btn pf-btn-primary" href="{% url 'email_setup' %}">Emailni tasdiqlash</a>
+    </div>
+    {% endif %}
+  </section>
+</main>
+<script src="{% static_v 'js/combobox.js' %}"></script>
+{% endblock %}

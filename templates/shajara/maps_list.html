@@ -1,0 +1,48 @@
+{% extends "shajara/base.html" %}
+{% block title %}Tarixiy xaritalar — e-Shajara{% endblock %}
+{% block body %}
+{% include "shajara/_header.html" %}
+<main class="pf-shell">
+  {% for message in messages %}
+  <div class="pf-alert{% if message.tags == 'success' %} pf-alert-good{% endif %}">{{ message }}</div>
+  {% endfor %}
+
+  <header class="pf-head">
+    <div>
+      <p class="pf-kicker">Tarixiy xaritalar</p>
+      <h1 class="pf-h1">Tarixni xaritada ko'ring</h1>
+      <p class="pf-lead">Eski xarita rasmini yuklang, shaharlar va janglarni yillari bilan belgilang, harbiy yurishlar va savdo yo'llarini chizing — so'ng vaqt shkalasida voqealarni yil sayin kuzating.</p>
+    </div>
+    <a class="pf-btn pf-btn-primary" href="{% url 'map_create' %}">{% include "shajara/_icon.html" with name="plus" %}Xarita yuklash</a>
+  </header>
+
+  <form class="pf-search" method="get" role="search" style="margin-bottom:22px; max-width:520px;">
+    <input type="search" name="q" value="{{ q }}" placeholder="Xarita, davr yoki joy: Temur, Samarqand, XV asr…" aria-label="Qidirish">
+    <button class="pf-btn" type="submit" aria-label="Qidirish">{% include "shajara/_icon.html" with name="search" %}</button>
+  </form>
+
+  {% if mine %}
+  <section>
+    <h2 class="pf-h2">{% include "shajara/_icon.html" with name="map" %}Mening xaritalarim <small>{{ mine|length }}</small></h2>
+    <div class="pf-grid">
+      {% for m in mine %}{% include "shajara/_map_card.html" with m=m %}{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="{% if mine %}pf-section{% endif %}">
+    <h2 class="pf-h2">{% include "shajara/_icon.html" with name="globe" %}Ommaviy va namunaviy xaritalar <small>{{ public|length }}</small></h2>
+    {% if public %}
+    <div class="pf-grid">
+      {% for m in public %}{% include "shajara/_map_card.html" with m=m %}{% endfor %}
+    </div>
+    {% else %}
+    <div class="pf-empty">
+      {% include "shajara/_icon.html" with name="map" %}
+      <h3>{% if q %}«{{ q }}» bo'yicha xarita topilmadi{% else %}Hozircha ommaviy xarita yo'q{% endif %}</h3>
+      <p>Birinchi bo'lib tarixiy xarita yuklang va uni ommaviy qiling.</p>
+    </div>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}

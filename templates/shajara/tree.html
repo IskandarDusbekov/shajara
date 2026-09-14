@@ -1,0 +1,14 @@
+{% extends "shajara/base.html" %}
+{% load static assets %}
+{% block title %}{{ tree.name }} — e-Shajara{% endblock %}
+{% block body_attrs %}class="map-page"{% endblock %}
+{% block body %}
+{% include "shajara/_header.html" %}
+{% include "shajara/_map.html" with can_edit=can_edit %}
+
+{{ families_json|json_script:"families-data" }}
+{{ saved_layout|json_script:"layout-data" }}
+<script src="{% static_v 'js/tree-map.js' %}"></script>
+<script src="{% static_v 'js/tree-board.js' %}"></script>
+<script src="{% static_v 'js/tree-export.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends "shajara/base.html" %}
+{% load assets %}
+{% block title %}{{ hmap.title }} — Tarixiy xarita{% endblock %}
+{% block body_attrs %}class="map-page hm-page"{% endblock %}
+{% block body %}
+{% include "shajara/_header.html" %}
+<div class="hm-shell{% if can_edit %} can-edit{% endif %}" id="hm-shell" data-csrf="{{ csrf_token }}"
+     {% if linked_tree %}data-tree-key="{{ linked_tree.url_key }}"{% endif %}>
+  <div class="map-viewport hm-viewport" id="hm-viewport" tabindex="0" role="application" aria-label="{{ hmap.title }} xaritasi">
+    <div class="map-canvas hm-canvas" id="hm-canvas" style="width:{{ hmap.image_width }}px; height:{{ hmap.image_height }}px;">
+      <img class="hm-image" id="hm-image" src="{% url 'map_image' hmap.url_key %}" width="{{ hmap.image_width }}" height="{{ hmap.image_height }}" alt="{{ hmap.title }}" draggable="false">
+      <svg class="hm-routes" id="hm-routes" width="{{ hmap.image_width }}" height="{{ hmap.image_height }}" viewBox="0 0 {{ hmap.image_width }} {{ hmap.image_height }}" aria-hidden="true"></svg>
+      <div class="hm-markers" id="hm-markers"></div>
+    </div>
+  </div>
+
+  {% for message in messages %}
+  <div class="hm-toast{% if message.tags == 'success' %} is-good{% endif %}">{{ message }}</div>
+  {% endfor %}
+
+  <div class="hm-top">
+    <div class="hm-title">
+      <span class="hm-title-name">{{ hmap.title }}</span>
+      {% if hmap.era %}<span class="hm-title-era">{{ hmap.era }}</span>{% endif %}
+    </div>
+    {% if can_edit %}
+    <div class="hm-tools" role="toolbar" aria-label="Tahrirlash">
+      <button type="button" class="hm-tool is-on" data-mode="view" title="Ko'rish va surish">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10"/><path d="M12 10V4.5a1.5 1.5 0 0 1 3 0V10"/><path d="M15 10V6.5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-7 7h-.5a6 6 0 0 1-4.9-2.5L3.5 15a1.5 1.5 0 0 1 2.3-1.9L9 16V11"/></svg>
+        <span>Ko'rish</span>
+      </button>
+      <button type="button" class="hm-tool" data-mode="add" title="Xaritani bosib joy qo'shing">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.3-7-11.5a7 7 0 0 1 14 0C19 14.7 12 21 12 21z"/><path d="M12 7v5M9.5 9.5h5"/></svg>
+        <span>Joy qo'shish</span>
+      </button>
+      <button type="button" class="hm-tool" data-mode="route" title="Joylarni ketma-ket bosib yo'nalish chizing">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="18" r="2"/><circle cx="19" cy="6" r="2"/><path d="M7 17c5-1 3-9 10-10"/></svg>
+        <span>Yo'nalish</span>
+      </button>
+      <a class="hm-tool" href="{% url 'map_settings' hmap.url_key %}" title="Sozlamalar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2.8 12h2.4M18.8 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"/></svg>
+        <span class="sr-only">Sozlamalar</span>
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <p class="hm-hint" id="hm-hint" hidden></p>
+
+  <div class="map-hud hm-hud">
+    <span class="map-zoom-level" id="hm-zoom">100%</span>
+    <button type="button" class="map-btn" data-hm="zoom-in" aria-label="Kattalashtirish"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button type="button" class="map-btn" data-hm="zoom-out" aria-label="Kichiklashtirish"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+    <button type="button" class="map-btn" data-hm="fit" aria-label="Butun xarita"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+    <button type="button" class="map-btn hm-panel-toggle" id="hm-panel-toggle" aria-controls="hm-panel" aria-expanded="true" aria-label="Ro'yxat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
+    </button>
+  </div>
+
+  <div class="hm-timeline" id="hm-timeline">
+    <button type="button" class="hm-play" id="hm-play" aria-label="Ijro etish">
+      <svg class="ic-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>
+      <svg class="ic-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+    </button>
+    <div class="hm-range">
+      <input type="range" id="hm-year" min="0" max="1" step="1" value="1" aria-label="Yil">
+      <div class="hm-range-ends"><span id="hm-year-min"></span><span id="hm-year-max"></span></div>
+    </div>
+    <output class="hm-year-now" id="hm-year-now" for="hm-year">Barcha yillar</output>
+    <label class="hm-all"><input type="checkbox" id="hm-all" checked> Hammasi</label>
+  </div>
+
+  <aside class="hm-panel" id="hm-panel" aria-label="Voqealar va yo'nalishlar">
+    <div class="hm-panel-head">
+      <div class="hm-tabs" role="tablist">
+        <button type="button" role="tab" class="hm-tab is-on" data-tab="places">Joylar <b id="hm-count-places">0</b></button>
+        <button type="button" role="tab" class="hm-tab" data-tab="routes">Yo'nalishlar <b id="hm-count-routes">0</b></button>
+        <button type="button" role="tab" class="hm-tab" data-tab="about">Haqida</button>
+      </div>
+    </div>
+    <div class="hm-panel-body" id="hm-panel-body">
+      <div data-pane="places"><input class="hm-filter" id="hm-filter" type="search" placeholder="Joyni qidirish…"><ul class="hm-list" id="hm-place-list"></ul></div>
+      <div data-pane="routes" hidden><ul class="hm-list" id="hm-route-list"></ul>{% if can_edit %}<button type="button" class="pf-btn pf-btn-sm pf-btn-block" id="hm-new-route">{% include "shajara/_icon.html" with name="plus" %}Yangi yo'nalish</button>{% endif %}</div>
+      <div data-pane="about" hidden>
+        <p class="hm-about-meta">Muallif: @{{ hmap.owner.username }}{% if hmap.era %} · {{ hmap.era }}{% endif %}</p>
+        {% if hmap.description %}<p class="hm-about-text">{{ hmap.description|linebreaksbr }}</p>{% endif %}
+        {% if linked_tree %}<p class="hm-about-meta">Bog'langan shajara: <a href="{% url 'index' linked_tree.url_key %}">{{ linked_tree.name }}</a></p>{% endif %}
+        {% if hmap.source_list %}
+        <p class="pf-label" style="margin-top:14px;">Manbalar</p>
+        <ol class="pf-sources">{% for s in hmap.source_list %}<li>{{ s }}</li>{% endfor %}</ol>
+        {% endif %}
+        <p class="pf-help" style="margin-top:14px;">Yillar: miloddan avvalgi sanalar «mil. av.» deb ko'rsatiladi. {% if hmap.is_sample %}Bu namunaviy xarita sxematik chizilgan — joylar taxminiy.{% endif %}</p>
+      </div>
+      <div data-pane="detail" hidden id="hm-detail"></div>
+    </div>
+  </aside>
+</div>
+{{ map_data|json_script:"hm-data" }}
+<script src="{% static_v 'js/tree-map.js' %}"></script>
+<script src="{% static_v 'js/history-map.js' %}"></script>
+{% endblock %}

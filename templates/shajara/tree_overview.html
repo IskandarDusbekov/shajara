@@ -1,0 +1,124 @@
+{% extends "shajara/base.html" %}
+{% block title %}{{ tree.name }} — e-Shajara{% endblock %}
+{% block body %}
+{% include "shajara/_header.html" %}
+<main class="pf-shell">
+  {% for message in messages %}
+  <div class="pf-alert{% if message.tags == 'success' %} pf-alert-good{% elif message.tags == 'error' %} pf-alert-bad{% endif %}">{{ message }}</div>
+  {% endfor %}
+
+  <div class="pf-split">
+    <div>
+      <section class="pf-hero">
+        <div class="pf-hero-badges">
+          <span class="pf-kind pf-kind-{{ tree.kind }}">{% if tree.is_learning %}{% include "shajara/_icon.html" with name="edu" %}Ta'limiy shajara{% else %}{% include "shajara/_icon.html" with name="fam" %}Oilaviy shajara{% endif %}</span>
+          <span class="pf-pill">{% if tree.is_public %}{% include "shajara/_icon.html" with name="globe" %}Ommaviy{% else %}{% include "shajara/_icon.html" with name="lock" %}Shaxsiy{% endif %}</span>
+          {% if role and role != "owner" %}<span class="pf-role pf-role-{{ role }}">Siz: {% if role == "muharrir" %}muharrir{% else %}kuzatuvchi{% endif %}</span>{% endif %}
+        </div>
+        <h1 class="pf-h1">{{ tree.name }}</h1>
+        {% if tree.subject or tree.era %}<p class="pf-tree-subject" style="margin:6px 0 0; font-size:15px;">{{ tree.subject }}{% if tree.subject and tree.era %} · {% endif %}{{ tree.era }}</p>{% endif %}
+        <p class="pf-hero-meta">Muallif: <b>@{{ tree.owner.username }}</b> · {{ tree.created_at|date:"d.m.Y" }}</p>
+        {% if tree.description %}<p class="pf-hero-desc">{{ tree.description }}</p>{% endif %}
+
+        <div class="pf-stats">
+          <div class="pf-stat"><b>{{ people_count }}</b><span>shaxs</span></div>
+          <div class="pf-stat"><b>{{ generations }}</b><span>avlod</span></div>
+          <div class="pf-stat"><b>{{ members|length|add:1 }}</b><span>kishi quryapti</span></div>
+          <div class="pf-stat"><b>{{ tree.gratitude_count }}</b><span>minnatdorchilik</span></div>
+        </div>
+
+        <div class="pf-actions">
+          <a class="pf-btn pf-btn-primary" href="{% url 'index' tree.url_key %}">{% include "shajara/_icon.html" with name="map" %}Xaritani ochish</a>
+          <a class="pf-btn pf-btn-edu" href="{% url 'tree_quiz' tree.url_key %}">{% include "shajara/_icon.html" with name="quiz" %}{% if tree.is_learning %}O'zingizni sinang{% else %}Oilangizni qanchalik bilasiz?{% endif %}</a>
+          {% if role %}<a class="pf-btn" href="{% url 'tree_members' tree.url_key %}">{% include "shajara/_icon.html" with name="users" %}{% if is_owner %}A'zolar va ulashish{% else %}A'zolar{% endif %}</a>{% endif %}
+          {% if is_owner %}<a class="pf-btn" href="{% url 'tree_settings' tree.url_key %}">{% include "shajara/_icon.html" with name="settings" %}Sozlamalar</a>{% endif %}
+        </div>
+        {% if best_attempt %}
+        <p class="pf-help" style="margin-top:12px;">Sizning eng yaxshi natijangiz: <b>{{ best_attempt.score }}/{{ best_attempt.total }}</b> ({{ best_attempt.percent }}%).</p>
+        {% endif %}
+
+        <form method="post" action="{% url 'toggle_gratitude' tree.url_key %}" class="gratitude-form">
+          {% csrf_token %}
+          <button class="gratitude-btn {% if gave_gratitude %}active{% endif %}" type="submit">
+            <svg viewBox="0 0 24 24" fill="{% if gave_gratitude %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11v9H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3zm0 0 4-7a2 2 0 0 1 2 2v3h5a2 2 0 0 1 2 2.3l-1.3 7A2 2 0 0 1 16.7 20H7"/></svg>
+            <span>{% if gave_gratitude %}Rahmat aytdingiz{% else %}Rahmat aytish{% endif %}</span>
+            <span class="gratitude-count">{{ tree.gratitude_count }}</span>
+          </button>
+        </form>
+      </section>
+
+      <section class="comments-block pf-card" style="margin-top:16px;">
+        <h3 class="comments-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          {% if tree.is_learning %}Savol va muhokama{% else %}Izohlar{% endif %} <span class="comments-count">{{ tree.comment_count }}</span>
+        </h3>
+        <form method="post" action="{% url 'add_comment' tree.url_key %}" class="comment-compose">
+          {% csrf_token %}
+          {{ comment_form.text }}
+          <button class="ov-btn ov-btn-gold" type="submit">{% if tree.is_learning %}Yozish{% else %}Izoh qoldirish{% endif %}</button>
+        </form>
+        <div class="comment-list">
+          {% for c in comments %}
+          <div class="comment-item">
+            <div class="comment-avatar">{{ c.author.username|first|upper }}</div>
+            <div class="comment-body">
+              <div class="comment-head">
+                <span class="comment-author">{{ c.author.username }}</span>
+                <span class="comment-date">{{ c.created_at|date:"d.m.Y H:i" }}</span>
+              </div>
+              <div class="comment-text">{{ c.text }}</div>
+            </div>
+          </div>
+          {% empty %}
+          <div class="empty-hint">{% if tree.is_learning %}Hozircha savol yo'q. Tushunmagan joyingizni so'rang yoki qo'shimcha ma'lumot yozing.{% else %}Hozircha izoh yo'q. Birinchi bo'lib fikr bildiring!{% endif %}</div>
+          {% endfor %}
+        </div>
+        {% if page_obj.has_other_pages %}
+        <div class="pagination">
+          {% if page_obj.has_previous %}<a class="page-link" href="?page={{ page_obj.previous_page_number }}">← Oldingi</a>{% endif %}
+          <span class="page-info">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+          {% if page_obj.has_next %}<a class="page-link" href="?page={{ page_obj.next_page_number }}">Keyingi →</a>{% endif %}
+        </div>
+        {% endif %}
+      </section>
+    </div>
+
+    <aside>
+      {% if tree.is_learning %}
+      <section class="pf-card">
+        <h2 class="pf-h2">{% include "shajara/_icon.html" with name="book" %}Manbalar</h2>
+        {% if tree.source_list %}
+        <ol class="pf-sources">
+          {% for s in tree.source_list %}<li>{% if s|slice:":8" == "https://" or s|slice:":7" == "http://" %}<a href="{{ s }}" target="_blank" rel="noopener noreferrer nofollow">{{ s }}</a>{% else %}{{ s }}{% endif %}</li>{% endfor %}
+        </ol>
+        {% else %}
+        <p class="pf-help" style="margin:0;">Manbalar ko'rsatilmagan.{% if is_owner %} <a href="{% url 'tree_settings' tree.url_key %}">Sozlamalarda qo'shing</a> — o'quvchilar ma'lumot qayerdan olinganini bilsin.{% endif %}</p>
+        {% endif %}
+      </section>
+      {% endif %}
+
+      <section class="pf-card">
+        <h2 class="pf-h2">{% include "shajara/_icon.html" with name="users" %}Kimlar quryapti</h2>
+        <ul class="pf-list">
+          <li class="pf-member">
+            <span class="pf-avatar pf-avatar-owner">{{ tree.owner.username|first }}</span>
+            <span class="pf-member-main"><span class="pf-member-name">@{{ tree.owner.username }}</span><span class="pf-member-sub">Muallif</span></span>
+          </li>
+          {% for m in members|slice:":6" %}
+          <li class="pf-member">
+            <span class="pf-avatar">{{ m.user.username|first }}</span>
+            <span class="pf-member-main"><span class="pf-member-name">@{{ m.user.username }}</span><span class="pf-member-sub">{{ m.get_role_display }}</span></span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% if is_owner %}
+        <p class="pf-help">{% if tree.is_learning %}O'quvchilar yoki hamkasblarni havola orqali taklif qiling.{% else %}Qarindoshlaringizni taklif qiling — har kim o'z oilasi shoxini to'ldiradi.{% endif %}</p>
+        <a class="pf-btn pf-btn-sm pf-btn-block" style="margin-top:10px;" href="{% url 'tree_members' tree.url_key %}">{% include "shajara/_icon.html" with name="link" %}Taklif havolasi</a>
+        {% elif role %}
+        <a class="pf-btn pf-btn-sm pf-btn-block" style="margin-top:10px;" href="{% url 'tree_members' tree.url_key %}">Barcha a'zolar</a>
+        {% endif %}
+      </section>
+    </aside>
+  </div>
+</main>
+{% endblock %}

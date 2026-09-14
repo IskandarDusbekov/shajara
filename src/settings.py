@@ -10,24 +10,61 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _load_dotenv(path):
+    """Minimal .env loader: KEY=VALUE lines into os.environ (no overwrite)."""
+    if not path.exists():
+        return
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key, value = key.strip(), value.strip().strip('"').strip("'")
+        if value:   # an empty line in .env means "use the default"
+            os.environ.setdefault(key, value)
+
+
+_load_dotenv(BASE_DIR / ".env")
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
+def _env_bool(key, default):
+    return os.environ.get(key, str(default)).strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def _env_list(key, default):
+    raw = os.environ.get(key, '')
+    return [item.strip() for item in raw.split(',') if item.strip()] or list(default)
+
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-s6=ct^@&p6l34p!g!1-sqnp**f^w_hcwmd1ko@-qv^r*!o)e_b'
+# Set DJANGO_SECRET_KEY in .env for anything that isn't local development.
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-s6=ct^@&p6l34p!g!1-sqnp**f^w_hcwmd1ko@-qv^r*!o)e_b',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = _env_bool('DJANGO_DEBUG', True)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = _env_list(
+    'DJANGO_ALLOWED_HOSTS',
+    ['postbox-cargo-reawake.ngrok-free.dev', '127.0.0.1', 'localhost'],
+)
 
-
+CSRF_TRUSTED_ORIGINS = _env_list(
+    'DJANGO_CSRF_TRUSTED_ORIGINS',
+    ['https://postbox-cargo-reawake.ngrok-free.dev'],
+)
 # Application definition
 
 INSTALLED_APPS = [
@@ -47,6 +84,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'shajara.presence.PresenceMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -62,6 +100,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'shajara.context_processors.pending_requests',
             ],
         },
     },
@@ -119,16 +158,76 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
+if not DEBUG:
+    # Hash static filenames so they can be cached forever and still change.
+    # In development the {% static_v %} tag appends the file's mtime instead.
+    STORAGES = {
+        'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+        },
+    }
+
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/'
 
+AUTHENTICATION_BACKENDS = [
+    'shajara.auth_backends.EmailOrUsernameBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'index'
+LOGIN_REDIRECT_URL = 'my_trees'
 LOGOUT_REDIRECT_URL = 'login'
+
+# ---------------------------------------------------------------- Email --
+# SMTP creds come from environment (.env). If they aren't set, fall back to
+# the console backend so development still works without a real mail server.
+EMAIL_HOST = os.environ.get('EMAIL_HOST', '')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = _env_bool('EMAIL_USE_TLS', True)
+# Port 465 servers (e.g. Yandex, Mail.ru) speak SSL from the start instead;
+# Django refuses both at once, so SSL switches TLS off.
+EMAIL_USE_SSL = _env_bool('EMAIL_USE_SSL', False)
+if EMAIL_USE_SSL:
+    EMAIL_USE_TLS = False
+EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', '15'))
+DEFAULT_FROM_EMAIL = (
+    os.environ.get('DEFAULT_FROM_EMAIL')
+    or (f'e-Shajara <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER else 'e-Shajara <noreply@e-shajara.uz>')
+)
+
+if EMAIL_HOST and EMAIL_HOST_USER:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# ------------------------------------------------------------- security --
 # Session/CSRF cookie hardening — see Django deployment checklist for prod overrides
 CSRF_COOKIE_HTTPONLY = True
 SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
 X_FRAME_OPTIONS = 'DENY'
+
+# A tree URL now carries an unguessable key (/shajara/<22 chars>/korish/), so the
+# URL itself is a secret. 'same-origin' keeps it out of the Referer header the
+# browser would otherwise send to any third-party site linked from the page.
+SECURE_REFERRER_POLICY = 'same-origin'
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+
+if not DEBUG:
+    # Behind a TLS-terminating proxy (ngrok, nginx) Django needs the header to
+    # know the original request was https.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = _env_bool('DJANGO_SSL_REDIRECT', True)
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True

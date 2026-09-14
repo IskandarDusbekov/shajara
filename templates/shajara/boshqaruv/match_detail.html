@@ -1,0 +1,148 @@
+{% extends "shajara/boshqaruv/base.html" %}
+{% block adm_title %}Moslik #{{ cand.pk }}{% endblock %}
+{% block adm_content %}
+<a class="crumb" href="{% url 'boshqaruv:matches' %}">← Mosliklar</a>
+
+<header class="adm-head">
+  <div>
+    <h1 class="adm-title">{{ cand.snapshot.a.name }} ↔ {{ cand.snapshot.b.name }}</h1>
+    <p class="adm-sub">Bu ikki yozuv bitta odammi? Dalillarni solishtiring, birlashtirish rejasini ko'ring va qaror qiling.</p>
+  </div>
+  <div class="head-score">
+    {% include "shajara/boshqaruv/_score.html" with score=cand.score %}
+    <small>{{ cand.get_status_display }}{% if cand.reviewed_by %} · {{ cand.reviewed_by.username }}, {{ cand.reviewed_at|date:"d.m.Y H:i" }}{% endif %}</small>
+  </div>
+</header>
+
+{% if not a or not b %}
+<div class="panel callout callout-warn">
+  Yozuvlardan biri endi mavjud emas (ehtimol oldinroq birlashtirilgan yoki o'chirilgan). Quyida qidiruv paytidagi holat ko'rsatilgan.
+</div>
+{% endif %}
+
+<div class="adm-grid-2 adm-grid-wide-left">
+  <section class="panel panel-flush">
+    <header class="panel-head panel-head-pad"><h2 class="panel-title">Yonma-yon solishtirish</h2>
+      <span class="legend-inline"><i class="st st-same"></i>mos <i class="st st-diff"></i>farq <i class="st st-one"></i>bir tomonda</span>
+    </header>
+    {% if a and b %}
+    <div class="table-wrap">
+      <table class="table compare">
+        <thead>
+          <tr>
+            <th></th>
+            <th>A · {% for t in a.trees %}{{ t.name }}{% if not forloop.last %}, {% endif %}{% empty %}shajarasiz{% endfor %}</th>
+            <th>B · {% for t in b.trees %}{{ t.name }}{% if not forloop.last %}, {% endif %}{% empty %}shajarasiz{% endfor %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          {% if r.state != 'empty' %}
+          <tr class="cmp-{{ r.state }}">
+            <th scope="row">{{ r.label }}</th>
+            <td>{{ r.a|default:"—" }}</td>
+            <td>{{ r.b|default:"—" }}</td>
+          </tr>
+          {% endif %}
+          {% endfor %}
+          <tr class="cmp-group"><th colspan="3">Oila</th></tr>
+          <tr><th scope="row">Otasi</th><td>{{ a.father.full_name|default:"—" }}</td><td>{{ b.father.full_name|default:"—" }}</td></tr>
+          <tr><th scope="row">Onasi</th><td>{{ a.mother.full_name|default:"—" }}</td><td>{{ b.mother.full_name|default:"—" }}</td></tr>
+          <tr><th scope="row">Turmush o'rtog'i</th>
+            <td>{% for s in a.spouses %}{{ s.full_name }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+            <td>{% for s in b.spouses %}{{ s.full_name }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td></tr>
+          <tr><th scope="row">Farzandlari</th>
+            <td>{% for s in a.children %}{{ s.first_name }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+            <td>{% for s in b.children %}{{ s.first_name }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td></tr>
+          <tr class="cmp-group"><th colspan="3">Egasi</th></tr>
+          <tr><th scope="row">Shajara egasi</th>
+            <td>{% for t in a.trees %}<a href="{% url 'boshqaruv:tree_detail' t.pk %}">@{{ t.owner.username }}</a> <span class="tag {% if t.is_public %}tag-good{% endif %}">{{ t.get_visibility_display }}</span> {% empty %}—{% endfor %}</td>
+            <td>{% for t in b.trees %}<a href="{% url 'boshqaruv:tree_detail' t.pk %}">@{{ t.owner.username }}</a> <span class="tag {% if t.is_public %}tag-good{% endif %}">{{ t.get_visibility_display }}</span> {% empty %}—{% endfor %}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="empty-line panel-pad">A: {{ cand.snapshot.a.name }} ({{ cand.snapshot.a.year|default:"—" }}) · B: {{ cand.snapshot.b.name }} ({{ cand.snapshot.b.year|default:"—" }})</p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <header class="panel-head"><h2 class="panel-title">Ishonch indeksi qanday yig'ildi</h2></header>
+    <ul class="evidence">
+      {% for part in cand.breakdown %}
+      <li class="{% if part.points < 0 %}is-bad{% elif part.points == 0 %}is-zero{% endif %}">
+        <div class="evidence-top">
+          <span>{{ part.label }}</span>
+          <b>{% if part.points > 0 %}+{% endif %}{{ part.points }}{% if part.weight %} <small>/ {{ part.weight }}</small>{% endif %}</b>
+        </div>
+        {% if part.weight %}<span class="meter"><i style="width: {{ part.pct }}%"></i></span>{% endif %}
+        <small class="evidence-detail">{{ part.detail }}</small>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+
+{% if cand.status == 'pending' and preview %}
+<section class="panel merge-panel">
+  <header class="panel-head">
+    <h2 class="panel-title">Birlashtirish rejasi</h2>
+    <div class="seg">
+      <a class="seg-item{% if keep == 'a' %} is-on{% endif %}" href="?keep=a">A yozuvi qolsin</a>
+      <a class="seg-item{% if keep == 'b' %} is-on{% endif %}" href="?keep=b">B yozuvi qolsin</a>
+    </div>
+  </header>
+  <p class="panel-note">Qolgan yozuvning bo'sh maydonlari ikkinchisidan to'ldiriladi. Bir xil ota-ona, turmush o'rtog'i va farzandlar ham avtomatik birlashadi. Quyidagi reja haqiqiy ma'lumotlarda sinab ko'rilgan va bekor qilingan — natija aynan shunday bo'ladi.</p>
+
+  {% if preview.error %}
+  <div class="callout callout-bad"><b>Birlashtirib bo'lmaydi:</b> {{ preview.error }}</div>
+  {% else %}
+  <ul class="plan-summary">
+    {% for label, n in preview.summary %}<li><b>{{ n }}</b> {{ label }}</li>{% endfor %}
+  </ul>
+  <details class="plan-details"{% if preview.log|length <= 12 %} open{% endif %}>
+    <summary>Barcha qadamlar ({{ preview.log|length }})</summary>
+    <ol class="plan">
+      {% for step in preview.log %}
+      <li class="plan-{{ step.kind }}">{{ step.text }}</li>
+      {% endfor %}
+    </ol>
+  </details>
+
+  <div class="callout {% if preview.cross_owner %}callout-warn{% endif %}">
+    <b>Ta'sir qiladigan shajaralar ({{ preview.trees|length }}):</b>
+    {% for t in preview.trees %}«{{ t.name }}» — @{{ t.owner }}{% if t.visibility == 'private' %} (shaxsiy){% endif %}{% if not forloop.last %}; {% endif %}{% endfor %}.
+    {% if preview.cross_owner %}
+    <br>Birlashtirilgach bu shajaralar <b>bitta oila grafiga ulanadi</b>: har bir egasi o'z shajarasida boshqa egalar kiritgan shaxslarni ham ko'radi va tahrirlay oladi.{% if preview.has_private %} Ulardan kamida bittasi <b>shaxsiy</b> — egalari rozi ekaniga ishonch hosil qiling.{% endif %}
+    {% endif %}
+    Oldingi holat JSON ko'rinishida saqlanadi.
+  </div>
+
+  <form method="post" class="merge-form">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="merge">
+    <input type="hidden" name="keep" value="{{ keep }}">
+    <label class="check"><input type="checkbox" name="understood" value="1" required> Rejani ko'rib chiqdim, {{ preview.merged }} ta yozuv birlashtirilishini tushunaman.</label>
+    <button class="btn btn-primary" type="submit">Birlashtirish</button>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
+
+<section class="panel">
+  <header class="panel-head"><h2 class="panel-title">Qaror</h2></header>
+  {% if cand.status == 'pending' %}
+  <form method="post" class="reject-form">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="reject">
+    <textarea class="f-input" name="note" rows="2" placeholder="Nega mos emas? (ixtiyoriy izoh, faqat adminlar ko'radi)"></textarea>
+    <button class="btn btn-danger" type="submit">Bir odam emas — rad etish</button>
+  </form>
+  {% elif cand.status == 'rejected' %}
+  <p>Rad etilgan{% if cand.note %}: «{{ cand.note }}»{% endif %}.</p>
+  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="reopen"><button class="btn" type="submit">Qayta ko'rib chiqishga qaytarish</button></form>
+  {% else %}
+  <p>Birlashtirilgan. {% for m in cand.merges.all %}<a href="{% url 'boshqaruv:merge_detail' m.pk %}">Birlashtirish #{{ m.pk }} tafsilotlari →</a>{% endfor %}</p>
+  {% endif %}
+</section>
+{% endblock %}

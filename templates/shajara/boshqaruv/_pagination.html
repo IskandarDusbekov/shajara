@@ -1,0 +1,7 @@
+{% if page.paginator.num_pages > 1 %}
+<nav class="pager" aria-label="Sahifalar">
+  {% if page.has_previous %}<a href="?{% if qs %}{{ qs }}&{% endif %}page={{ page.previous_page_number }}">← Oldingi</a>{% else %}<span class="is-off">← Oldingi</span>{% endif %}
+  <span class="pager-info">{{ page.number }} / {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a href="?{% if qs %}{{ qs }}&{% endif %}page={{ page.next_page_number }}">Keyingi →</a>{% else %}<span class="is-off">Keyingi →</span>{% endif %}
+</nav>
+{% endif %}

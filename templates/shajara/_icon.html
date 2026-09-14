@@ -1,0 +1,36 @@
+{% spaceless %}{% comment %}
+One place for the line icons the platform pages use:
+{% include "shajara/_icon.html" with name="edu" %}
+{% endcomment %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{% if name == "edu" %}<path d="M2 9.5 12 5l10 4.5L12 14z"/><path d="M6 11.5V16c0 1.4 2.7 3 6 3s6-1.6 6-3v-4.5"/><path d="M22 9.5V15"/>
+{% elif name == "fam" %}<path d="m3 10.5 9-7 9 7"/><path d="M5 9v11h14V9"/><circle cx="12" cy="12.5" r="2"/><path d="M8.5 20a3.5 3.5 0 0 1 7 0"/>
+{% elif name == "users" %}<circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2A5 5 0 0 1 21 19"/>
+{% elif name == "link" %}<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/>
+{% elif name == "telegram" %}<path d="M21.5 4 2.8 11.2c-.9.4-.9 1.6.1 1.9l4.6 1.5 1.8 5.5c.3.8 1.3 1 1.9.4l2.6-2.4 4.7 3.5c.7.5 1.7.1 1.9-.8L22.9 5.2c.2-.9-.6-1.6-1.4-1.2z"/><path d="m7.5 14.6 9.5-6.1-7 7.4"/>
+{% elif name == "copy" %}<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>
+{% elif name == "quiz" %}<circle cx="12" cy="12" r="9"/><path d="M9.3 9.2a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2.9-1.2 1.8"/><path d="M12 17h.01"/>
+{% elif name == "book" %}<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 11h6"/>
+{% elif name == "map" %}<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>
+{% elif name == "arrow" %}<path d="M5 12h14M13 6l6 6-6 6"/>
+{% elif name == "plus" %}<path d="M12 5v14M5 12h14"/>
+{% elif name == "search" %}<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+{% elif name == "clock" %}<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+{% elif name == "shield" %}<path d="M12 3 4 6v6c0 5 3.4 8.5 8 9 4.6-.5 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/>
+{% elif name == "star" %}<path d="m12 3 2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 22l-5.3-2.8 1-5.8-4.2-4.1 5.9-.9z"/>
+{% elif name == "leaf" %}<path d="M12 22v-6"/><path d="M12 16c-3.5 0-6-2.4-6-6 0 0 3.4 0 6 2.4C12 8 12 5 12 5s0 3 0 7.4C14.6 10 18 10 18 10c0 3.6-2.5 6-6 6z"/>
+{% elif name == "info" %}<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>
+{% elif name == "settings" %}<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2.8 12h2.4M18.8 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"/>
+{% elif name == "edit" %}<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>
+{% elif name == "eye" %}<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>
+{% elif name == "check" %}<path d="m5 12.5 4.5 4.5L19 7.5"/>
+{% elif name == "x" %}<path d="M6 6l12 12M18 6 6 18"/>
+{% elif name == "trophy" %}<path d="M8 21h8M12 17v4"/><path d="M6 4h12v5a6 6 0 0 1-12 0z"/><path d="M6 6H3.5v1.5A3.5 3.5 0 0 0 6 10.9M18 6h2.5v1.5A3.5 3.5 0 0 1 18 10.9"/>
+{% elif name == "crown" %}<path d="M4 18h16"/><path d="m3 8 4.5 3.5L12 5l4.5 6.5L21 8l-1.6 7.5H4.6z"/>
+{% elif name == "lock" %}<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+{% elif name == "globe" %}<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z"/>
+{% elif name == "logout" %}<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/>
+{% elif name == "upload" %}<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>
+{% elif name == "student" %}<circle cx="12" cy="7" r="3.5"/><path d="M5 21a7 7 0 0 1 14 0"/><path d="M8.5 5.5 12 3l3.5 2.5"/>
+{% elif name == "teacher" %}<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M7 20h10M12 16v4"/><path d="m7 12 3-3 2 2 4-4"/>
+{% elif name == "flag" %}<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>
+{% endif %}</svg>{% endspaceless %}

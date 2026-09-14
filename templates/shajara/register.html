@@ -1,0 +1,107 @@
+{% extends "shajara/base.html" %}
+{% load assets %}
+{% block title %}Ro'yxatdan o'tish — e-Shajara{% endblock %}
+{% block body %}
+<div class="center-screen">
+  <div class="big-leaf"><svg class="hero-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c9 0 16-4.8 16-15C11.5 5 4 8.2 4 15.5z"/><path d="M4 20c2.2-5.5 6-9.2 11-11.5"/></svg></div>
+  <h1>e-Shajara</h1>
+  <p class="sub">{% if next and "/taklif/" in next %}Taklifni qabul qilish uchun qisqa ro'yxatdan o'ting — so'ng shajaraga bir bosishda qo'shilasiz.{% else %}Oilangiz shajarasini qarindoshlar bilan birga tuzing yoki tarixiy shaxslar shajarasi orqali o'rganing va o'rgating.{% endif %}</p>
+
+  <form method="post" novalidate class="register-form" style="width:100%; max-width:380px;">
+    {% csrf_token %}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
+
+    <fieldset class="register-roles">
+      <legend class="pf-label" style="margin-top:0;">Platformadan nima uchun foydalanasiz?</legend>
+      <div class="pf-choices pf-choices-4">
+        {% with current=form.role.value|default:"" %}
+        <label class="pf-choice pf-choice-compact is-fam">
+          <input type="radio" name="role" value="oila" {% if current == "oila" %}checked{% endif %}>
+          <span class="pf-choice-box">{% include "shajara/_icon.html" with name="fam" %}<span class="pf-choice-title">Oilam uchun</span></span>
+        </label>
+        <label class="pf-choice pf-choice-compact is-edu">
+          <input type="radio" name="role" value="abituriyent" {% if current == "abituriyent" %}checked{% endif %}>
+          <span class="pf-choice-box">{% include "shajara/_icon.html" with name="student" %}<span class="pf-choice-title">Abituriyent</span></span>
+        </label>
+        <label class="pf-choice pf-choice-compact is-edu">
+          <input type="radio" name="role" value="talaba" {% if current == "talaba" %}checked{% endif %}>
+          <span class="pf-choice-box">{% include "shajara/_icon.html" with name="edu" %}<span class="pf-choice-title">Talaba</span></span>
+        </label>
+        <label class="pf-choice pf-choice-compact is-edu">
+          <input type="radio" name="role" value="oqituvchi" {% if current == "oqituvchi" %}checked{% endif %}>
+          <span class="pf-choice-box">{% include "shajara/_icon.html" with name="teacher" %}<span class="pf-choice-title">O'qituvchi</span></span>
+        </label>
+        <label class="pf-choice pf-choice-compact is-edu">
+          <input type="radio" name="role" value="ixlosmand" {% if current == "ixlosmand" %}checked{% endif %}>
+          <span class="pf-choice-box">{% include "shajara/_icon.html" with name="book" %}<span class="pf-choice-title">Tarix ixlosmandi</span></span>
+        </label>
+        {% endwith %}
+      </div>
+    </fieldset>
+
+    <input class="stack-input" type="text" name="first_name" placeholder="Ismingiz" value="{{ form.first_name.value|default:'' }}" required>
+    {% if form.first_name.errors %}<div class="form-error">{{ form.first_name.errors|join:" " }}</div>{% endif %}
+
+    <input class="stack-input" type="text" name="last_name" placeholder="Familyangiz (ixtiyoriy)" value="{{ form.last_name.value|default:'' }}">
+
+    <input class="stack-input" type="text" name="username" id="reg-username" placeholder="Foydalanuvchi nomi, masalan: aziz_karimov"
+           value="{{ form.username.value|default:'' }}" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    <p class="reg-hint" id="reg-username-hint">Lotin harflari, raqamlar, <b>_</b> va <b>-</b>. Masalan: <b>aziz_karimov</b>, <b>dilnoza-2008</b></p>
+    {% if form.username.errors %}<div class="form-error">{{ form.username.errors|join:" " }}</div>{% endif %}
+
+    <input class="stack-input" type="email" name="email" placeholder="Email (ixtiyoriy), masalan: aziz@gmail.com" value="{{ form.email.value|default:'' }}" autocomplete="email">
+    <p class="reg-hint">Email kiritsangiz, unga 6 xonali tasdiqlash kodi yuboriladi — parolni unutsangiz tiklash uchun kerak.</p>
+    {% if form.email.errors %}<div class="form-error">{{ form.email.errors|join:" " }}</div>{% endif %}
+
+    <select class="stack-input" name="region" aria-label="Qaysi viloyatdansiz?" data-combo data-combo-placeholder="Qaysi viloyatdansiz? (ixtiyoriy)">
+      <option value="">Qaysi viloyatdansiz? (ixtiyoriy)</option>
+      {% for value, label in form.fields.region.choices %}{% if value %}
+      <option value="{{ value }}" {% if form.region.value == value %}selected{% endif %}>{{ label }}</option>
+      {% endif %}{% endfor %}
+    </select>
+
+    <input class="stack-input" type="password" name="password1" placeholder="Parol" required>
+    {% if form.password1.errors %}<div class="form-error">{{ form.password1.errors|join:" " }}</div>{% endif %}
+    <input class="stack-input" type="password" name="password2" placeholder="Parolni takrorlang" required>
+    {% if form.password2.errors %}<div class="form-error">{{ form.password2.errors|join:" " }}</div>{% endif %}
+
+    <button class="btn-primary full" type="submit">Ro'yxatdan o'tish</button>
+  </form>
+
+  <p class="note">Hisobingiz bormi? <a href="{% url 'login' %}{% if next %}?next={{ next|urlencode }}{% endif %}" style="color:#e9c869;">Kirish</a></p>
+</div>
+<script>
+/* Suggest a username from the name as it is typed, until the person writes their own. */
+(function () {
+  var form = document.querySelector(".register-form");
+  var user = document.getElementById("reg-username");
+  var hint = document.getElementById("reg-username-hint");
+  if (!form || !user) return;
+  var touched = !!user.value;
+  user.addEventListener("input", function () {
+    touched = true;
+    var clean = user.value.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
+    if (clean !== user.value) user.value = clean;
+  });
+  function slug(s) {
+    return s.toLowerCase().replace(/[ʻʼ‘’'`]/g, "").replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
+  }
+  function suggest() {
+    if (touched) return;
+    var a = slug(form.first_name.value), b = slug(form.last_name.value);
+    var s = [a, b].filter(Boolean).join("_");
+    user.placeholder = s ? "Masalan: " + s : "Foydalanuvchi nomi, masalan: aziz_karimov";
+  }
+  form.first_name.addEventListener("input", suggest);
+  form.last_name.addEventListener("input", suggest);
+  user.addEventListener("focus", function () {
+    if (!user.value && user.placeholder.indexOf("Masalan: ") === 0 && form.first_name.value) {
+      user.value = user.placeholder.slice(9);
+      user.select();
+    }
+  });
+})();
+</script>
+<script src="{% static_v 'js/combobox.js' %}"></script>
+{% endblock %}

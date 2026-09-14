@@ -1,0 +1,73 @@
+{% extends "shajara/boshqaruv/base.html" %}
+{% block adm_title %}Moslik topish{% endblock %}
+{% block adm_content %}
+<header class="adm-head">
+  <div>
+    <h1 class="adm-title">Moslik topish</h1>
+    <p class="adm-sub">Turli shajaralarda bir odam ikki marta kiritilgan bo'lishi mumkin bo'lgan holatlar. Faqat adminlar ko'radi — foydalanuvchilarga hech narsa yuborilmaydi.</p>
+  </div>
+  <form method="post" action="{% url 'boshqaruv:match_run' %}" class="head-actions">
+    {% csrf_token %}
+    <button class="btn btn-primary" type="submit">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+      Qidiruvni hozir ishga tushirish
+    </button>
+  </form>
+</header>
+
+<section class="how panel">
+  <div class="how-col">
+    <b>Qanday baholanadi</b>
+    <p>Ism (25) · Familiya (15) · Tug'ilgan/vafot yili ±5 (20) · Joy (10) · Otasining ismi (15) · Onasi, turmush o'rtog'i, farzandlari (15) · Qarindoshlari ham mos (+15). Noma'lum ma'lumot ball bermaydi; zid ma'lumot ball ayiradi.</p>
+  </div>
+  <div class="how-col">
+    <b>Darajalar</b>
+    <p>{% include "shajara/boshqaruv/_score.html" with score=90 %} juda yuqori · {% include "shajara/boshqaruv/_score.html" with score=75 %} yuqori · {% include "shajara/boshqaruv/_score.html" with score=60 %} o'rtacha · {% include "shajara/boshqaruv/_score.html" with score=45 %} past</p>
+  </div>
+  <div class="how-col">
+    <b>So'nggi qidiruv</b>
+    <p>{% if last_run %}{{ last_run.started_at|date:"d.m.Y H:i" }} — {{ last_run.persons_scanned }} shaxs, {{ last_run.pairs_compared }} juftlik, {{ last_run.candidates_found }} moslik{% else %}hali ishga tushirilmagan{% endif %}.<br><span class="muted">Fon rejimi: <code>python manage.py find_matches --loop</code></span></p>
+  </div>
+</section>
+
+<form class="filters" method="get">
+  <div class="seg" role="tablist">
+    <a class="seg-item{% if status == 'pending' %} is-on{% endif %}" href="?status=pending&min={{ min_score }}">Ko'rib chiqilmagan <b>{{ counts.pending|default:0 }}</b></a>
+    <a class="seg-item{% if status == 'merged' %} is-on{% endif %}" href="?status=merged&min={{ min_score }}">Birlashtirilgan <b>{{ counts.merged|default:0 }}</b></a>
+    <a class="seg-item{% if status == 'rejected' %} is-on{% endif %}" href="?status=rejected&min={{ min_score }}">Rad etilgan <b>{{ counts.rejected|default:0 }}</b></a>
+  </div>
+  <input type="hidden" name="status" value="{{ status }}">
+  <label class="f-range">Kamida <b id="min-out">{{ min_score }}%</b>
+    <input type="range" name="min" min="45" max="100" step="5" value="{{ min_score }}" oninput="document.getElementById('min-out').textContent=this.value+'%'" onchange="this.form.submit()">
+  </label>
+</form>
+
+<div class="match-list">
+  {% for c in page %}
+  <a class="match-card" href="{% url 'boshqaruv:match_detail' c.pk %}">
+    {% include "shajara/boshqaruv/_score.html" with score=c.score %}
+    <div class="match-side">
+      <b>{{ c.snapshot.a.name }}</b>
+      <small>{{ c.snapshot.a.year|default:"yili noma'lum" }} · {% for t in c.snapshot.a.trees %}{{ t.name }} (@{{ t.owner }}){% if not forloop.last %}, {% endif %}{% empty %}shajarasiz{% endfor %}</small>
+    </div>
+    <span class="match-link" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="8" cy="12" r="5"/><circle cx="16" cy="12" r="5"/></svg>
+    </span>
+    <div class="match-side">
+      <b>{{ c.snapshot.b.name }}</b>
+      <small>{{ c.snapshot.b.year|default:"yili noma'lum" }} · {% for t in c.snapshot.b.trees %}{{ t.name }} (@{{ t.owner }}){% if not forloop.last %}, {% endif %}{% empty %}shajarasiz{% endfor %}</small>
+    </div>
+    <div class="match-evidence">
+      {% for part in c.breakdown %}{% if part.points > 0 %}<span class="ev">{{ part.label }}</span>{% endif %}{% endfor %}
+      {% for part in c.breakdown %}{% if part.points < 0 %}<span class="ev ev-bad">{{ part.label }} {{ part.points }}</span>{% endif %}{% endfor %}
+    </div>
+    {% if c.status != 'pending' %}<span class="match-state">{{ c.get_status_display }}{% if c.reviewed_by %} · {{ c.reviewed_by.username }}{% endif %}</span>{% endif %}
+  </a>
+  {% empty %}
+  <div class="panel empty-panel">
+    <p class="empty-line">Bu filtr bo'yicha moslik yo'q.{% if status == 'pending' %} Yangi ma'lumotlar kiritilgach qidiruvni qayta ishga tushiring.{% endif %}</p>
+  </div>
+  {% endfor %}
+</div>
+{% include "shajara/boshqaruv/_pagination.html" %}
+{% endblock %}

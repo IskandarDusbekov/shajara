@@ -1,0 +1,14 @@
+<a class="pf-tree hm-card" href="{% url 'map_detail' m.url_key %}">
+  <span class="hm-card-thumb"><img src="{% url 'map_image' m.url_key %}" alt="" loading="lazy"></span>
+  <div class="pf-tree-top">
+    <span class="pf-tree-name">{{ m.title }}</span>
+    {% if m.is_sample %}<span class="pf-kind pf-kind-talimiy">{% include "shajara/_icon.html" with name="star" %}Namuna</span>{% endif %}
+  </div>
+  {% if m.era %}<span class="pf-tree-subject">{{ m.era }}</span>{% endif %}
+  {% if m.description %}<p class="pf-tree-desc">{{ m.description|truncatewords:18 }}</p>{% endif %}
+  <div class="pf-tree-meta">
+    <span class="pf-pill">{% include "shajara/_icon.html" with name="flag" %}{{ m.n_places }} joy</span>
+    <span class="pf-pill">{% include "shajara/_icon.html" with name="arrow" %}{{ m.n_routes }} yo'nalish</span>
+    <span class="pf-pill">{% if m.is_public %}{% include "shajara/_icon.html" with name="globe" %}Ommaviy{% else %}{% include "shajara/_icon.html" with name="lock" %}Shaxsiy{% endif %}</span>
+  </div>
+</a>

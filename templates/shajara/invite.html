@@ -1,0 +1,74 @@
+{% extends "shajara/base.html" %}
+{% block title %}Taklif: {{ tree.name }} — e-Shajara{% endblock %}
+{% block extra_head %}
+{% if not dead %}
+<meta name="description" content="@{{ invite.created_by.username|default:tree.owner.username }} sizni «{{ tree.name }}» {% if tree.is_learning %}ta'limiy{% else %}oilaviy{% endif %} shajarasiga taklif qilmoqda.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="e-Shajara">
+<meta property="og:title" content="{{ tree.name }} — {% if tree.is_learning %}ta'limiy shajara{% else %}oilaviy shajara{% endif %}">
+<meta property="og:description" content="{{ people_count }} shaxs · {{ generations }} avlod. @{{ invite.created_by.username|default:tree.owner.username }} sizni birga to'ldirishga taklif qilmoqda.">
+<meta property="og:url" content="{{ request.build_absolute_uri }}">
+{% if tree.preview_image %}
+<meta property="og:image" content="{{ preview_url }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+{% endif %}
+{% endif %}
+{% endblock %}
+{% block body %}
+<main class="pf-center">
+  <div class="pf-card pf-invite-card">
+    <a href="{% if request.user.is_authenticated %}{% url 'my_trees' %}{% else %}{% url 'landing' %}{% endif %}" class="pf-kicker" style="display:inline-block; text-decoration:none;">e-Shajara</a>
+
+    {% if dead %}
+      <h1 class="pf-h1" style="margin-top:8px;">Havola eskirgan</h1>
+      <p class="pf-lead" style="margin-left:auto; margin-right:auto;">Bu taklif havolasining muddati tugagan yoki muallif uni bekor qilgan. Sizni taklif qilgan odamdan yangi havola so'rang.</p>
+      <div class="pf-actions">
+        <a class="pf-btn pf-btn-primary" href="{% if request.user.is_authenticated %}{% url 'my_trees' %}{% else %}{% url 'landing' %}{% endif %}">Bosh sahifa</a>
+      </div>
+    {% else %}
+      <div style="margin-top:10px;">
+        <span class="pf-kind pf-kind-{{ tree.kind }}">{% if tree.is_learning %}{% include "shajara/_icon.html" with name="edu" %}Ta'limiy shajara{% else %}{% include "shajara/_icon.html" with name="fam" %}Oilaviy shajara{% endif %}</span>
+      </div>
+      <p class="pf-help" style="margin:0 0 4px;">@{{ invite.created_by.username|default:tree.owner.username }} sizni taklif qilmoqda</p>
+      <h1 class="pf-h1">{{ tree.name }}</h1>
+      {% if tree.subject or tree.era %}<p class="pf-tree-subject" style="margin:6px 0 0;">{{ tree.subject }}{% if tree.subject and tree.era %} · {% endif %}{{ tree.era }}</p>{% endif %}
+
+      {% if tree.preview_image %}
+      <img class="invite-preview" src="{{ preview_url }}" alt="{{ tree.name }} shajarasi rasmi" width="1200" height="630" loading="lazy">
+      {% endif %}
+      <p class="invite-facts">{{ people_count }} shaxs · {{ generations }} avlod · {{ member_count }} kishi quryapti · {{ tree.created_at|date:"Y" }}-yildan beri</p>
+
+      <div class="pf-role-box">
+        {% if invite.role == "muharrir" %}
+        <b>Siz muharrir bo'lasiz:</b> {{ role_help.muharrir }}.
+        {% if not tree.is_learning %}O'z oilangiz shoxini — farzandlar, nevaralar, turmush o'rtoqlarni o'zingiz qo'shasiz.{% endif %}
+        {% else %}
+        <b>Siz kuzatuvchi bo'lasiz:</b> {{ role_help.kuzatuvchi }}.
+        {% endif %}
+      </div>
+
+      {% if already %}
+        <p class="pf-lead" style="margin-left:auto; margin-right:auto;">Siz bu shajarada allaqachon bor ekansiz{% if already == "owner" %} — muallif sifatida{% endif %}.</p>
+        <div class="pf-actions">
+          <a class="pf-btn pf-btn-primary" href="{% url 'index' tree.url_key %}">{% include "shajara/_icon.html" with name="map" %}Shajarani ochish</a>
+        </div>
+      {% elif request.user.is_authenticated %}
+        <form method="post" class="pf-actions">
+          {% csrf_token %}
+          <button class="pf-btn pf-btn-primary" type="submit">{% include "shajara/_icon.html" with name="check" %}Qo'shilish</button>
+          <a class="pf-btn" href="{% url 'my_trees' %}">Keyinroq</a>
+        </form>
+        <p class="pf-help">Siz @{{ request.user.username }} sifatida qo'shilasiz.</p>
+      {% else %}
+        <div class="pf-actions">
+          <a class="pf-btn pf-btn-primary" href="{% url 'register' %}?next={{ request.path|urlencode }}{% if tree.is_learning %}&rol=talaba{% else %}&rol=oila{% endif %}">{% include "shajara/_icon.html" with name="plus" %}Ro'yxatdan o'tib qo'shilish</a>
+          <a class="pf-btn" href="{% url 'login' %}?next={{ request.path|urlencode }}">Hisobim bor — kirish</a>
+        </div>
+        <p class="pf-help">Kirgach, shu sahifaga qaytasiz va bir bosishda qo'shilasiz.</p>
+      {% endif %}
+    {% endif %}
+  </div>
+</main>
+{% endblock %}

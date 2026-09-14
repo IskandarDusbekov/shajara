@@ -1,0 +1,104 @@
+{% extends "shajara/base.html" %}
+{% block title %}{% if creating %}Yangi xarita{% else %}Sozlamalar — {{ hmap.title }}{% endif %} — e-Shajara{% endblock %}
+{% block body %}
+{% include "shajara/_header.html" %}
+<main class="pf-shell pf-formpage">
+  <a class="back-link" href="{% if hmap %}{% url 'map_detail' hmap.url_key %}{% else %}{% url 'maps' %}{% endif %}">← {% if hmap %}{{ hmap.title }}{% else %}Tarixiy xaritalar{% endif %}</a>
+  <header class="pf-head" style="margin-top:14px;">
+    <div>
+      <p class="pf-kicker">{% if creating %}Yangi tarixiy xarita{% else %}Xarita sozlamalari{% endif %}</p>
+      <h1 class="pf-h1">{% if creating %}Xarita yuklash{% else %}{{ hmap.title }}{% endif %}</h1>
+      {% if creating %}<p class="pf-lead">Skanerlangan eski xarita, darslikdagi rasm yoki o'zingiz chizgan sxema bo'lishi mumkin. Keyingi qadamda unga joylar va yo'nalishlarni belgilaysiz.</p>{% endif %}
+    </div>
+  </header>
+
+  {% if form.errors or image_form.errors %}
+  <div class="pf-alert pf-alert-bad" role="alert">Formada xato bor — belgilangan maydonlarni tekshiring.</div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    <section class="pf-card pf-formcard">
+      <h2 class="pf-section-head">{% include "shajara/_icon.html" with name="map" %}Xarita rasmi</h2>
+      <p class="pf-section-note">JPG yoki PNG, 20 MB gacha. Aniqroq rasm — kattalashtirganda tiniqroq ko'rinadi.</p>
+      <label class="hm-drop" id="hm-drop">
+        <input type="file" name="image" accept="image/png,image/jpeg,image/webp" {% if creating %}required{% endif %}>
+        <span class="hm-drop-preview" id="hm-drop-preview">
+          {% if hmap %}<img src="{% url 'map_image' hmap.url_key %}" alt="">{% else %}{% include "shajara/_icon.html" with name="upload" %}{% endif %}
+        </span>
+        <span class="hm-drop-text"><b>{% if hmap %}Boshqa rasm tanlash{% else %}Rasmni tanlang yoki shu yerga tashlang{% endif %}</b><small id="hm-drop-name">{% if hmap %}Joylar o'z o'rnida qoladi — rasm nisbati o'xshash bo'lsin{% else %}Hali tanlanmagan{% endif %}</small></span>
+      </label>
+      {% if image_form.image.errors %}<p class="pf-error">{{ image_form.image.errors|join:" " }}</p>{% endif %}
+    </section>
+
+    <section class="pf-card pf-formcard">
+      <h2 class="pf-section-head">{% include "shajara/_icon.html" with name="info" %}Ma'lumot</h2>
+      <label class="pf-label" for="{{ form.title.id_for_label }}">Nomi<span class="pf-req">*</span></label>
+      {{ form.title }}
+      {% if form.title.errors %}<p class="pf-error">{{ form.title.errors|join:" " }}</p>{% endif %}
+      <div class="pf-row">
+        <div>
+          <label class="pf-label" for="{{ form.era.id_for_label }}">Davr</label>
+          {{ form.era }}
+        </div>
+        <div>
+          <label class="pf-label" for="{{ form.visibility.id_for_label }}">Kimga ko'rinadi</label>
+          {{ form.visibility }}
+        </div>
+      </div>
+      <label class="pf-label" for="{{ form.description.id_for_label }}">Tavsif</label>
+      {{ form.description }}
+      <label class="pf-label" for="{{ form.tree.id_for_label }}">Bog'langan shajara <small>ixtiyoriy</small></label>
+      {{ form.tree }}
+      <p class="pf-help">Bog'lasangiz, joylarni shajaradagi shaxslar bilan bog'lay olasiz (masalan, tug'ilgan va vafot etgan joylari).</p>
+      <label class="pf-label" for="{{ form.sources.id_for_label }}">Manbalar</label>
+      {{ form.sources }}
+    </section>
+
+    <div class="pf-savebar">
+      <a class="pf-btn" href="{% if hmap %}{% url 'map_detail' hmap.url_key %}{% else %}{% url 'maps' %}{% endif %}">Bekor qilish</a>
+      <button class="pf-btn pf-btn-primary" type="submit">{% include "shajara/_icon.html" with name="check" %}{% if creating %}Yuklash va davom etish{% else %}Saqlash{% endif %}</button>
+    </div>
+  </form>
+
+  {% if hmap %}
+  <form method="post" class="pf-card pf-formcard" style="margin-top:16px;" onsubmit="return confirm('Xarita, undagi barcha joylar va yo\'nalishlar butunlay o\'chirilsinmi?');">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="delete">
+    <h2 class="pf-section-head">Xavfli hudud</h2>
+    <p class="pf-section-note">O'chirilgan xaritani qaytarib bo'lmaydi.</p>
+    <button class="pf-btn pf-btn-danger" type="submit">{% include "shajara/_icon.html" with name="x" %}Xaritani o'chirish</button>
+  </form>
+  {% endif %}
+</main>
+<script>
+(function () {
+  var drop = document.getElementById("hm-drop");
+  var input = drop.querySelector("input[type=file]");
+  var preview = document.getElementById("hm-drop-preview");
+  var nameEl = document.getElementById("hm-drop-name");
+  function show(file) {
+    if (!file) return;
+    var img = document.createElement("img");
+    img.src = URL.createObjectURL(file);
+    preview.innerHTML = "";
+    preview.appendChild(img);
+    nameEl.textContent = file.name + " · " + Math.round(file.size / 1024) + " KB";
+  }
+  input.addEventListener("change", function () { show(input.files[0]); });
+  ["dragenter", "dragover"].forEach(function (t) {
+    drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add("is-over"); });
+  });
+  ["dragleave", "drop"].forEach(function (t) {
+    drop.addEventListener(t, function () { drop.classList.remove("is-over"); });
+  });
+  drop.addEventListener("drop", function (e) {
+    e.preventDefault();
+    if (e.dataTransfer.files.length) {
+      input.files = e.dataTransfer.files;
+      show(input.files[0]);
+    }
+  });
+})();
+</script>
+{% endblock %}

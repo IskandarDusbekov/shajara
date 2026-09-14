@@ -1,0 +1,43 @@
+{% extends "shajara/boshqaruv/base.html" %}
+{% block adm_title %}Birlashtirish #{{ record.pk }}{% endblock %}
+{% block adm_content %}
+<a class="crumb" href="{% url 'boshqaruv:merges' %}">← Birlashtirishlar</a>
+
+<header class="adm-head">
+  <div>
+    <h1 class="adm-title">«{{ record.dropped_name }}» → «{{ record.kept_name }}»</h1>
+    <p class="adm-sub">{{ record.created_at|date:"d.m.Y H:i" }} · admin <b>{{ record.actor.username|default:"—" }}</b> · {{ record.persons_merged }} ta yozuv birlashtirildi</p>
+  </div>
+  <div class="head-actions">
+    <a class="btn" href="{% url 'boshqaruv:merge_snapshot' record.pk %}">Oldingi holat (JSON)</a>
+    {% if record.candidate %}<a class="btn" href="{% url 'boshqaruv:match_detail' record.candidate_id %}">Moslik #{{ record.candidate_id }}</a>{% endif %}
+  </div>
+</header>
+
+<div class="adm-grid-2 adm-grid-wide-left">
+  <section class="panel">
+    <header class="panel-head"><h2 class="panel-title">Nimalar qilindi</h2></header>
+    <ul class="plan-summary">
+      {% for label, n in summary %}<li><b>{{ n }}</b> {{ label }}</li>{% endfor %}
+    </ul>
+    <details class="plan-details"{% if record.log|length <= 12 %} open{% endif %}>
+      <summary>Barcha qadamlar ({{ record.log|length }})</summary>
+      <ol class="plan">
+        {% for step in record.log %}<li class="plan-{{ step.kind }}">{{ step.text }}</li>{% endfor %}
+      </ol>
+    </details>
+  </section>
+  <section class="panel">
+    <header class="panel-head"><h2 class="panel-title">Ulangan shajaralar</h2></header>
+    <ul class="list">
+      {% for t in record.trees %}
+      <li><a class="list-row" href="{% url 'boshqaruv:tree_detail' t.id %}"><span class="list-main"><b>{{ t.name }}</b><small>@{{ t.owner }}</small></span><span class="tag {% if t.visibility == 'public' %}tag-good{% endif %}">{% if t.visibility == 'public' %}Ommaviy{% else %}Shaxsiy{% endif %}</span></a></li>
+      {% endfor %}
+    </ul>
+    <p class="panel-foot">Saqlangan oldingi holat: {{ snap_people }} shaxs, {{ snap_families }} oila. Xato bo'lsa, shu fayl asosida qo'lda tiklash mumkin.</p>
+    {% if record.kept_person %}
+    <p class="panel-foot">Qolgan yozuv: #{{ record.kept_person_id }} {{ record.kept_person.full_name }}</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "shajara/base.html" %}
+{% block title %}Odam qidirish — e-Shajara{% endblock %}
+{% block body %}
+{% include "shajara/_header.html" %}
+<main class="page-wrap">
+  <header class="page-head">
+    <span class="page-head-ic" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+    </span>
+    <h1 class="page-title">Odam qidirish</h1>
+    <p class="page-sub">Qarindoshingizni foydalanuvchi nomi bo'yicha toping va ikki shajarani bir-biriga bog'lang.</p>
+  </header>
+
+  <form method="get" action="{% url 'search_users' %}" class="search-bar" role="search">
+    <svg class="search-bar-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+    <input type="search" name="q" placeholder="Foydalanuvchi nomini yozing…" value="{{ query }}"
+           autocomplete="off" aria-label="Foydalanuvchi nomi" {% if not query %}autofocus{% endif %}>
+    <button type="submit">Izlash</button>
+  </form>
+
+  {% if query %}
+    <p class="result-meta">
+      «<b>{{ query }}</b>» bo'yicha {% if results %}<b>{{ results|length }}</b> ta foydalanuvchi topildi{% else %}hech kim topilmadi{% endif %}
+    </p>
+  {% endif %}
+
+  {% if results %}
+  <ul class="people-list">
+    {% for u in results %}
+    <li class="person-row">
+      <span class="person-row-avatar" aria-hidden="true">{{ u.first_name|default:u.username|first|upper }}</span>
+      <span class="person-row-text">
+        <span class="person-row-name">{% if u.first_name %}{{ u.first_name }} {{ u.last_name }}{% else %}{{ u.username }}{% endif %}</span>
+        <span class="person-row-handle">@{{ u.username }}</span>
+      </span>
+      <a class="row-action" href="{% url 'send_request' u.username %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>
+        <span>So'rov yuborish</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% elif query %}
+  <div class="empty-block">
+    <span class="empty-block-ic" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4M8.5 8.5l5 5M13.5 8.5l-5 5"/></svg>
+    </span>
+    <p class="empty-block-title">Hech kim topilmadi</p>
+    <p class="empty-block-text">Nomni boshqacha yozib ko'ring — qidiruv nomning bir qismi bo'yicha ham ishlaydi.</p>
+  </div>
+  {% endif %}
+
+  <section class="how-it-works" aria-labelledby="how-title">
+    <h2 id="how-title" class="how-title">Bog'lanish qanday ishlaydi?</h2>
+    <ol class="how-steps">
+      <li><span class="how-num">1</span><span><b>Toping</b> — qarindoshingizni nomi bo'yicha qidiring.</span></li>
+      <li><span class="how-num">2</span><span><b>So'rov yuboring</b> — qaysi shajarangiz orqali va qanday qarindosh ekaningizni yozing.</span></li>
+      <li><span class="how-num">3</span><span><b>Birlashing</b> — u qabul qilsa, ikki shajara bitta bo'ladi.</span></li>
+    </ol>
+  </section>
+</main>
+{% endblock %}

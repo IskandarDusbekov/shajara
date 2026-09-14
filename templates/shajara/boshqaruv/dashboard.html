@@ -1,0 +1,191 @@
+{% extends "shajara/boshqaruv/base.html" %}
+{% load static assets %}
+{% block adm_title %}Umumiy ko'rinish{% endblock %}
+{% block adm_head %}<link rel="stylesheet" href="{% static 'vendor/leaflet/leaflet.css' %}">{% endblock %}
+{% block adm_content %}
+<header class="adm-head">
+  <div>
+    <h1 class="adm-title">Umumiy ko'rinish</h1>
+    <p class="adm-sub">Platformadagi foydalanuvchilar, shajaralar, viloyatlar va ma'lumotlarni jamlash holati — {% now "d.m.Y, H:i" %} holatiga.</p>
+  </div>
+  <div class="head-actions">
+    <a class="btn" href="{% url 'boshqaruv:activity' %}">Faollik jurnali</a>
+    <a class="btn btn-primary" href="{% url 'boshqaruv:map' %}">Viloyatlar xaritasi</a>
+  </div>
+</header>
+
+<section class="kpi-grid kpi-grid-5" aria-label="Asosiy ko'rsatkichlar">
+  <a class="kpi" href="{% url 'boshqaruv:users' %}">
+    <span class="kpi-label">Foydalanuvchilar</span>
+    <span class="kpi-value">{{ stats.users }}</span>
+    <span class="kpi-foot"><b>+{{ stats.users_new_30 }}</b> 30 kunda · <b>{{ stats.users_active_7 }}</b> faol (7 kun)</span>
+  </a>
+  <a class="kpi kpi-live" href="{% url 'boshqaruv:map' %}?olchov=online">
+    <span class="kpi-label">Hozir onlayn</span>
+    <span class="kpi-value" data-live-total>{{ stats.online }}</span>
+    <span class="kpi-foot">yangilandi <b data-live-at>{% now "H:i:s" %}</b></span>
+  </a>
+  <a class="kpi" href="{% url 'boshqaruv:trees' %}">
+    <span class="kpi-label">Shajaralar</span>
+    <span class="kpi-value">{{ stats.trees }}</span>
+    <span class="kpi-foot"><b>{{ stats.trees_public }}</b> ommaviy · <b>{{ stats.trees_learning }}</b> ta'limiy · <b>{{ region_totals.trees_connected }}</b> bog'langan</span>
+  </a>
+  <div class="kpi">
+    <span class="kpi-label">Shaxslar</span>
+    <span class="kpi-value">{{ stats.persons }}</span>
+    <span class="kpi-foot"><b>{{ stats.families }}</b> oila · <b>{{ stats.stories }}</b> hikoya{% if stats.orphans %} · <b class="warn">{{ stats.orphans }}</b> egasiz{% endif %}</span>
+  </div>
+  <a class="kpi kpi-accent" href="{% url 'boshqaruv:matches' %}">
+    <span class="kpi-label">Ko'rib chiqilmagan mosliklar</span>
+    <span class="kpi-value">{{ stats.matches_pending }}</span>
+    <span class="kpi-foot"><b>{{ stats.matches_high }}</b> ta 85%+ · <b>{{ stats.merges }}</b> birlashtirilgan</span>
+  </a>
+</section>
+
+<div class="adm-grid-2 adm-grid-wide-left">
+  <section class="panel map-panel">
+    <div class="map-toolbar">
+      <h2 class="panel-title">Viloyatlar bo'yicha ro'yxatdan o'tganlar</h2>
+      <a class="panel-link" href="{% url 'boshqaruv:map' %}">To'liq xarita →</a>
+    </div>
+    <div class="rmap rmap-compact" id="rmap" data-geo="{% static 'data/uz-regions.geojson' %}" role="region" aria-label="O'zbekiston viloyatlari xaritasi"></div>
+    <div class="rmap-foot">
+      <div class="rmap-legend" id="rmap-legend"></div>
+      <span class="rmap-attrib">geoBoundaries · © OpenStreetMap</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <header class="panel-head">
+      <h2 class="panel-title">Viloyatlar reytingi</h2>
+      <span class="panel-meta">foydalanuvchi · onlayn · shajara</span>
+    </header>
+    <ul class="rank-list">
+      {% for r in region_rank %}
+      <li>
+        <a href="{% url 'boshqaruv:map' %}#{{ r.name|urlencode }}" title="{{ r.name }}">{{ r.short }}</a>
+        <span class="hbar"><i style="width: {{ r.pct }}%"></i></span>
+        <b>{{ r.users }}</b>
+        <span class="rank-live{% if not r.online %} is-zero{% endif %}" data-live-cell="{{ r.name }}">{{ r.online }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="panel-foot">
+      Foydalanuvchilarning <b>{{ region_totals.users_known_pct }}%</b> viloyatini ko'rsatgan.
+      Viloyatlar orasida <b>{{ region_totals.marriage_ties }}</b> ta nikoh aloqasi va <b>{{ region_totals.cross_links }}</b> ta umumiy oila tarmog'i bor.
+    </p>
+  </section>
+</div>
+
+<div class="adm-grid-2">
+  <section class="panel">
+    <header class="panel-head">
+      <h2 class="panel-title">Ro'yxatdan o'tishlar</h2>
+      <span class="panel-meta">so'nggi 30 kun</span>
+    </header>
+    <div class="bars" role="img" aria-label="Kunlik ro'yxatdan o'tishlar grafigi">
+      {% for d in signups %}
+      <span class="bar" style="--h: {{ d.pct }}%" title="{{ d.date|date:'d.m' }}: {{ d.count }} ta"><i></i></span>
+      {% endfor %}
+    </div>
+    <div class="bars-axis"><span>{{ signups.0.date|date:"d.m" }}</span><span>bugun</span></div>
+  </section>
+
+  <section class="panel">
+    <header class="panel-head">
+      <h2 class="panel-title">Nimalar qilinmoqda</h2>
+      <span class="panel-meta">so'nggi 30 kun</span>
+    </header>
+    {% if top_actions %}
+    <ul class="hbars">
+      {% for a in top_actions %}
+      <li><span class="hbar-label">{{ a.label }}</span><span class="hbar"><i style="width: {{ a.pct }}%"></i></span><b>{{ a.n }}</b></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty-line">Hozircha faollik yozilmagan.</p>
+    {% endif %}
+  </section>
+</div>
+
+<div class="adm-grid-2">
+  <section class="panel">
+    <header class="panel-head">
+      <h2 class="panel-title">Eng yuqori ishonchli mosliklar</h2>
+      <a class="panel-link" href="{% url 'boshqaruv:matches' %}">Hammasi →</a>
+    </header>
+    {% if top_matches %}
+    <ul class="list">
+      {% for c in top_matches %}
+      <li>
+        <a class="list-row" href="{% url 'boshqaruv:match_detail' c.pk %}">
+          {% include "shajara/boshqaruv/_score.html" with score=c.score %}
+          <span class="list-main">
+            <span class="pair"><b>{{ c.snapshot.a.name }}</b> <i>↔</i> <b>{{ c.snapshot.b.name }}</b></span>
+            <small>{% for t in c.snapshot.a.trees %}{{ t.name }}{% if not forloop.last %}, {% endif %}{% endfor %} · {% for t in c.snapshot.b.trees %}{{ t.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</small>
+          </span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty-line">Ko'rib chiqilmagan moslik yo'q.</p>
+    {% endif %}
+    <p class="panel-foot">
+      {% if last_run %}So'nggi qidiruv: {{ last_run.started_at|date:"d.m.Y H:i" }} — {{ last_run.persons_scanned }} shaxs, {{ last_run.pairs_compared }} juftlik.{% else %}Qidiruv hali ishga tushirilmagan.{% endif %}
+    </p>
+  </section>
+
+  <section class="panel">
+    <header class="panel-head">
+      <h2 class="panel-title">Eng faol foydalanuvchilar</h2>
+      <a class="panel-link" href="{% url 'boshqaruv:users' %}?sort=persons">Hammasi →</a>
+    </header>
+    <ul class="list">
+      {% for u in top_users %}
+      <li>
+        <a class="list-row" href="{% url 'boshqaruv:user_detail' u.pk %}">
+          <span class="avatar">{{ u.username|first|upper }}</span>
+          <span class="list-main"><b>{{ u.get_full_name|default:u.username }}</b><small>@{{ u.username }}</small></span>
+          <span class="list-num"><b>{{ u.person_count }}</b> shaxs · <b>{{ u.tree_count }}</b> shajara</span>
+        </a>
+      </li>
+      {% empty %}
+      <li class="empty-line">Ma'lumot yo'q.</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+
+<section class="panel">
+  <header class="panel-head">
+    <h2 class="panel-title">So'nggi faollik</h2>
+    <a class="panel-link" href="{% url 'boshqaruv:activity' %}">Jurnalni ochish →</a>
+  </header>
+  {% include "shajara/boshqaruv/_activity_rows.html" with rows=recent %}
+</section>
+
+{{ map_data|json_script:"map-data" }}
+{% endblock %}
+
+{% block adm_scripts %}
+<script src="{% static 'vendor/leaflet/leaflet.js' %}"></script>
+<script src="{% static_v 'js/adm-region-map.js' %}"></script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("map-data").textContent);
+  var ctl = AdmRegionMap.mount(document.getElementById("rmap"), data, {
+    legend: document.getElementById("rmap-legend"),
+    onSelect: function (name) { location.href = data.page_url + "#" + encodeURIComponent(name); }
+  });
+  AdmRegionMap.pollLive(data.live_url, function (d) {
+    ctl.setLive(d.regions);
+    document.querySelectorAll("[data-live-cell]").forEach(function (cell) {
+      var n = d.regions[cell.dataset.liveCell] || 0;
+      cell.textContent = n;
+      cell.classList.toggle("is-zero", !n);
+    });
+  }, 30);
+})();
+</script>
+{% endblock %}

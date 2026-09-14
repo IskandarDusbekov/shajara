@@ -1,0 +1,127 @@
+{% extends "shajara/base.html" %}
+{% load static assets %}
+{% block title %}{% block adm_title %}Boshqaruv{% endblock %} — e-Shajara boshqaruv{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static_v 'css/boshqaruv.css' %}">{% block adm_head %}{% endblock %}{% endblock %}
+{% block body_attrs %}class="adm-page"{% endblock %}
+{% block body %}
+<div class="adm" id="adm">
+  <aside class="adm-side" id="adm-side" aria-label="Boshqaruv bo'limlari">
+    <a class="adm-brand" href="{% url 'boshqaruv:dashboard' %}">
+      <span class="adm-brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-7"/><path d="M12 15c-3 0-5-2-5-5 0 0 3 0 5 2 0-3 0-5 0-5s0 2 0 5c2-2 5-2 5-2 0 3-2 5-5 5z"/></svg>
+      </span>
+      <span class="adm-brand-text"><b>e-Shajara</b><small>Boshqaruv paneli</small></span>
+    </a>
+
+    <nav class="adm-nav">
+      <p class="adm-side-group">Asosiy</p>
+      <a class="adm-nav-item{% if section == 'dashboard' %} is-current{% endif %}" href="{% url 'boshqaruv:dashboard' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        <span>Umumiy ko'rinish</span>
+      </a>
+      <a class="adm-nav-item{% if section == 'map' %} is-current{% endif %}" href="{% url 'boshqaruv:map' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>
+        <span>Viloyatlar xaritasi</span>
+        {% if adm_online %}<span class="adm-nav-live" title="Hozir onlayn">{{ adm_online }}</span>{% endif %}
+      </a>
+      <a class="adm-nav-item{% if section == 'users' %} is-current{% endif %}" href="{% url 'boshqaruv:users' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 20a6.5 6.5 0 0 0-3-5.5"/></svg>
+        <span>Foydalanuvchilar</span>
+      </a>
+      <a class="adm-nav-item{% if section == 'trees' %} is-current{% endif %}" href="{% url 'boshqaruv:trees' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-6"/><path d="M12 16c-3.5 0-6-2.4-6-6 0 0 3.4 0 6 2.4C12 8 12 5 12 5s0 3 0 7.4C14.6 10 18 10 18 10c0 3.6-2.5 6-6 6z"/></svg>
+        <span>Shajaralar</span>
+      </a>
+
+      <p class="adm-side-group">Tahlil</p>
+      <a class="adm-nav-item{% if section == 'unified' %} is-current{% endif %}" href="{% url 'boshqaruv:unified' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><circle cx="12" cy="13" r="2"/><path d="M12 7.5V11M10.6 14.4 6.7 16.3M13.4 14.4l3.9 1.9"/></svg>
+        <span>Umumiy shajara</span>
+      </a>
+      <a class="adm-nav-item{% if section == 'matches' %} is-current{% endif %}" href="{% url 'boshqaruv:matches' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="12" r="5"/><circle cx="16" cy="12" r="5"/></svg>
+        <span>Moslik topish</span>
+        {% if adm_pending_matches %}<span class="adm-nav-count">{{ adm_pending_matches }}</span>{% endif %}
+      </a>
+      <a class="adm-nav-item{% if section == 'merges' %} is-current{% endif %}" href="{% url 'boshqaruv:merges' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v6a6 6 0 0 0 6 6h0a6 6 0 0 1 6 6"/><path d="M18 3v6a6 6 0 0 1-3 5.2"/><circle cx="6" cy="3" r="1"/><circle cx="18" cy="3" r="1"/></svg>
+        <span>Birlashtirishlar</span>
+      </a>
+
+      <p class="adm-side-group">Nazorat</p>
+      <a class="adm-nav-item{% if section == 'activity' %} is-current{% endif %}" href="{% url 'boshqaruv:activity' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+        <span>Faollik jurnali</span>
+      </a>
+      <a class="adm-nav-item" href="{% url 'admin:index' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+        <span>Ma'lumotlar bazasi</span>
+      </a>
+    </nav>
+
+    <div class="adm-side-foot">
+      <a class="adm-nav-item" href="{% url 'my_trees' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>
+        <span>Saytga qaytish</span>
+      </a>
+    </div>
+  </aside>
+  <div class="adm-scrim" id="adm-scrim" hidden></div>
+
+  <div class="adm-body">
+    <header class="adm-topbar">
+      <button type="button" class="adm-icon-btn adm-menu-btn" id="adm-menu-btn" aria-label="Bo'limlar" aria-controls="adm-side" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <div class="adm-crumbs">
+        <span>Boshqaruv</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+        <b>{% block adm_crumb %}{% if section == 'dashboard' %}Umumiy ko'rinish{% elif section == 'map' %}Viloyatlar xaritasi{% elif section == 'users' %}Foydalanuvchilar{% elif section == 'trees' %}Shajaralar{% elif section == 'unified' %}Umumiy shajara{% elif section == 'matches' %}Moslik topish{% elif section == 'merges' %}Birlashtirishlar{% elif section == 'activity' %}Faollik jurnali{% endif %}{% endblock %}</b>
+      </div>
+
+      <form class="adm-search" method="get" action="{% url 'boshqaruv:users' %}" role="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" name="q" placeholder="Foydalanuvchi qidirish…" aria-label="Foydalanuvchi qidirish">
+      </form>
+
+      <a class="adm-live-pill" href="{% url 'boshqaruv:map' %}?olchov=online" title="So'nggi 5 daqiqada saytda bo'lganlar">
+        <i class="adm-live-dot"></i><b data-live-total>{{ adm_online|default:0 }}</b><span>onlayn</span>
+      </a>
+      <button type="button" class="adm-icon-btn" id="adm-theme" aria-label="Yorug' / qorong'i rejim" title="Yorug' / qorong'i rejim">
+        <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <span class="adm-me" title="{{ request.user.username }}{% if request.user.is_superuser %} · superadmin{% endif %}">{{ request.user.username|first|upper }}</span>
+    </header>
+
+    <main class="adm-main">
+      {% if messages %}
+      <div class="adm-toasts">
+        {% for message in messages %}
+        <div class="adm-toast{% if message.tags == 'success' %} is-ok{% elif message.tags == 'error' %} is-err{% endif %}">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% block adm_content %}{% endblock %}
+    </main>
+  </div>
+</div>
+<script>
+(function () {
+  var side = document.getElementById("adm-side"), scrim = document.getElementById("adm-scrim"), btn = document.getElementById("adm-menu-btn");
+  function setMenu(open) {
+    side.classList.toggle("is-open", open);
+    scrim.hidden = !open;
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  btn.addEventListener("click", function () { setMenu(!side.classList.contains("is-open")); });
+  scrim.addEventListener("click", function () { setMenu(false); });
+  document.getElementById("adm-theme").addEventListener("click", function () {
+    var light = document.documentElement.classList.toggle("app-light");
+    try { localStorage.setItem("shajara_theme", light ? "light" : "dark"); } catch (e) {}
+    document.dispatchEvent(new CustomEvent("adm:theme"));
+  });
+})();
+</script>
+{% block adm_scripts %}{% endblock %}
+{% endblock %}

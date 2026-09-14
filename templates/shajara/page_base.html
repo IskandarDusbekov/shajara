@@ -1,0 +1,16 @@
+{% extends "shajara/base.html" %}
+{% load static %}
+{% block body %}
+{% include "shajara/_header.html" %}
+<div class="page-shell">
+  <div class="card">
+    {% block back_link %}<a class="back-link" href="{% url 'my_trees' %}">← Mening shajaralarim</a>{% endblock %}
+    {% if messages %}
+      {% for message in messages %}
+      <div class="form-error{% if message.tags == 'success' %} form-success{% endif %}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+    {% block card_content %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

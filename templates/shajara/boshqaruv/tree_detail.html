@@ -1,0 +1,114 @@
+{% extends "shajara/boshqaruv/base.html" %}
+{% block adm_title %}{{ tree.name }}{% endblock %}
+{% block adm_content %}
+<a class="crumb" href="{% url 'boshqaruv:trees' %}">← Shajaralar</a>
+
+<header class="adm-head">
+  <div>
+    <h1 class="adm-title">{{ tree.name }}</h1>
+    <p class="adm-sub">
+      Egasi <a href="{% url 'boshqaruv:user_detail' tree.owner_id %}">@{{ tree.owner.username }}</a> ·
+      bosh shaxs <b>{{ tree.root_person.full_name }}</b> · {{ tree.created_at|date:"d.m.Y" }}
+      <span class="tag {% if tree.is_public %}tag-good{% endif %}">{{ tree.get_visibility_display }}</span>
+      <span class="tag{% if tree.is_learning %} tag-admin{% endif %}">{{ tree.get_kind_display }}</span>
+      {% if tree.subject %}· {{ tree.subject }}{% endif %}{% if tree.era %} · {{ tree.era }}{% endif %}
+    </p>
+  </div>
+  <div class="head-actions">
+    <a class="btn btn-primary" href="{% url 'index' tree.url_key %}">Xaritada ochish</a>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="toggle_visibility">
+      <button class="btn" type="submit">{% if tree.is_public %}Shaxsiy qilish{% else %}Ommaviy qilish{% endif %}</button>
+    </form>
+  </div>
+</header>
+
+<section class="kpi-grid kpi-grid-6">
+  <div class="kpi kpi-sm"><span class="kpi-label">Shaxslar</span><span class="kpi-value">{{ people_total }}</span></div>
+  <div class="kpi kpi-sm"><span class="kpi-label">Erkak / ayol</span><span class="kpi-value">{{ men }} <small>/ {{ women }}</small></span></div>
+  <div class="kpi kpi-sm"><span class="kpi-label">Yili kiritilgan</span><span class="kpi-value">{{ with_years }}</span></div>
+  <div class="kpi kpi-sm"><span class="kpi-label">Joyi kiritilgan</span><span class="kpi-value">{{ with_place }}</span></div>
+  <div class="kpi kpi-sm"><span class="kpi-label">Bog'langan shajaralar</span><span class="kpi-value">{{ linked|length }}</span></div>
+  <div class="kpi kpi-sm"><span class="kpi-label">Moslik nomzodlari</span><span class="kpi-value">{{ matches|length }}</span></div>
+</section>
+
+{% if members %}
+<section class="panel">
+  <header class="panel-head"><h2 class="panel-title">A'zolar ({{ members|length }}){% if quiz_total %} · {{ quiz_total }} ta test ishlangan{% endif %}</h2></header>
+  <ul class="list">
+    {% for m in members %}
+    <li><a class="list-row" href="{% url 'boshqaruv:user_detail' m.user_id %}"><span class="list-main"><b>@{{ m.user.username }}</b><small>{{ m.joined_at|date:"d.m.Y" }} qo'shilgan</small></span><span class="tag">{{ m.get_role_display }}</span></a></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if linked %}
+<section class="panel">
+  <header class="panel-head"><h2 class="panel-title">Shu oila grafiga ulangan boshqa shajaralar</h2></header>
+  <ul class="list">
+    {% for t in linked %}
+    <li><a class="list-row" href="{% url 'boshqaruv:tree_detail' t.pk %}"><span class="list-main"><b>{{ t.name }}</b><small>@{{ t.owner.username }}</small></span><span class="tag {% if t.is_public %}tag-good{% endif %}">{{ t.get_visibility_display }}</span></a></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if matches %}
+<section class="panel">
+  <header class="panel-head"><h2 class="panel-title">Bu shajaradagi shaxslar uchun mosliklar</h2></header>
+  <ul class="list">
+    {% for c in matches %}
+    <li><a class="list-row" href="{% url 'boshqaruv:match_detail' c.pk %}">{% include "shajara/boshqaruv/_score.html" with score=c.score %}<span class="list-main"><span class="pair"><b>{{ c.snapshot.a.name }}</b> <i>↔</i> <b>{{ c.snapshot.b.name }}</b></span></span></a></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<div class="adm-grid-2 adm-grid-wide-left">
+  <section class="panel panel-flush">
+    <header class="panel-head panel-head-pad"><h2 class="panel-title">Shaxslar</h2><span class="panel-meta">{{ people_total }} ta{% if people_total > 300 %}, birinchi 300 tasi{% endif %}</span></header>
+    <div class="table-wrap table-scroll">
+      <table class="table">
+        <thead><tr><th>F.I.Sh</th><th>Jinsi</th><th>Yillari</th><th>Tug'ilgan joyi</th><th>Kiritgan</th></tr></thead>
+        <tbody>
+          {% for p in people %}
+          <tr>
+            <td>{{ p.full_name_with_patronymic|default:p.full_name }}</td>
+            <td class="nowrap muted">{{ p.get_gender_display }}</td>
+            <td class="nowrap">{{ p.display_year|default:"—" }}{% if p.death_year %} – {{ p.death_year }}{% endif %}</td>
+            <td>{{ p.birth_place|default:p.location|default:"—" }}</td>
+            <td class="nowrap muted">{% if p.added_by_id %}#{{ p.added_by_id }}{% else %}—{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <header class="panel-head"><h2 class="panel-title">Shajaradagi faollik</h2></header>
+    {% if activity %}
+    <ul class="timeline">
+      {% for r in activity %}
+      <li><span class="tl-time">{{ r.created_at|date:"d.m H:i" }}</span><span class="tl-text"><b>{{ r.user.username|default:"—" }}</b> {{ r.get_action_display|lower }}{% if r.detail %}<small>{{ r.detail }}</small>{% endif %}</span></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty-line">Yozuvlar yo'q.</p>
+    {% endif %}
+
+    <details class="danger-zone">
+      <summary>Shajarani o'chirish</summary>
+      <p>Faqat shajara yozuvi o'chadi — shaxslar bazada qoladi va boshqa ulangan shajaralarda ko'rinishda davom etadi. Tasdiqlash uchun nomini yozing: <b>{{ tree.name }}</b></p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="delete">
+        <input class="f-input" name="confirm_name" autocomplete="off" placeholder="Shajara nomi">
+        <button class="btn btn-danger" type="submit">O'chirish</button>
+      </form>
+    </details>
+  </section>
+</div>
+{% endblock %}
