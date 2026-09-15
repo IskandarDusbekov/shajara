@@ -1,0 +1,3 @@
+# Server skriptlari va sozlamalari Linux qator oxiri bilan qolsin
+*.sh text eol=lf
+deploy/* text eol=lf

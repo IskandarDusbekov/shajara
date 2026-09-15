@@ -1,6 +1,7 @@
 """The audit trail behind the admin panel's "who did what"."""
 
 import logging
+import os
 
 from django.contrib.auth.signals import user_logged_in, user_logged_out, user_login_failed
 from django.dispatch import receiver
@@ -11,6 +12,12 @@ logger = logging.getLogger(__name__)
 def client_ip(request):
     if request is None:
         return None
+    # Behind nginx the socket peer is nginx itself; the visitor's address
+    # arrives in X-Real-IP, which only a trusted local proxy can set.
+    if os.environ.get("DJANGO_BEHIND_PROXY", "").strip().lower() in ("1", "true", "yes", "on"):
+        forwarded = (request.META.get("HTTP_X_REAL_IP") or "").strip()
+        if forwarded:
+            return forwarded
     return request.META.get("REMOTE_ADDR") or None
 
 

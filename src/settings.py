@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -46,24 +48,29 @@ def _env_list(key, default):
     return [item.strip() for item in raw.split(',') if item.strip()] or list(default)
 
 
-# SECURITY WARNING: keep the secret key used in production secret!
-# Set DJANGO_SECRET_KEY in .env for anything that isn't local development.
-SECRET_KEY = os.environ.get(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-s6=ct^@&p6l34p!g!1-sqnp**f^w_hcwmd1ko@-qv^r*!o)e_b',
-)
-
 # SECURITY WARNING: don't run with debug turned on in production!
+# Without a .env this is a development checkout; the server sets DJANGO_DEBUG=0.
 DEBUG = _env_bool('DJANGO_DEBUG', True)
 
-ALLOWED_HOSTS = _env_list(
-    'DJANGO_ALLOWED_HOSTS',
-    ['postbox-cargo-reawake.ngrok-free.dev', '127.0.0.1', 'localhost'],
-)
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '')
+if not SECRET_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured(
+            "DJANGO_SECRET_KEY is empty. Put a long random value in .env "
+            "(python -c \"import secrets; print(secrets.token_urlsafe(50))\")."
+        )
+    SECRET_KEY = 'django-insecure-local-development-only'
 
+ALLOWED_HOSTS = _env_list('DJANGO_ALLOWED_HOSTS', ['127.0.0.1', 'localhost'])
+
+# Forms posted from these origins are trusted. When left empty, every real
+# domain in ALLOWED_HOSTS is trusted over https, which is what a normal
+# nginx + certbot setup needs.
 CSRF_TRUSTED_ORIGINS = _env_list(
     'DJANGO_CSRF_TRUSTED_ORIGINS',
-    ['https://postbox-cargo-reawake.ngrok-free.dev'],
+    [f'https://{host.lstrip(".")}' for host in ALLOWED_HOSTS
+     if host not in ('127.0.0.1', 'localhost', '*') and not host.startswith('[')],
 )
 # Application definition
 
@@ -112,10 +119,18 @@ WSGI_APPLICATION = 'src.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+# SQLite is plenty for a start. WAL lets readers work while a worker writes,
+# and IMMEDIATE transactions wait for the lock instead of failing with
+# "database is locked" when two gunicorn workers write at once.
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': os.environ.get('DJANGO_DB_PATH') or BASE_DIR / 'db.sqlite3',
+        'OPTIONS': {
+            'timeout': 20,
+            'transaction_mode': 'IMMEDIATE',
+            'init_command': 'PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;',
+        },
     }
 }
 
@@ -155,7 +170,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = os.environ.get('DJANGO_STATIC_ROOT') or BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
 if not DEBUG:
@@ -168,8 +183,12 @@ if not DEBUG:
         },
     }
 
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = os.environ.get('DJANGO_MEDIA_ROOT') or BASE_DIR / 'media'
 MEDIA_URL = '/media/'
+
+# Historical maps may be up to 20 MB; nginx's client_max_body_size matches.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 25 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 
 AUTHENTICATION_BACKENDS = [
     'shajara.auth_backends.EmailOrUsernameBackend',
@@ -228,6 +247,24 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = _env_bool('DJANGO_SSL_REDIRECT', True)
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
+    # Start small: a year-long HSTS on a domain whose https is not settled yet
+    # locks visitors out. Raise DJANGO_HSTS_SECONDS once everything works.
+    SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_HSTS_SECONDS', '3600'))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = _env_bool('DJANGO_HSTS_SUBDOMAINS', False)
+    SECURE_HSTS_PRELOAD = _env_bool('DJANGO_HSTS_PRELOAD', False)
+
+# ------------------------------------------------------------- logging --
+# Errors go to stderr; under systemd that is the journal
+# (journalctl -u e-shajara).
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {'plain': {'format': '%(asctime)s %(levelname)s %(name)s: %(message)s'}},
+    'handlers': {'console': {'class': 'logging.StreamHandler', 'formatter': 'plain'}},
+    'root': {'handlers': ['console'], 'level': 'WARNING'},
+    'loggers': {
+        'django': {'handlers': ['console'], 'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO'), 'propagate': False},
+    },
+}
+
+SERVER_EMAIL = DEFAULT_FROM_EMAIL

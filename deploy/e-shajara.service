@@ -1,0 +1,33 @@
+[Unit]
+Description=e-Shajara (Django, gunicorn)
+After=network.target
+
+[Service]
+Type=simple
+User=eshajara
+Group=www-data
+WorkingDirectory=/srv/e-shajara
+# Production regardless of what .env says.
+Environment=DJANGO_DEBUG=0
+# nginx sets X-Real-IP; gunicorn listens only on a local socket, so it can be trusted.
+Environment=DJANGO_BEHIND_PROXY=1
+Environment=PYTHONUNBUFFERED=1
+RuntimeDirectory=e-shajara
+RuntimeDirectoryMode=0750
+ExecStart=/srv/e-shajara/venv/bin/gunicorn -c /srv/e-shajara/deploy/gunicorn.conf.py src.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=5
+
+# Hardening: the app may write only to its own folder.
+NoNewPrivileges=true
+PrivateTmp=true
+# New files: owner eshajara, group www-data (nginx can read uploads), nobody else.
+UMask=0027
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
