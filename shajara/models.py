@@ -240,6 +240,16 @@ class Tree(models.Model):
     # Card positions the owner saved on the map: {"<person id>": [x, y]}.
     # Empty means the board arranges itself.
     layout = models.JSONField("Xarita tartibi", default=dict, blank=True)
+    # Open (SEO) pages: an admin picks public learning trees to show at
+    # /shajaralar/<slug>/ without signing in, for search engines and visitors.
+    is_featured = models.BooleanField("Ochiq sahifada ko'rsatilsin", default=False, db_index=True)
+    slug = models.SlugField("Ochiq sahifa manzili", max_length=160, unique=True, null=True, blank=True)
+    seo_description = models.CharField(
+        "Qidiruv tizimlari uchun tavsif", max_length=300, blank=True,
+        help_text="Google natijasida sarlavha ostida chiqadigan 1–2 gap (70–160 belgi)",
+    )
+    public_views = models.PositiveIntegerField("Ochiq sahifa ko'rishlari", default=0)
+    featured_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -263,6 +273,16 @@ class Tree(models.Model):
     @property
     def is_learning(self):
         return self.kind == "talimiy"
+
+    @property
+    def can_be_featured(self):
+        """Only public learning trees go on open pages: family trees hold
+        living people, whose details must never reach search engines."""
+        return self.is_public and self.is_learning
+
+    @property
+    def is_open_page(self):
+        return self.is_featured and bool(self.slug) and self.can_be_featured
 
     @property
     def source_list(self):
@@ -710,6 +730,7 @@ ACTIVITY_CHOICES = [
     ("admin_match_run", "Admin: moslik qidiruvini ishga tushirdi"),
     ("admin_match_reject", "Admin: moslikni rad etdi"),
     ("admin_merge", "Admin: shaxslarni birlashtirdi"),
+    ("admin_seo_update", "Admin: ochiq (SEO) sahifani o'zgartirdi"),
 ]
 
 

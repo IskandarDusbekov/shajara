@@ -17,7 +17,9 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
+from . import share_cards
 from .activity import log_activity
+from .public_views import site_url, tree_stats
 from .emails import send_otp_email
 from .forms import (
     AcceptRequestForm, CommentForm, ConnectionRequestForm, EmailForm, LoginForm,
@@ -105,24 +107,6 @@ def families_json_for(families):
 
 
 # ------------------------------------------------------------------- auth --
-
-def landing_view(request):
-    if request.user.is_authenticated:
-        return redirect("my_trees")
-    public_qs = Tree.objects.filter(visibility="public")
-    ranked = (
-        public_qs.select_related("root_person")
-        .annotate(num_gratitude=Count("gratitudes", distinct=True))
-        .order_by("-num_gratitude", "-created_at")
-    )
-    return render(request, "shajara/landing.html", {
-        "public_count": public_qs.count(),
-        "learning_count": public_qs.filter(kind="talimiy").count(),
-        "people_count": Person.objects.count(),
-        "family_count": Tree.objects.filter(kind="oilaviy").count(),
-        "featured_learning": ranked.filter(kind="talimiy")[:4],
-    })
-
 
 def register_view(request):
     if request.user.is_authenticated:
@@ -370,9 +354,11 @@ def my_trees_view(request):
     roles = dict(TreeMember.objects.filter(user=request.user).values_list("tree_id", "role"))
     if kind in ("oilaviy", "talimiy"):
         owned, shared = owned.filter(kind=kind), shared.filter(kind=kind)
-    shared = list(shared)
+    owned, shared = list(owned), list(shared)
     for t in shared:
         t.my_role = roles.get(t.id)
+    for t in (owned + shared)[:24]:
+        t.generations = tree_stats(t)["generations"]
     profile = _get_profile(request.user)
     return render(request, "shajara/my_trees.html", {
         "trees": owned, "shared_trees": shared, "kind": kind, "profile": profile,
@@ -473,14 +459,23 @@ def tree_overview_view(request, tree_key):
     page_obj = paginator.get_page(request.GET.get("page"))
     role = tree_role(request.user, tree)
     levels, _, _ = compute_levels(tree.root_person)
+    generations = (max(levels.values()) - min(levels.values()) + 1) if levels else 0
     best = (
         QuizAttempt.objects.filter(tree=tree, user=request.user).order_by("-score", "-created_at").first()
     )
+    token = share_cards.make_token("avlod", tree.pk)
+    share_page = site_url(request) + reverse("share_avlod", args=[token])
+    yetti = {
+        "generations": generations, "filled": min(generations, 7),
+        "share_url": share_page, "card_url": reverse("share_avlod_png", args=[token]),
+        "text": (f"Men {generations} avlodimni bilaman! Yetti otangni bilasanmi? #YettiOtam" if generations >= 7
+                 else f"Men 7 avloddan {generations} tasini bilaman. Yetti otangni bilasanmi? #YettiOtam"),
+    }
     return private_response(render(request, "shajara/tree_overview.html", {
         "tree": tree, "is_owner": role == "owner", "role": role,
         "can_edit": role in ("owner", "muharrir"),
         "people_count": len(levels),
-        "generations": (max(levels.values()) - min(levels.values()) + 1) if levels else 0,
+        "generations": generations, "yetti": yetti,
         "members": tree.members.select_related("user"),
         "best_attempt": best,
         "gave_gratitude": gave_gratitude,

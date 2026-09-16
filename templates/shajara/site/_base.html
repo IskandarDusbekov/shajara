@@ -1,0 +1,141 @@
+{% load static assets site %}<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{% block title %}e-Shajara{% endblock %}</title>
+<meta name="description" content="{{ meta_description }}">
+<meta name="robots" content="{% block robots %}index, follow, max-image-preview:large{% endblock %}">
+{% if canonical %}<link rel="canonical" href="{{ canonical }}">{% endif %}
+<meta name="theme-color" content="#0f2a22">
+<meta property="og:site_name" content="e-Shajara">
+<meta property="og:locale" content="uz_UZ">
+<meta property="og:type" content="{% block og_type %}website{% endblock %}">
+<meta property="og:title" content="{% block og_title %}e-Shajara{% endblock %}">
+<meta property="og:description" content="{{ meta_description }}">
+{% if canonical %}<meta property="og:url" content="{{ canonical }}">{% endif %}
+{% if og_image %}<meta property="og:image" content="{{ og_image }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{{ og_image }}">{% endif %}
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230f2a22'/%3E%3Cpath d='M32 52V38M32 38c-9 0-15-6-15-15 0 0 9 0 15 6 0-9 0-15 0-15s0 6 0 15c6-6 15-6 15-6 0 9-6 15-15 15z' fill='none' stroke='%23e9c869' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="{% static_v 'css/site.css' %}">
+{% if ld_json %}<script type="application/ld+json">{{ ld_json|safe }}</script>{% endif %}
+{% block head %}{% endblock %}
+</head>
+<body class="site {% block body_class %}{% endblock %}">
+<a class="skip" href="#main">Asosiy qismga o'tish</a>
+
+<header class="nav" id="nav">
+  <div class="wrap nav-row">
+    <a class="brand" href="{% url 'landing' %}" aria-label="e-Shajara bosh sahifa">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-6"/><path d="M12 16c-3.5 0-6-2.4-6-6 0 0 3.4 0 6 2.4C12 8 12 5 12 5s0 3 0 7.4C14.6 10 18 10 18 10c0 3.6-2.5 6-6 6z"/></svg>
+      </span>
+      <span class="brand-name">e-Shajara</span>
+    </a>
+    <nav class="nav-links" id="nav-links" aria-label="Asosiy">
+      <a href="{% url 'landing' %}#qanday">Qanday ishlaydi</a>
+      <a href="{% url 'landing' %}#imkoniyatlar">Imkoniyatlar</a>
+      <a href="{% url 'open_index' %}"{% if request.resolver_match.url_name == 'open_index' or request.resolver_match.url_name == 'open_tree' or request.resolver_match.url_name == 'open_person' %} aria-current="page"{% endif %}>Tarixiy shajaralar</a>
+      <a href="{% url 'landing' %}#savollar">Savollar</a>
+      <span class="nav-cta-mobile">
+        {% if request.user.is_authenticated %}
+        <a class="btn btn-primary" href="{% url 'my_trees' %}">Shajaralarim</a>
+        {% else %}
+        <a class="btn btn-ghost" href="{% url 'login' %}">Kirish</a>
+        <a class="btn btn-primary" href="{% url 'register' %}">Bepul boshlash</a>
+        {% endif %}
+      </span>
+    </nav>
+    <div class="nav-cta">
+      {% if request.user.is_authenticated %}
+      <a class="btn btn-primary btn-sm" href="{% url 'my_trees' %}">Shajaralarim</a>
+      {% else %}
+      <a class="btn btn-ghost btn-sm" href="{% url 'login' %}">Kirish</a>
+      <a class="btn btn-primary btn-sm" href="{% url 'register' %}">Bepul boshlash</a>
+      {% endif %}
+    </div>
+    <button class="nav-burger" type="button" id="nav-burger" aria-label="Menyu" aria-expanded="false" aria-controls="nav-links">
+      <span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main id="main">
+{% block main %}{% endblock %}
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-grid">
+    <div class="footer-brand">
+      <a class="brand brand-light" href="{% url 'landing' %}">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-6"/><path d="M12 16c-3.5 0-6-2.4-6-6 0 0 3.4 0 6 2.4C12 8 12 5 12 5s0 3 0 7.4C14.6 10 18 10 18 10c0 3.6-2.5 6-6 6z"/></svg></span>
+        <span class="brand-name">e-Shajara</span>
+      </a>
+      <p>Oila tarixini qarindoshlar bilan birga yozish va sulolalar shajarasi orqali tarixni o'rganish uchun platforma.</p>
+      <p class="footer-tag">#YettiOtam — yetti otangni bilasanmi?</p>
+    </div>
+    <div>
+      <p class="footer-title">Platforma</p>
+      <ul>
+        <li><a href="{% url 'landing' %}#qanday">Qanday ishlaydi</a></li>
+        <li><a href="{% url 'landing' %}#imkoniyatlar">Imkoniyatlar</a></li>
+        <li><a href="{% url 'landing' %}#maxfiylik">Maxfiylik</a></li>
+        <li><a href="{% url 'landing' %}#savollar">Ko'p beriladigan savollar</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="footer-title">Tarixiy shajaralar</p>
+      <ul>
+        {% open_tree_links 5 as footer_trees %}
+        {% for t in footer_trees %}<li><a href="{% url 'open_tree' t.slug %}">{{ t.name }}</a></li>{% endfor %}
+        <li><a href="{% url 'open_index' %}">Barchasi →</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="footer-title">Hisob</p>
+      <ul>
+        {% if request.user.is_authenticated %}
+        <li><a href="{% url 'my_trees' %}">Shajaralarim</a></li>
+        {% else %}
+        <li><a href="{% url 'register' %}">Ro'yxatdan o'tish</a></li>
+        <li><a href="{% url 'login' %}">Kirish</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© {% now "Y" %} e-Shajara</span>
+    <span>O'zbekistonda, oilalar va o'qituvchilar uchun yaratilgan</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var nav = document.getElementById("nav"), burger = document.getElementById("nav-burger"), links = document.getElementById("nav-links");
+  function onScroll() { nav.classList.toggle("is-scrolled", window.scrollY > 8); }
+  onScroll();
+  window.addEventListener("scroll", onScroll, { passive: true });
+  burger.addEventListener("click", function () {
+    var open = !nav.classList.contains("is-open");
+    nav.classList.toggle("is-open", open);
+    burger.setAttribute("aria-expanded", open ? "true" : "false");
+  });
+  links.addEventListener("click", function (e) { if (e.target.closest("a")) { nav.classList.remove("is-open"); burger.setAttribute("aria-expanded", "false"); } });
+
+  if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add("is-in"); io.unobserve(en.target); } });
+    }, { rootMargin: "0px 0px -8% 0px" });
+    document.querySelectorAll("[data-reveal]").forEach(function (el) { el.classList.add("reveal"); io.observe(el); });
+  }
+})();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

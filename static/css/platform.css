@@ -685,3 +685,34 @@ html:not(.app-light) .hm-detail-year { color: #e9c869; }
   .tour-shade, .tour-ring, .tour-pop { transition: none; }
   .tour-layer.is-action .tour-ring, .tour-tap { animation: none; }
 }
+
+/* ============================== #YETTIOTAM BADGE & SHARING ============================== */
+.pf-yetti { margin-top: 16px; padding: 16px 18px; border-radius: 16px; background: var(--pf-soft); border: 1px solid var(--pf-line); }
+.pf-yetti.is-full { border-color: var(--pf-line-strong); }
+.pf-yetti-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.pf-yetti-kicker { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .04em; color: var(--pf-accent-2); }
+.pf-yetti-title { margin: 2px 0 0; font-family: var(--pf-serif); font-size: 19px; color: var(--pf-ink); }
+.pf-yetti-steps { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; }
+.pf-yetti-steps li { position: relative; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; color: var(--pf-muted); border: 2px solid var(--pf-line-strong); background: var(--pf-card); }
+.pf-yetti-steps li + li { margin-left: 8px; }
+.pf-yetti-steps li + li::before { content: ""; position: absolute; right: 100%; top: 50%; width: 8px; height: 2px; background: var(--pf-line-strong); }
+.pf-yetti-steps li.on { color: var(--pf-on-accent); background: var(--pf-accent); border-color: var(--pf-accent); }
+.pf-yetti-steps li.on + li.on::before { background: var(--pf-accent); }
+.pf-yetti-share-label { margin: 14px 0 8px; font-size: 13px; color: var(--pf-muted); }
+.pf-share { display: flex; flex-wrap: wrap; gap: 8px; }
+.pf-share .pf-btn svg { width: 16px; height: 16px; }
+.pf-share .pf-share-tg { color: #fff; background: #229ed9; border-color: #229ed9; }
+.pf-share .pf-share-tg:hover { background: #1b8cc2; }
+.pf-quiz-share { margin: 18px auto 4px; max-width: 520px; text-align: center; }
+.pf-quiz-share .pf-share { justify-content: center; }
+.pf-share-preview { display: block; width: 100%; height: auto; margin: 0 auto 12px; border-radius: 14px; border: 1px solid var(--pf-line); }
+.pf-gen-pill { gap: 7px; }
+.pf-gen-dots { display: inline-flex; gap: 2px; }
+.pf-gen-dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--pf-line-strong); }
+.pf-gen-dots i.on { background: var(--pf-accent); }
+@media (max-width: 480px) {
+  .pf-yetti-steps li { width: 24px; height: 24px; font-size: 11px; }
+  .pf-yetti-steps li + li { margin-left: 5px; }
+  .pf-yetti-steps li + li::before { width: 5px; }
+}

@@ -19,6 +19,7 @@ urlpatterns = [
     path("faollik/", v.activity_list, name="activity"),
     path("xarita/", v.region_map, name="map"),
     path("xarita/jonli.json", v.region_map_live, name="map_live"),
+    path("seo/", v.seo_pages, name="seo"),
     path("umumiy-shajara/", v.unified_overview, name="unified"),
     path("umumiy-shajara/<int:key>/", v.unified_board, name="unified_board"),
     path("umumiy-shajara/shaxs/<int:pid>/", v.unified_person, name="unified_person"),

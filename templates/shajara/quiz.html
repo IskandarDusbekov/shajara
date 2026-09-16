@@ -1,4 +1,5 @@
 {% extends "shajara/base.html" %}
+{% load assets %}
 {% block title %}Test — {{ tree.name }}{% endblock %}
 {% block body %}
 {% include "shajara/_header.html" %}
@@ -36,6 +37,16 @@
         <div class="pf-ring" id="quiz-ring"><b id="quiz-percent">0%</b></div>
         <h2 class="pf-question" id="quiz-verdict" style="margin-bottom:6px;"></h2>
         <p class="pf-lead" id="quiz-summary" style="margin:0 auto;"></p>
+        <div class="pf-quiz-share" id="quiz-share" hidden>
+          <p class="pf-yetti-share-label">Natijangizni ulashing — do'stlaringiz nechta topar ekan?</p>
+          <img class="pf-share-preview" id="quiz-share-img" alt="Test natijasi kartasi" width="1200" height="630">
+          <div class="pf-share" id="quiz-share-box" data-url="" data-text="">
+            <a class="pf-btn pf-btn-sm pf-share-tg" id="quiz-share-tg" href="#" target="_blank" rel="noopener">{% include "shajara/_icon.html" with name="telegram" %}Telegram</a>
+            <button type="button" class="pf-btn pf-btn-sm" data-share-native hidden>{% include "shajara/_icon.html" with name="link" %}Ulashish</button>
+            <button type="button" class="pf-btn pf-btn-sm" data-share-copy>{% include "shajara/_icon.html" with name="copy" %}<span>Havolani nusxalash</span></button>
+            <a class="pf-btn pf-btn-sm" id="quiz-share-save" href="#" download="e-shajara-test.png">{% include "shajara/_icon.html" with name="upload" %}Rasmni saqlash</a>
+          </div>
+        </div>
         <div class="pf-actions" style="justify-content:center;">
           <a class="pf-btn pf-btn-primary" href="{% url 'tree_quiz' tree.url_key %}">{% include "shajara/_icon.html" with name="quiz" %}Yana ishlash</a>
           <a class="pf-btn" href="{% url 'index' tree.url_key %}">{% include "shajara/_icon.html" with name="map" %}Xaritada takrorlash</a>
@@ -61,7 +72,7 @@
   var root = document.getElementById("quiz");
   var questions = JSON.parse(document.getElementById("quiz-data").textContent);
   var el = function (id) { return document.getElementById(id); };
-  var index = 0, score = 0, busy = false;
+  var index = 0, score = 0, busy = false, share = null;
   var KEYS = ["A", "B", "C", "D"];
 
   function render() {
@@ -108,6 +119,7 @@
       fb.textContent = (data.ok ? "To'g'ri! " : "Noto'g'ri. ") + data.explain;
       fb.hidden = false;
       if (data.done) {
+        if (data.share) share = data.share;
         el("quiz-next").textContent = "Natijani ko'rish";
         el("quiz-next").onclick = function () { finish(data.score, data.total); };
       } else {
@@ -133,6 +145,16 @@
     el("quiz-verdict").textContent = pct >= 90 ? "A'lo natija!" : pct >= 70 ? "Yaxshi natija" : pct >= 50 ? "Yomon emas" : "Yana takrorlash kerak";
     el("quiz-summary").textContent = total + " ta savoldan " + s + " tasiga to'g'ri javob berdingiz." +
       (pct < 70 ? " Xaritada shaxslarni bosib, bog'lanishlarni yana ko'rib chiqing." : "");
+    if (share) {
+      var box = el("quiz-share-box");
+      box.dataset.url = share.url;
+      box.dataset.text = share.text;
+      el("quiz-share-tg").href = "https://t.me/share/url?url=" + encodeURIComponent(share.url) + "&text=" + encodeURIComponent(share.text);
+      el("quiz-share-save").href = share.card;
+      el("quiz-share-img").src = share.card;
+      el("quiz-share").hidden = false;
+      if (window.ShajaraShare) window.ShajaraShare.bind(box);
+    }
   }
 
   document.addEventListener("keydown", function (e) {
@@ -147,5 +169,6 @@
   render();
 })();
 </script>
+<script src="{% static_v 'js/share.js' %}"></script>
 {% endif %}
 {% endblock %}

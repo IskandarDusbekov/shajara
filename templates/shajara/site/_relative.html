@@ -1,0 +1,4 @@
+<a class="relative" href="{{ r.url }}">
+  <span class="person-mono person-mono-sm {% if r.gender == 'ayol' %}is-f{% endif %}" aria-hidden="true">{{ r.first_name|first|upper }}</span>
+  <span><b>{{ r.name }}</b>{% if r.years %}<small>{{ r.years }}</small>{% endif %}</span>
+</a>

@@ -1,0 +1,82 @@
+{% extends "shajara/site/_base.html" %}
+{% block title %}{{ page_title }} | e-Shajara{% endblock %}
+{% block og_title %}{{ page_title }}{% endblock %}
+{% block og_type %}profile{% endblock %}
+{% block main %}
+<section class="page-hero page-hero-person">
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Sahifa yo'li">
+      <a href="{% url 'landing' %}">Bosh sahifa</a><span>/</span>
+      <a href="{% url 'open_index' %}">Tarixiy shajaralar</a><span>/</span>
+      <a href="{% url 'open_tree' tree.slug %}">{{ tree.name }}</a><span>/</span>
+      <b>{{ p.name }}</b>
+    </nav>
+    <div class="person-hero">
+      <span class="person-mono person-mono-lg {% if p.gender == 'ayol' %}is-f{% endif %}" aria-hidden="true">{{ p.first_name|first|upper }}</span>
+      <div>
+        <p class="eyebrow">{{ generation.title }} · <a href="{% url 'open_tree' tree.slug %}">{{ tree.name }}</a></p>
+        <h1 class="display display-sm">{{ p.name }}</h1>
+        {% if p.years or p.occupation %}<p class="lead lead-tight">{{ p.years }}{% if p.years and p.occupation %} — {% endif %}{{ p.occupation }}</p>{% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap tree-layout">
+  <article class="tree-main">
+    <dl class="person-facts">
+      {% if p.patronymic %}<div><dt>Otasining ismi</dt><dd>{{ p.patronymic }}</dd></div>{% endif %}
+      {% if p.birth_date %}<div><dt>Tug'ilgan sanasi</dt><dd>{{ p.birth_date }}</dd></div>{% elif p.birth_year %}<div><dt>Tug'ilgan yili</dt><dd>{{ p.birth_year }}</dd></div>{% endif %}
+      {% if p.death_year %}<div><dt>Vafot etgan yili</dt><dd>{{ p.death_year }}</dd></div>{% endif %}
+      {% if p.place %}<div><dt>Tug'ilgan joyi</dt><dd>{{ p.place }}</dd></div>{% endif %}
+      {% if p.location %}<div><dt>Yashagan joyi</dt><dd>{{ p.location }}</dd></div>{% endif %}
+      {% if p.number %}<div><dt>Shajaradagi raqami</dt><dd>№ {{ p.number }}</dd></div>{% endif %}
+    </dl>
+
+    {% if p.bio %}
+    <section class="prose">
+      <h2 class="h3">Tarjimai hol</h2>
+      <p>{{ p.bio }}</p>
+    </section>
+    {% endif %}
+
+    {% if p.stories %}
+    <section class="stories">
+      <h2 class="h3">Hikoyalar</h2>
+      {% for s in p.stories %}<article class="story"><p>{{ s }}</p></article>{% endfor %}
+    </section>
+    {% endif %}
+
+    <section class="family">
+      <h2 class="h3">Oilasi</h2>
+      <div class="family-grid">
+        {% if parents %}<div class="family-group"><p class="family-label">Ota-onasi</p>{% for r in parents %}{% include "shajara/site/_relative.html" %}{% endfor %}</div>{% endif %}
+        {% if spouses %}<div class="family-group"><p class="family-label">Turmush o'rtog'i</p>{% for r in spouses %}{% include "shajara/site/_relative.html" %}{% endfor %}</div>{% endif %}
+        {% if siblings %}<div class="family-group"><p class="family-label">Aka-uka, opa-singillari</p>{% for r in siblings %}{% include "shajara/site/_relative.html" %}{% endfor %}</div>{% endif %}
+        {% if children %}<div class="family-group"><p class="family-label">Farzandlari</p>{% for r in children %}{% include "shajara/site/_relative.html" %}{% endfor %}</div>{% endif %}
+      </div>
+      {% if not parents and not spouses and not siblings and not children %}<p class="empty">Shajarada qarindoshlari kiritilmagan.</p>{% endif %}
+    </section>
+  </article>
+
+  <aside class="tree-side">
+    <section class="side-card">
+      <h2 class="side-title">Shajarada</h2>
+      <p class="side-text">{{ p.name }} — «{{ tree.name }}» shajarasining {{ generation.title|lower }}idan.</p>
+      <a class="btn btn-outline btn-block" href="{% url 'open_tree' tree.slug %}#avlod-{{ generation.n }}">Butun shajarani ko'rish</a>
+    </section>
+    {% if peers %}
+    <section class="side-card">
+      <h2 class="side-title">Shu avloddan</h2>
+      <ul class="side-links">{% for r in peers %}<li><a href="{{ r.url }}">{{ r.name }}<small>{{ r.years }}</small></a></li>{% endfor %}</ul>
+    </section>
+    {% endif %}
+    <section class="side-card side-cta">
+      <p class="eyebrow eyebrow-light">#YettiOtam</p>
+      <h2 class="side-title">Sizning bobongiz kim edi?</h2>
+      <p>Oilangiz tarixini ham shunday sahifalarda saqlang — qarindoshlar bilan birga, bepul.</p>
+      <a class="btn btn-gold btn-block" href="{% url 'register' %}?rol=oila">Shajaramni boshlash</a>
+    </section>
+  </aside>
+</div>
+{% endblock %}

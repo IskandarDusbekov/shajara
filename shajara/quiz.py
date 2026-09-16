@@ -17,10 +17,13 @@ import re
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
+from . import share_cards
 from .activity import log_activity
 from .models import QuizAttempt, Tree
+from .public_views import site_url
 from .tree import can_view_tree, compute_levels
 
 QUIZ_LENGTH = 10
@@ -253,13 +256,21 @@ def quiz_answer_view(request, tree_key):
     score = sum(1 for k, v in given.items() if state["answers"][int(k)] == v)
     done = len(given) == total
 
+    share = None
     if done and not state["saved"]:
-        QuizAttempt.objects.create(tree=tree, user=request.user, score=score, total=total)
+        attempt = QuizAttempt.objects.create(tree=tree, user=request.user, score=score, total=total)
         log_activity(request, "quiz_finish", tree=tree, detail=f"{score}/{total}")
         state["saved"] = True
+        token = share_cards.make_token("test", attempt.pk)
+        name = f"«{tree.name}»" if tree.is_public else "oilam shajarasi"
+        share = {
+            "url": site_url(request) + reverse("share_test", args=[token]),
+            "card": reverse("share_test_png", args=[token]),
+            "text": f"{name} bo'yicha testda {score}/{total} topdim. Siz nechta topasiz?",
+        }
     request.session[_session_key(tree)] = state
 
     return JsonResponse({
         "ok": given[key] == correct, "correct": correct, "explain": state["explain"][index],
-        "done": done, "score": score, "total": total,
+        "done": done, "score": score, "total": total, "share": share,
     })

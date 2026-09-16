@@ -1,0 +1,102 @@
+{% extends "shajara/site/_base.html" %}
+{% block title %}{{ tree.name }} shajarasi — {{ data.count }} shaxs, {{ data.generation_count }} avlod | e-Shajara{% endblock %}
+{% block og_title %}{{ tree.name }} — shajara{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block main %}
+<section class="page-hero page-hero-tree">
+  <div class="wrap tree-hero">
+    <div>
+      <nav class="crumbs" aria-label="Sahifa yo'li">
+        <a href="{% url 'landing' %}">Bosh sahifa</a><span>/</span>
+        <a href="{% url 'open_index' %}">Tarixiy shajaralar</a><span>/</span>
+        <b>{{ tree.name }}</b>
+      </nav>
+      <p class="eyebrow">{% if tree.era %}{{ tree.era }}{% endif %}{% if tree.era and tree.subject %} · {% endif %}{{ tree.subject }}</p>
+      <h1 class="display display-sm">{{ tree.name }}</h1>
+      {% if tree.description %}<p class="lead">{{ tree.description }}</p>{% endif %}
+      <dl class="facts">
+        <div><dt>Shaxslar</dt><dd>{{ data.count }}</dd></div>
+        <div><dt>Avlodlar</dt><dd>{{ data.generation_count }}</dd></div>
+        {% if data.story_count %}<div><dt>Hikoyalar</dt><dd>{{ data.story_count }}</dd></div>{% endif %}
+        {% if root %}<div><dt>Bosh shaxs</dt><dd class="facts-text"><a href="{{ root.url }}">{{ root.name }}</a></dd></div>{% endif %}
+      </dl>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#avlodlar">Avlodlarni ko'rish</a>
+        <a class="btn btn-outline" href="{% url 'register' %}?rol=abituriyent">Test ishlash</a>
+        <a class="btn btn-ghost" href="https://t.me/share/url?url={{ canonical|urlencode }}&text={{ share_text|urlencode }}" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.4 4.3 2.9 11.4c-1.3.5-1.2 1.2-.2 1.5l4.7 1.5 1.8 5.6c.2.6.1.9.8.9.5 0 .7-.2 1-.5l2.3-2.2 4.7 3.5c.9.5 1.5.2 1.7-.8l3.1-14.5c.3-1.3-.5-1.9-1.4-1.5ZM8.9 14.1l9.2-5.8c.5-.3.9-.1.5.2l-7.8 7.1-.3 3.3Z"/></svg>
+          Ulashish
+        </a>
+      </div>
+    </div>
+    <aside class="gen-rail" aria-label="Avlodlar bo'yicha o'tish">
+      {% for g in generations %}
+      <a href="#avlod-{{ g.n }}"><span>{{ forloop.counter }}</span>{{ g.title }}<small>{{ g.people|length }} kishi</small></a>
+      {% endfor %}
+    </aside>
+  </div>
+</section>
+
+<div class="wrap tree-layout">
+  <div class="tree-main" id="avlodlar">
+    {% for g in generations %}
+    <section class="gen" id="avlod-{{ g.n }}">
+      <header class="gen-head">
+        <span class="gen-num">{{ forloop.counter }}</span>
+        <div>
+          <h2 class="h3">{{ g.title }}</h2>
+          <p>{{ g.people|length }} kishi</p>
+        </div>
+      </header>
+      <div class="people">
+        {% for p in g.people %}
+        <article class="person{% if p.is_root %} is-root{% endif %}">
+          <a class="person-link" href="{{ p.url }}">
+            <span class="person-mono {% if p.gender == 'ayol' %}is-f{% endif %}">{{ p.first_name|first|upper }}</span>
+            <span class="person-body">
+              <h3 class="person-name">{{ p.name }}</h3>
+              <span class="person-sub">{% if p.years %}{{ p.years }}{% endif %}{% if p.years and p.occupation %} · {% endif %}{{ p.occupation }}</span>
+              {% if p.excerpt %}<span class="person-text">{{ p.excerpt }}</span>{% endif %}
+            </span>
+          </a>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+
+    {% if highlights %}
+    <section class="stories">
+      <h2 class="h3">Tarixdan hikoyalar</h2>
+      {% for p in highlights %}
+      <article class="story">
+        <p>{{ p.stories.0 }}</p>
+        <a href="{{ p.url }}">{{ p.name }} haqida batafsil →</a>
+      </article>
+      {% endfor %}
+    </section>
+    {% endif %}
+  </div>
+
+  <aside class="tree-side">
+    {% if sources %}
+    <section class="side-card">
+      <h2 class="side-title">Manbalar</h2>
+      <ol class="sources">{% for s in sources %}<li>{{ s }}</li>{% endfor %}</ol>
+    </section>
+    {% endif %}
+    <section class="side-card side-cta">
+      <p class="eyebrow eyebrow-light">#YettiOtam</p>
+      <h2 class="side-title">O'z oilangizning nechta avlodini bilasiz?</h2>
+      <p>Xuddi shunday shajarani oilangiz uchun qarindoshlar bilan birga tuzing — bepul.</p>
+      <a class="btn btn-gold btn-block" href="{% url 'register' %}?rol=oila">Shajaramni boshlash</a>
+    </section>
+    {% if others %}
+    <section class="side-card">
+      <h2 class="side-title">Boshqa shajaralar</h2>
+      <ul class="side-links">{% for t in others %}<li><a href="{% url 'open_tree' t.slug %}">{{ t.name }}<small>{{ t.era }}</small></a></li>{% endfor %}</ul>
+    </section>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

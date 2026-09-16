@@ -100,6 +100,7 @@
         {% if tree.description %}<p class="pf-tree-desc">{{ tree.description|truncatewords:18 }}</p>{% endif %}
         <div class="pf-tree-meta">
           <span class="pf-pill">{% include "shajara/_icon.html" with name="crown" %}{{ tree.root_person.full_name }}</span>
+          {% if tree.generations %}<span class="pf-pill pf-gen-pill" title="#YettiOtam: 7 avloddan {{ tree.generations }} tasi"><span class="pf-gen-dots">{% for n in "1234567" %}<i{% if forloop.counter <= tree.generations %} class="on"{% endif %}></i>{% endfor %}</span>{% if tree.generations >= 7 %}{{ tree.generations }} avlod{% else %}{{ tree.generations }}/7 avlod{% endif %}</span>{% endif %}
           <span class="pf-pill">{% include "shajara/_icon.html" with name="users" %}{% if tree.num_members %}{{ tree.num_members|add:1 }} kishi quryapti{% else %}Faqat siz{% endif %}</span>
           <span class="pf-pill">{% if tree.is_public %}{% include "shajara/_icon.html" with name="globe" %}Ommaviy{% else %}{% include "shajara/_icon.html" with name="lock" %}Shaxsiy{% endif %}</span>
         </div>
@@ -124,6 +125,7 @@
         {% if tree.subject or tree.era %}<span class="pf-tree-subject">{{ tree.subject }}{% if tree.subject and tree.era %} · {% endif %}{{ tree.era }}</span>{% endif %}
         <div class="pf-tree-meta">
           <span class="pf-pill">{% include "shajara/_icon.html" with name="shield" %}@{{ tree.owner.username }}</span>
+          {% if tree.generations %}<span class="pf-pill pf-gen-pill" title="#YettiOtam: 7 avloddan {{ tree.generations }} tasi"><span class="pf-gen-dots">{% for n in "1234567" %}<i{% if forloop.counter <= tree.generations %} class="on"{% endif %}></i>{% endfor %}</span>{% if tree.generations >= 7 %}{{ tree.generations }} avlod{% else %}{{ tree.generations }}/7 avlod{% endif %}</span>{% endif %}
           <span class="pf-role pf-role-{{ tree.my_role }}">{% if tree.my_role == "muharrir" %}Siz: muharrir{% else %}Siz: kuzatuvchi{% endif %}</span>
           <span class="pf-pill">{% include "shajara/_icon.html" with name="users" %}{{ tree.num_members|add:1 }} kishi</span>
         </div>

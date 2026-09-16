@@ -1,227 +1,292 @@
-{% extends "shajara/base.html" %}
-{% load static assets %}
-{% block title %}e-Shajara — oila tarixi va tarix darsi bir joyda{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static_v 'css/landing.css' %}">{% endblock %}
-{% block body_attrs %}class="landing-body"{% endblock %}
-{% block body %}
-<div class="lp">
+{% extends "shajara/site/_base.html" %}
+{% block title %}e-Shajara — oila shajarasini birga tuzing, yetti avlodni saqlang{% endblock %}
+{% block og_title %}e-Shajara — yetti otangni bilasanmi?{% endblock %}
+{% block body_class %}page-landing{% endblock %}
+{% block main %}
 
-  <nav class="lp-nav">
-    <a class="lp-logo" href="{% url 'landing' %}">
-      <span class="lp-logo-badge">{% include "shajara/_icon.html" with name="leaf" %}</span>
-      e-Shajara
-    </a>
-    <div class="lp-nav-anchors">
-      <a href="#oila">Oilalar uchun</a>
-      <a href="#talim">Ta'lim uchun</a>
-      <a href="#imkoniyatlar">Imkoniyatlar</a>
-    </div>
-    <div class="lp-nav-links">
-      <a class="lp-btn lp-btn-outline" href="{% url 'login' %}">Kirish</a>
-      <a class="lp-btn lp-btn-solid" href="{% url 'register' %}">Bepul boshlash</a>
-    </div>
-  </nav>
-
-  <section class="lp-hero">
-    <div class="lp-hero-text">
-      <span class="lp-eyebrow">{% include "shajara/_icon.html" with name="leaf" %}Oila tarixi va tarix darsi — bitta platformada</span>
-      <h1>Shajarani birga tuzing, tarixni shajara orqali o'rganing</h1>
-      <p>
-        Oilangiz shajarasini bir kishi boshlaydi — qarindoshlar havola orqali qo'shilib, har kim o'z shoxini to'ldiradi.
-        Abituriyent, talaba va o'qituvchilar esa sulolalar va tarixiy shaxslar shajarasini tuzib, o'rganadi va o'rgatadi.
+{# ================================================================== HERO #}
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <p class="eyebrow"><span class="eyebrow-dot"></span>#YettiOtam — yetti otangni bilasanmi?</p>
+      <h1 class="display">Oila tarixingizni <em>birga</em> yozing — avloddan avlodga yetib borsin</h1>
+      <p class="lead">
+        e-Shajara — bobo-buvilaringizdan nevaralaringizgacha bo'lgan oila shajarasini qarindoshlar bilan
+        birgalikda tuzadigan, har bir inson haqidagi xotirani saqlaydigan va uni chiroyli kitob qilib
+        beradigan bepul platforma.
       </p>
-      <div class="lp-hero-buttons">
-        <a class="lp-btn lp-btn-solid lp-btn-lg" href="{% url 'register' %}?rol=oila">
-          {% include "shajara/_icon.html" with name="fam" %}Oila shajarasini boshlash
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-lg" href="{% url 'register' %}?rol=oila">
+          Shajarani boshlash
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
         </a>
-        <a class="lp-btn lp-btn-edu lp-btn-lg" href="{% url 'register' %}?rol=talaba">
-          {% include "shajara/_icon.html" with name="edu" %}O'qish va o'qitish uchun
-        </a>
+        <a class="btn btn-outline btn-lg" href="{% url 'open_index' %}">Tarixiy shajaralarni ko'rish</a>
       </div>
-      <ul class="lp-proof">
-        <li><b>{{ people_count }}</b> shaxs kiritilgan</li>
-        <li><b>{{ family_count }}</b> oila shajarasi</li>
-        {% if learning_count %}<li><b>{{ learning_count }}</b> ommaviy ta'limiy shajara</li>{% endif %}
+      <ul class="hero-points">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Bepul, reklamasiz</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Shaxsiy — faqat siz taklif qilganlar ko'radi</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Telefonda ham qulay</li>
       </ul>
     </div>
 
-    {% comment %}A small picture of both uses: a dynasty with a test question
-    beside it, and a relative joining a family tree.{% endcomment %}
-    <div class="lp-visual" aria-hidden="true">
-      <div class="lp-board">
-        <div class="lp-board-top">
-          <span class="lp-chip lp-chip-edu">{% include "shajara/_icon.html" with name="edu" %}Ta'limiy shajara</span>
-          <span class="lp-board-title">Temuriylar sulolasi</span>
+    {% comment %}A picture of the product: seven generations of one (made-up)
+    family, a relative joining, a finished book and a family quiz.{% endcomment %}
+    <div class="hero-visual" aria-hidden="true">
+      <div class="mock">
+        <div class="mock-head">
+          <div>
+            <span class="mock-kicker">Oila shajarasi</span>
+            <span class="mock-title">Yusupovlar oilasi</span>
+          </div>
+          <span class="mock-badge">
+            <span class="mock-dots">{% for i in "1234567" %}<i class="on"></i>{% endfor %}</span>
+            7/7 avlod
+          </span>
         </div>
-        <svg class="lp-board-lines" viewBox="0 0 100 290" preserveAspectRatio="none">
-          <path d="M50 101 C50 120, 25 116, 25 136"/><path d="M50 101 C50 120, 72 116, 72 136"/>
-          <path d="M25 175 C25 188, 13 184, 13 198"/><path d="M25 175 C25 188, 38 184, 38 198"/>
-        </svg>
-        <span class="lp-node lp-node-root" style="left:50%; top:62px;">Amir Temur<small>1336</small></span>
-        <span class="lp-node" style="left:25%; top:136px;">Shohruh<small>1377</small></span>
-        <span class="lp-node" style="left:72%; top:136px;">Mironshoh<small>1366</small></span>
-        <span class="lp-node" style="left:13%; top:198px;">Ulug'bek<small>1394</small></span>
-        <span class="lp-node" style="left:38%; top:198px;">Boysung'ur<small>1397</small></span>
+        <ol class="mock-gens">
+          <li><span class="mock-num">I</span><span class="mock-person is-m">Rahmonqul<small>1900</small></span><span class="mock-person is-f">Oysha bibi<small>1903</small></span></li>
+          <li><span class="mock-num">II</span><span class="mock-person is-m">Sobir<small>1920</small></span><span class="mock-person is-f">Hanifa<small>1922</small></span><span class="mock-more">+2</span></li>
+          <li><span class="mock-num">III</span><span class="mock-person is-m">Abdulla<small>1940</small></span><span class="mock-person is-f">Nodira<small>1942</small></span><span class="mock-more">+2</span></li>
+          <li><span class="mock-num">IV</span><span class="mock-person is-m">Botir<small>1961</small></span><span class="mock-person is-f">Gulnora<small>1962</small></span><span class="mock-more">+2</span></li>
+          <li><span class="mock-num">V</span><span class="mock-person is-f">Dilfuza<small>1981</small></span><span class="mock-person is-m">Farhod<small>1978</small></span><span class="mock-more">+3</span></li>
+          <li><span class="mock-num">VI</span><span class="mock-person is-f is-you">Madina<small>2000 · siz</small></span><span class="mock-person is-m">Javlon<small>1996</small></span></li>
+          <li><span class="mock-num">VII</span><span class="mock-person is-f">Oyshaxon<small>2020</small></span></li>
+        </ol>
       </div>
-      <div class="lp-float lp-float-quiz">
-        <span class="lp-float-kicker">{% include "shajara/_icon.html" with name="quiz" %}O'zingizni sinang</span>
-        <b>Ulug'bekning otasi kim?</b>
-        <span class="lp-quiz-opt is-right">{% include "shajara/_icon.html" with name="check" %}Shohruh</span>
-        <span class="lp-quiz-opt">Mironshoh</span>
+
+      <div class="float float-join">
+        <span class="float-av">D</span>
+        <span><b>Dilbar xola qo'shildi</b><small>3 ta farzandini kiritdi · hozirgina</small></span>
       </div>
-      <div class="lp-float lp-float-join">
-        <span class="lp-avatar">D</span>
-        <span><b>Dilshod</b> qo'shildi<small>«Karimovlar oilasi» · muharrir</small></span>
+      <div class="float float-book">
+        <span class="float-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 11h6"/></svg></span>
+        <span><b>Oila kitobi tayyor</b><small>PDF · 21 bet · QR bilan</small></span>
+      </div>
+      <div class="float float-quiz">
+        <span class="float-kicker">Oilangizni qanchalik bilasiz?</span>
+        <b>Botir akaning bobosi kim?</b>
+        <span class="quiz-opt is-right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Sobir</span>
+        <span class="quiz-opt">Rustam</span>
       </div>
     </div>
-  </section>
-
-  <section class="lp-audience" aria-labelledby="kim-uchun">
-    <div class="lp-section-title">
-      <h2 id="kim-uchun">Kim uchun?</h2>
-      <p>Ro'yxatdan o'tishda kim ekaningizni tanlaysiz — bosh sahifa shunga moslashadi</p>
-    </div>
-    <div class="lp-aud-grid">
-      <a class="lp-aud is-fam" href="{% url 'register' %}?rol=oila">
-        <span class="lp-aud-ic">{% include "shajara/_icon.html" with name="fam" %}</span>
-        <h3>Oilalar</h3>
-        <ul>
-          <li>Bobo-buvilardan nevaralargacha bir xaritada</li>
-          <li>Qarindoshlar o'z shoxini o'zi to'ldiradi</li>
-          <li>Xotira va hikoyalar avloddan avlodga</li>
-        </ul>
-        <span class="lp-aud-go">Boshlash {% include "shajara/_icon.html" with name="arrow" %}</span>
-      </a>
-      <a class="lp-aud is-edu" href="{% url 'register' %}?rol=abituriyent">
-        <span class="lp-aud-ic">{% include "shajara/_icon.html" with name="student" %}</span>
-        <h3>Abituriyentlar</h3>
-        <ul>
-          <li>Sulolalarni yodlash emas — ko'rib tushunish</li>
-          <li>Har bir shajara bo'yicha avtomatik test</li>
-          <li>Natijangiz qanday o'sayotganini ko'rasiz</li>
-        </ul>
-        <span class="lp-aud-go">Tayyorlanishni boshlash {% include "shajara/_icon.html" with name="arrow" %}</span>
-      </a>
-      <a class="lp-aud is-edu" href="{% url 'register' %}?rol=talaba">
-        <span class="lp-aud-ic">{% include "shajara/_icon.html" with name="edu" %}</span>
-        <h3>Talabalar</h3>
-        <ul>
-          <li>Seminar va kurs ishi uchun tarixiy shajara</li>
-          <li>Guruhdoshlar bilan birga tahrirlash</li>
-          <li>Manbalar ro'yxati shajaraning o'zida</li>
-        </ul>
-        <span class="lp-aud-go">Loyiha boshlash {% include "shajara/_icon.html" with name="arrow" %}</span>
-      </a>
-      <a class="lp-aud is-edu" href="{% url 'register' %}?rol=oqituvchi">
-        <span class="lp-aud-ic">{% include "shajara/_icon.html" with name="teacher" %}</span>
-        <h3>O'qituvchilar</h3>
-        <ul>
-          <li>Darsda xaritani ekranga chiqarib tushuntirish</li>
-          <li>Sinfni bitta havola bilan taklif qilish</li>
-          <li>Har bir o'quvchining test natijasini ko'rish</li>
-        </ul>
-        <span class="lp-aud-go">Sinf uchun tuzish {% include "shajara/_icon.html" with name="arrow" %}</span>
-      </a>
-    </div>
-  </section>
-
-  <section class="lp-tracks">
-    <article class="lp-track is-fam" id="oila">
-      <span class="lp-chip lp-chip-fam">{% include "shajara/_icon.html" with name="fam" %}Oilaviy shajara</span>
-      <h2>Bir kishi boshlaydi — butun oila to'ldiradi</h2>
-      <ol class="lp-steps">
-        <li><b>Shajarani boshlang.</b> O'zingizni, ota-ona va bobo-buvilaringizni kiriting.</li>
-        <li><b>Qarindoshlarga havola yuboring.</b> Telegram orqali bir bosishda. Kim tahrirlashi, kim faqat ko'rishini o'zingiz belgilaysiz.</li>
-        <li><b>Birgalikda to'ldiring.</b> Amakingiz o'z farzandlarini, xolangiz o'z nevaralarini qo'shadi — hammasi bitta shajarada.</li>
-      </ol>
-      <p class="lp-track-note">{% include "shajara/_icon.html" with name="lock" %}Shaxsiy shajarani faqat siz va taklif qilganlaringiz ko'radi.</p>
-    </article>
-    <article class="lp-track is-edu" id="talim">
-      <span class="lp-chip lp-chip-edu">{% include "shajara/_icon.html" with name="edu" %}Ta'limiy shajara</span>
-      <h2>Tarixni shajara orqali o'rganing va o'rgating</h2>
-      <ol class="lp-steps">
-        <li><b>Shajara tuzing yoki Kutubxonadan toping.</b> Mavzu, davr va manbalarni ko'rsating.</li>
-        <li><b>Sinf yoki guruhni taklif qiling.</b> O'quvchilar kuzatuvchi, hamkorlar muharrir bo'ladi.</li>
-        <li><b>O'rganing va o'zingizni sinang.</b> Test shajaradan avtomatik tuziladi — o'qituvchi natijalarni ko'radi.</li>
-      </ol>
-      <p class="lp-track-note">{% include "shajara/_icon.html" with name="globe" %}Ommaviy qilingan ta'limiy shajaralar hammaga Kutubxonada ochiq.</p>
-    </article>
-  </section>
-
-  <div class="lp-section-title" id="imkoniyatlar">
-    <h2>Imkoniyatlar</h2>
-    <p>Telefonda ham, sinfdagi katta ekranda ham qulay</p>
   </div>
-  <section class="lp-features">
-    <div class="lp-feature">
-      <div class="lp-feature-icon">{% include "shajara/_icon.html" with name="map" %}</div>
-      <h4>Jonli xarita</h4>
-      <p>Xaritadagidek ikki barmoq bilan yaqinlashtiring va suring. Shaxsni bossangiz, uning ota-onasi va farzandlariga chiziqlar yonadi.</p>
-    </div>
-    <div class="lp-feature">
-      <div class="lp-feature-icon">{% include "shajara/_icon.html" with name="users" %}</div>
-      <h4>Birga tuzish va huquqlar</h4>
-      <p>Taklif havolasi, muharrir va kuzatuvchi huquqlari, kim nima qo'shganini ko'rish. Havolani istalgan payt bekor qilasiz.</p>
-    </div>
-    <div class="lp-feature">
-      <div class="lp-feature-icon">{% include "shajara/_icon.html" with name="quiz" %}</div>
-      <h4>Avtomatik test</h4>
-      <p>«Kim kimning otasi?», «Qaysi yili tug'ilgan?», «Kim bo'lgan?» — savollar shajaraning o'zidan tuziladi.</p>
-    </div>
-    <div class="lp-feature">
-      <div class="lp-feature-icon">{% include "shajara/_icon.html" with name="book" %}</div>
-      <h4>Manbalar va muhokama</h4>
-      <p>Ta'limiy shajarada manbalar ro'yxati va savol-javob bo'limi bor — ma'lumot qayerdan olingani doim ko'rinadi.</p>
-    </div>
-    <div class="lp-feature">
-      <div class="lp-feature-icon">{% include "shajara/_icon.html" with name="edit" %}</div>
-      <h4>Xotira va hikoyalar</h4>
-      <p>Har bir inson haqida qisqacha ma'lumot, surat, tug'ilgan joy va oila a'zolari yozgan xotiralar.</p>
-    </div>
-    <div class="lp-feature">
-      <div class="lp-feature-icon">{% include "shajara/_icon.html" with name="upload" %}</div>
-      <h4>PDF va zaxira</h4>
-      <p>Shajarani chiroyli PDF sifatida chop eting yoki JSON zaxira bilan saqlab qo'ying.</p>
-    </div>
-  </section>
 
-  {% if featured_learning %}
-  <section class="lp-public">
-    <div class="lp-public-head">
-      <h2>{% include "shajara/_icon.html" with name="book" %}Kutubxonadan</h2>
-      <a class="lp-public-count" href="{% url 'login' %}?next={% url 'public_trees' %}">Barcha ta'limiy shajaralar {% include "shajara/_icon.html" with name="arrow" %}</a>
+  {% if stats.people >= 100 %}
+  <div class="wrap">
+    <dl class="hero-stats" data-reveal>
+      <div><dt>shaxs kiritilgan</dt><dd>{{ stats.people }}</dd></div>
+      <div><dt>shajara tuzilgan</dt><dd>{{ stats.trees }}</dd></div>
+      {% if stats.learning %}<div><dt>ochiq tarixiy shajara</dt><dd>{{ stats.learning }}</dd></div>{% endif %}
+      <div><dt>narxi</dt><dd>0 so'm</dd></div>
+    </dl>
+  </div>
+  {% endif %}
+</section>
+
+{# ============================================================= YETTI OTA #}
+<section class="band band-dark" id="yetti-ota">
+  <div class="wrap yetti-grid">
+    <div data-reveal>
+      <p class="eyebrow eyebrow-light">Nega bu muhim</p>
+      <h2 class="h2 h2-light">Ota-bobolarimiz farzandlariga yetti otasini yod oldirgan</h2>
+      <p class="lead lead-light">
+        Ismlar, yillar, kim qayerda tug'ilgani va qanday yashagani — bular buvilarimiz xotirasida turadi.
+        Ular bilan birga ketib qolmasligi uchun bugun yozib qo'yish kerak. e-Shajara buni bir kishining
+        emas, butun oilaning ishiga aylantiradi.
+      </p>
+      <a class="btn btn-gold btn-lg" href="{% url 'register' %}?rol=oila">Yetti avlodimni yig'aman</a>
     </div>
-    <div class="lp-public-grid">
-      {% for t in featured_learning %}
-      <a class="lp-public-card" href="{% url 'login' %}?next={% url 'tree_overview' t.url_key %}">
-        <span class="lp-public-av">{{ t.name|first|upper }}</span>
-        <span class="lp-public-info">
-          <span class="lp-public-name">{{ t.name }}</span>
-          <span class="lp-public-meta">{% if t.subject %}{{ t.subject }}{% elif t.era %}{{ t.era }}{% else %}{{ t.root_person.full_name }}{% endif %}</span>
-        </span>
+    <ol class="ladder" data-reveal>
+      <li><span>I</span><b>Siz</b><small>aka-uka, opa-singillaringiz bilan</small></li>
+      <li><span>II</span><b>Ota-onangiz</b></li>
+      <li><span>III</span><b>Bobo va buvilaringiz</b></li>
+      <li><span>IV</span><b>Katta bobo-buvilaringiz</b></li>
+      <li><span>V</span><b>Ularning ota-onasi</b><small>odatda XIX asr oxiri</small></li>
+      <li class="is-faint"><span>VI</span><b>…</b></li>
+      <li class="is-faint"><span>VII</span><b>Yettinchi ota</b><small>buni bilganlar kam — siz birinchi bo'ling</small></li>
+    </ol>
+  </div>
+</section>
+
+{# ========================================================= HOW IT WORKS #}
+<section class="section" id="qanday">
+  <div class="wrap">
+    <header class="section-head" data-reveal>
+      <p class="eyebrow">Qanday ishlaydi</p>
+      <h2 class="h2">Bir kishi boshlaydi — butun oila to'ldiradi</h2>
+      <p class="lead">Hech kim oilaning hamma tarixini yolg'iz bilmaydi. Shuning uchun shajara birga tuziladi.</p>
+    </header>
+    <ol class="steps">
+      <li class="step" data-reveal>
+        <span class="step-num">01</span>
+        <h3>Boshlang</h3>
+        <p>O'zingizni, ota-onangizni va bilgan bobo-buvilaringizni kiriting. Faqat ism majburiy — yilni bilmasangiz «taxminan» deb belgilaysiz.</p>
+        <div class="step-ui">
+          <span class="ui-field"><small>Ismi</small>Sobir</span>
+          <span class="ui-field"><small>Tug'ilgan yili</small>≈ 1920</span>
+        </div>
+      </li>
+      <li class="step" data-reveal>
+        <span class="step-num">02</span>
+        <h3>Qarindoshlarni taklif qiling</h3>
+        <p>Havolani Telegram'da yuboring. Amakingiz o'z shoxini, xolangiz o'z nevaralarini qo'shadi. Kim tahrirlashi, kim faqat ko'rishini o'zingiz hal qilasiz.</p>
+        <div class="step-ui">
+          <span class="ui-row"><i class="ui-av">A</i>Amaki <em>muharrir</em></span>
+          <span class="ui-row"><i class="ui-av ui-av-2">X</i>Xola <em>muharrir</em></span>
+        </div>
+      </li>
+      <li class="step" data-reveal>
+        <span class="step-num">03</span>
+        <h3>Saqlang va ulashing</h3>
+        <p>Tayyor shajarani PDF kitob yoki tiniq rasm qilib oling, bobo-buvilarga sovg'a qiling va #YettiOtam kartangizni do'stlar bilan ulashing.</p>
+        <div class="step-ui">
+          <span class="ui-row"><i class="ui-doc"></i>Oila kitobi · PDF</span>
+          <span class="ui-row"><i class="ui-img"></i>#YettiOtam kartasi</span>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+{# ============================================================== FEATURES #}
+<section class="section section-soft" id="imkoniyatlar">
+  <div class="wrap">
+    <header class="section-head" data-reveal>
+      <p class="eyebrow">Imkoniyatlar</p>
+      <h2 class="h2">Oila xotirasi uchun kerak bo'lgan hamma narsa</h2>
+    </header>
+    <div class="bento">
+      <article class="card card-wide card-dark" data-reveal>
+        <div class="card-copy">
+          <h3>Jonli shajara xaritasi</h3>
+          <p>Yuzlab kishilik oilani ham telefonda bemalol ko'rasiz: kattalashtiring, suring, kishini bosing — uning ota-onasi, turmush o'rtog'i va farzandlariga chiziqlar yonadi.</p>
+        </div>
+        <svg class="card-art" viewBox="0 0 320 170" aria-hidden="true">
+          <g fill="none" stroke="#e9c869" stroke-width="2" opacity=".75"><path d="M160 42v22M160 64H90v22M160 64h70v22M90 110v18M90 128H50v14M90 128h40v14M230 110v32"/></g>
+          <g font-family="Manrope, sans-serif" font-size="11" font-weight="700">
+            <rect x="115" y="18" width="90" height="26" rx="8" fill="#e9c869"/><text x="160" y="35" text-anchor="middle" fill="#0f2a22">Bobo</text>
+            <rect x="50" y="86" width="80" height="24" rx="8" fill="#23473b"/><text x="90" y="102" text-anchor="middle" fill="#f6efe0">Ota</text>
+            <rect x="190" y="86" width="80" height="24" rx="8" fill="#23473b"/><text x="230" y="102" text-anchor="middle" fill="#f6efe0">Amaki</text>
+            <rect x="12" y="142" width="76" height="22" rx="8" fill="#23473b"/><text x="50" y="157" text-anchor="middle" fill="#f6efe0">Siz</text>
+            <rect x="96" y="142" width="76" height="22" rx="8" fill="#23473b"/><text x="134" y="157" text-anchor="middle" fill="#f6efe0">Ukangiz</text>
+            <rect x="192" y="142" width="76" height="22" rx="8" fill="#23473b"/><text x="230" y="157" text-anchor="middle" fill="#f6efe0">Jiyan</text>
+          </g>
+        </svg>
+      </article>
+      <article class="card" data-reveal>
+        <span class="card-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 11h6"/></svg></span>
+        <h3>Oila kitobi (PDF)</h3>
+        <p>Muqova, mundarija, har bir avlod bo'yicha boblar, har bir inson haqida maqola. Har nusxada haqiqiyligini tekshiradigan QR kod bor.</p>
+      </article>
+      <article class="card" data-reveal>
+        <span class="card-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg></span>
+        <h3>Hikoyalar va xotiralar</h3>
+        <p>Bobongizning frontdan yozgan xati, buvingizning to'yi haqidagi hikoya — har bir inson sahifasiga yoziladi va yo'qolmaydi.</p>
+      </article>
+      <article class="card" data-reveal>
+        <span class="card-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.3 9.2a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2.9-1.2 1.8"/><path d="M12 17h.01"/></svg></span>
+        <h3>«Oilangizni qanchalik bilasiz?»</h3>
+        <p>Shajaradan avtomatik test tuziladi: kim kimning otasi, qachon tug'ilgan. Natijani do'stlaringiz bilan bellashib ulashing.</p>
+      </article>
+      <article class="card" data-reveal>
+        <span class="card-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg></span>
+        <h3>Tarixiy xaritalar</h3>
+        <p>Eski xaritalar ustida shaharlar, yillar va yurish yo'nalishlari — Amir Temur va Bobur yo'llarini o'z ko'zingiz bilan kuzating.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+{# ============================================================ AUDIENCES #}
+<section class="section">
+  <div class="wrap">
+    <header class="section-head" data-reveal>
+      <p class="eyebrow">Kim uchun</p>
+      <h2 class="h2">Oila uchun ham, sinf xonasi uchun ham</h2>
+    </header>
+    <div class="aud">
+      <a class="aud-card aud-fam" href="{% url 'register' %}?rol=oila" data-reveal>
+        <h3>Oilalar</h3>
+        <p>Bobo-buvilar hayotligida ularning xotirasini yozib oling, uzoqdagi qarindoshlar bilan bitta shajarada birlashing.</p>
+        <span class="aud-go">Oila shajarasini boshlash →</span>
       </a>
+      <a class="aud-card aud-edu" href="{% url 'register' %}?rol=abituriyent" data-reveal>
+        <h3>O'quvchi va abituriyentlar</h3>
+        <p>Sulolalarni yodlash emas — ko'rib tushunish. Temuriylar, Boburiylar shajarasini o'rganing va testda o'zingizni sinang.</p>
+        <span class="aud-go">O'rganishni boshlash →</span>
+      </a>
+      <a class="aud-card aud-teach" href="{% url 'register' %}?rol=oqituvchi" data-reveal>
+        <h3>O'qituvchilar</h3>
+        <p>Darsda shajarani katta ekranga chiqaring, o'quvchilarni bitta havola bilan taklif qiling va «Oilam shajarasi» loyihasini bering.</p>
+        <span class="aud-go">Sinf uchun tuzish →</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+{# ========================================================== OPEN TREES #}
+{% if open_trees %}
+<section class="section section-soft" id="tarixiy">
+  <div class="wrap">
+    <header class="section-head section-head-row" data-reveal>
+      <div>
+        <p class="eyebrow">Ro'yxatdan o'tmasdan o'qing</p>
+        <h2 class="h2">Tarixiy shajaralar</h2>
+      </div>
+      <a class="link-arrow" href="{% url 'open_index' %}">Barcha shajaralar →</a>
+    </header>
+    <div class="tree-cards">
+      {% for item in open_trees %}{% include "shajara/site/_tree_card.html" %}{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ============================================================== PRIVACY #}
+<section class="section" id="maxfiylik">
+  <div class="wrap privacy">
+    <div data-reveal>
+      <p class="eyebrow">Maxfiylik</p>
+      <h2 class="h2">Oilangiz ma'lumoti — faqat oilangizniki</h2>
+      <p class="lead">Tirik odamlar, bolalar, manzillar — bularning hammasi ehtiyotkorlikni talab qiladi. Shuning uchun e-Shajara standart holatda yopiq.</p>
+    </div>
+    <ul class="privacy-list" data-reveal>
+      <li><b>Shaxsiy standart holatda.</b> Oila shajarasini faqat siz va o'zingiz taklif qilgan qarindoshlar ko'radi.</li>
+      <li><b>Qidiruv tizimlariga chiqmaydi.</b> Google'da faqat tarixiy, ta'limiy shajaralar ko'rinadi — oila shajaralari hech qachon.</li>
+      <li><b>Huquqlarni siz boshqarasiz.</b> Muharrir yoki kuzatuvchi; taklif havolasini istalgan payt bekor qilasiz.</li>
+      <li><b>Ma'lumot sizniki.</b> Shajarani istalgan payt zaxira fayl qilib yuklab olasiz.</li>
+    </ul>
+  </div>
+</section>
+
+{# ================================================================= FAQ #}
+<section class="section section-soft" id="savollar">
+  <div class="wrap faq-grid">
+    <header data-reveal>
+      <p class="eyebrow">Savollar</p>
+      <h2 class="h2">Ko'p beriladigan savollar</h2>
+      <p class="lead">Javob topmadingizmi? Ro'yxatdan o'ting — birinchi kirishda qisqa qo'llanma har bir tugmani ko'rsatib beradi.</p>
+    </header>
+    <div class="faq" data-reveal>
+      {% for q, a in faq %}
+      <details{% if forloop.first %} open{% endif %}>
+        <summary>{{ q }}</summary>
+        <p>{{ a }}</p>
+      </details>
       {% endfor %}
     </div>
-  </section>
-  {% endif %}
+  </div>
+</section>
 
-  <section class="lp-cta">
-    <div>
-      <h3>Qaysi biridan boshlaysiz?</h3>
-      <p>Ro'yxatdan o'tish bepul va bir daqiqa oladi.</p>
+{# ================================================================= CTA #}
+<section class="cta">
+  <div class="wrap cta-inner" data-reveal>
+    <h2 class="h2 h2-light">Buvingizga bugun qo'ng'iroq qiling</h2>
+    <p class="lead lead-light">«Sizning buvingiz kim edi?» — shu bitta savoldan oilangizning yetti avlodlik tarixi boshlanadi.</p>
+    <div class="hero-actions hero-actions-center">
+      <a class="btn btn-gold btn-lg" href="{% url 'register' %}?rol=oila">Bepul boshlash</a>
+      <a class="btn btn-outline-light btn-lg" href="{% url 'open_index' %}">Tarixiy shajaralar</a>
     </div>
-    <div class="lp-cta-buttons">
-      <a class="lp-btn lp-btn-gold lp-btn-lg" href="{% url 'register' %}?rol=oila">{% include "shajara/_icon.html" with name="fam" %}Oilam uchun</a>
-      <a class="lp-btn lp-btn-light lp-btn-lg" href="{% url 'register' %}?rol=oqituvchi">{% include "shajara/_icon.html" with name="edu" %}Ta'lim uchun</a>
-    </div>
-  </section>
-
-  <footer class="lp-footer">
-    <span>© 2026 e-Shajara — oila tarixi va tarix darsi bir joyda</span>
-    <span class="lp-footer-links">
-      <a href="{% url 'login' %}">Kirish</a>
-      <a href="{% url 'register' %}">Ro'yxatdan o'tish</a>
-    </span>
-  </footer>
-</div>
+  </div>
+</section>
 {% endblock %}

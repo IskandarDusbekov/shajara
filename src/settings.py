@@ -64,6 +64,10 @@ if not SECRET_KEY:
 
 ALLOWED_HOSTS = _env_list('DJANGO_ALLOWED_HOSTS', ['127.0.0.1', 'localhost'])
 
+# The site's public address, used in canonical links, the sitemap and share
+# cards (e.g. https://e-shajara.uz). Empty: taken from the request.
+SITE_URL = os.environ.get('SITE_URL', '').rstrip('/')
+
 # Forms posted from these origins are trusted. When left empty, every real
 # domain in ALLOWED_HOSTS is trusted over https, which is what a normal
 # nginx + certbot setup needs.

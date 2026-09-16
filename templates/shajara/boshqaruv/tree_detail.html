@@ -33,6 +33,20 @@
   <div class="kpi kpi-sm"><span class="kpi-label">Moslik nomzodlari</span><span class="kpi-value">{{ matches|length }}</span></div>
 </section>
 
+<section class="panel">
+  <header class="panel-head">
+    <h2 class="panel-title">Ochiq sahifa (SEO)</h2>
+    <a class="panel-link" href="{% url 'boshqaruv:seo' %}#t{{ tree.pk }}">Boshqarish →</a>
+  </header>
+  {% if tree.is_open_page %}
+  <p class="panel-note" style="margin:0;"><span class="tag tag-good">Ochiq</span> <a href="{% url 'open_tree' tree.slug %}" target="_blank" rel="noopener">/shajaralar/{{ tree.slug }}/</a> · {{ tree.public_views }} ko'rish</p>
+  {% elif tree.can_be_featured %}
+  <p class="panel-note" style="margin:0;">Ommaviy ta'limiy shajara — ochiq sahifaga chiqarish mumkin, hozir yopiq.</p>
+  {% else %}
+  <p class="panel-note" style="margin:0;">Ochiq sahifaga faqat ommaviy ta'limiy shajaralar chiqariladi{% if not tree.is_learning %} — oila shajaralari hech qachon chiqmaydi{% endif %}.</p>
+  {% endif %}
+</section>
+
 {% if members %}
 <section class="panel">
   <header class="panel-head"><h2 class="panel-title">A'zolar ({{ members|length }}){% if quiz_total %} · {{ quiz_total }} ta test ishlangan{% endif %}</h2></header>

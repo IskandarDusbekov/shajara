@@ -1,0 +1,15 @@
+{% with t=item.tree %}
+<a class="tree-card" href="{% url 'open_tree' t.slug %}" data-reveal>
+  <span class="tree-card-top">
+    <span class="tree-card-era">{{ t.era|default:"Ta'limiy shajara" }}</span>
+    <span class="gen-dots" title="{{ item.generations }} avlod">{% for i in "1234567" %}<i{% if forloop.counter <= item.generations %} class="on"{% endif %}></i>{% endfor %}</span>
+  </span>
+  <span class="tree-card-name">{{ t.name }}</span>
+  <span class="tree-card-desc">{{ t.seo_description|default:t.description|truncatechars:150 }}</span>
+  <span class="tree-card-meta">
+    <span><b>{{ item.people }}</b> shaxs</span>
+    <span><b>{{ item.generations }}</b> avlod</span>
+    {% if item.stories %}<span><b>{{ item.stories }}</b> hikoya</span>{% endif %}
+  </span>
+</a>
+{% endwith %}

@@ -1,0 +1,12 @@
+{% comment %}
+Share buttons for a card: Telegram, native share (phones), copy link, save
+the picture. Needs static/js/share.js. Pass url, text, card (image url).
+{% endcomment %}
+<div class="pf-share" data-share data-url="{{ url }}" data-text="{{ text }}">
+  <a class="pf-btn pf-btn-sm pf-share-tg" href="https://t.me/share/url?url={{ url|urlencode }}&text={{ text|urlencode }}" target="_blank" rel="noopener">
+    {% include "shajara/_icon.html" with name="telegram" %}Telegram
+  </a>
+  <button type="button" class="pf-btn pf-btn-sm" data-share-native hidden>{% include "shajara/_icon.html" with name="link" %}Ulashish</button>
+  <button type="button" class="pf-btn pf-btn-sm" data-share-copy>{% include "shajara/_icon.html" with name="copy" %}<span>Havolani nusxalash</span></button>
+  <a class="pf-btn pf-btn-sm" href="{{ card }}" download="e-shajara-karta.png">{% include "shajara/_icon.html" with name="upload" %}Rasmni saqlash</a>
+</div>

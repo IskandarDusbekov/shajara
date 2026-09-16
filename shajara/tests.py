@@ -655,7 +655,7 @@ class LearningTreeTests(TestCase):
         self.client.force_login(self.teacher)
         self.assertContains(self.client.get(reverse("my_trees")), "O'qituvchilar uchun")
         self.client.logout()
-        self.assertContains(self.client.get(reverse("landing")), "Kim uchun?")
+        self.assertContains(self.client.get(reverse("landing")), "Oila uchun ham, sinf xonasi uchun ham")
 
 
 class PersonYearAndPlaceTests(TestCase):
@@ -1034,3 +1034,95 @@ class PresenceAndTourTests(TestCase):
         self.client.post(reverse("tour_done"))
         self.assertTrue(UserProfile.objects.get(user=user).tour_done)
         self.assertContains(self.client.get(reverse("my_trees")), "pending: false")
+
+
+class OpenPagesAndSharingTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.owner = User.objects.create_user("tarix", password="x")
+        self.temur = person("Amir", "Temur", birth_year="1336", death_year="1405", bio="Sarkarda.")
+        self.shohrux = person("Shohrux", "Mirzo", birth_year="1377")
+        family(self.temur, None, [self.shohrux])
+        PersonStory.objects.create(person=self.shohrux, text="Hirot poytaxt bo'lgan.")
+        self.tree = Tree.objects.create(owner=self.owner, root_person=self.temur, name="Temuriylar", kind="talimiy",
+                                        visibility="public", is_featured=True, slug="temuriylar")
+        self.family_root = person("Botir", "Karimov")
+        self.family_tree = Tree.objects.create(owner=self.owner, root_person=self.family_root, name="Oilam",
+                                               visibility="public", is_featured=True, slug="oilam")
+
+    def test_open_pages_work_without_login_and_family_trees_never_open(self):
+        self.assertEqual(self.client.get(reverse("landing")).status_code, 200)
+        index = self.client.get(reverse("open_index"))
+        self.assertContains(index, "Temuriylar")
+        self.assertNotContains(index, "Oilam")
+        page = self.client.get(reverse("open_tree", args=["temuriylar"]))
+        self.assertContains(page, "Shohrux Mirzo")
+        self.assertContains(page, 'application/ld+json')
+        self.assertEqual(self.client.get(reverse("open_tree", args=["oilam"])).status_code, 404)
+        self.tree.refresh_from_db()
+        self.assertEqual(self.tree.public_views, 1)
+
+        slug = f"{self.shohrux.pk}-shohrux-mirzo"
+        person_page = self.client.get(reverse("open_person", args=["temuriylar", slug]))
+        self.assertContains(person_page, "Hirot poytaxt")
+        self.assertContains(person_page, "Amir Temur")                     # the father is linked
+        wrong = self.client.get(reverse("open_person", args=["temuriylar", f"{self.shohrux.pk}-boshqa"]))
+        self.assertRedirects(wrong, reverse("open_person", args=["temuriylar", slug]), status_code=301)
+        stranger = self.client.get(reverse("open_person", args=["temuriylar", f"{self.family_root.pk}-botir-karimov"]))
+        self.assertEqual(stranger.status_code, 404)                         # not in this tree
+
+        sitemap = self.client.get(reverse("sitemap")).content.decode()
+        self.assertIn("/shajaralar/temuriylar/", sitemap)
+        self.assertIn(slug, sitemap)
+        self.assertNotIn("oilam", sitemap)
+        self.assertIn("Disallow: /boshqaruv/", self.client.get(reverse("robots")).content.decode())
+        card = self.client.get(reverse("open_tree_card", args=["temuriylar"]))
+        self.assertEqual((card.status_code, card["Content-Type"]), (200, "image/png"))
+
+    def test_generation_share_card_hides_private_names(self):
+        from . import share_cards
+        private = Tree.objects.create(owner=self.owner, root_person=person("Maxfiy", "Oila"), name="Maxfiy oila nomi")
+        token = share_cards.make_token("avlod", private.pk)
+        page = self.client.get(reverse("share_avlod", args=[token]))
+        self.assertContains(page, "7 avloddan 1 tasini")
+        self.assertNotContains(page, "Maxfiy oila nomi")
+        self.assertEqual(self.client.get(reverse("share_avlod_png", args=[token]))["Content-Type"], "image/png")
+        self.assertEqual(self.client.get(reverse("share_avlod", args=["soxta-token"])).status_code, 404)
+        self.assertEqual(self.client.get(reverse("share_avlod", args=[share_cards.make_token("test", private.pk)])).status_code, 404)
+
+    def test_finished_quiz_returns_a_share_link(self):
+        import json as _json
+        for i in range(6):
+            child = person(f"Farzand{i}", "Temur", birth_year=str(1360 + i))
+            family(self.shohrux, None, [child])
+        self.client.force_login(self.owner)
+        self.client.get(reverse("tree_quiz", args=[self.tree.url_key]))
+        state = self.client.session[f"quiz:{self.tree.pk}"]
+        data = None
+        for i, answer in enumerate(state["answers"]):
+            data = self.client.post(reverse("tree_quiz_answer", args=[self.tree.url_key]),
+                                    _json.dumps({"q": i, "choice": answer}), content_type="application/json").json()
+        self.assertTrue(data["done"])
+        self.assertIn("/u/test/", data["share"]["url"])
+        share = self.client.get(data["share"]["url"].split("testserver")[-1])
+        self.assertContains(share, f"{data['total']}/{data['total']}")
+
+    def test_admin_can_feature_only_public_learning_trees(self):
+        staff = User.objects.create_user("seo_admin", password="x", is_staff=True)
+        self.client.force_login(self.owner)
+        self.assertEqual(self.client.get(reverse("boshqaruv:seo")).status_code, 404)
+        self.client.force_login(staff)
+        self.assertEqual(self.client.get(reverse("boshqaruv:seo")).status_code, 200)
+        other = Tree.objects.create(owner=self.owner, root_person=person("Bobur"), name="Boburiylar",
+                                    kind="talimiy", visibility="public")
+        self.client.post(reverse("boshqaruv:seo"), {"tree": other.pk, "is_featured": "on", "slug": "",
+                                                    "seo_description": "Bobur avlodlari"})
+        other.refresh_from_db()
+        self.assertEqual((other.is_featured, other.slug), (True, "boburiylar"))
+        self.assertTrue(ActivityLog.objects.filter(action="admin_seo_update", tree=other).exists())
+        self.family_tree.is_featured = False
+        self.family_tree.save()
+        self.client.post(reverse("boshqaruv:seo"), {"tree": self.family_tree.pk, "is_featured": "on", "slug": "oila2"})
+        self.family_tree.refresh_from_db()
+        self.assertFalse(self.family_tree.is_featured)

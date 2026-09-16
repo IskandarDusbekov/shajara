@@ -1,0 +1,19 @@
+{% extends "shajara/site/_base.html" %}
+{% block title %}{{ title }} | e-Shajara{% endblock %}
+{% block og_title %}{{ title }}{% endblock %}
+{% block robots %}noindex, follow{% endblock %}
+{% block main %}
+<section class="share-page">
+  <div class="wrap share-inner">
+    <p class="eyebrow">#YettiOtam</p>
+    <h1 class="display display-sm">{{ headline }}</h1>
+    <p class="lead">{{ sub }}</p>
+    <img class="share-card-img" src="{{ card_url }}" width="1200" height="630" alt="{{ headline }}">
+    <div class="hero-actions hero-actions-center">
+      <a class="btn btn-primary btn-lg" href="{% url 'register' %}?rol=oila">O'z shajaramni tuzaman</a>
+      {% if open_tree %}<a class="btn btn-outline btn-lg" href="{% url 'open_tree' open_tree.slug %}">«{{ open_tree.name }}»ni o'qish</a>
+      {% else %}<a class="btn btn-outline btn-lg" href="{% url 'open_index' %}">Tarixiy shajaralar</a>{% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

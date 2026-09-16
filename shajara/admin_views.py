@@ -8,6 +8,7 @@ from collections import Counter, defaultdict
 from datetime import timedelta
 from functools import wraps
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
@@ -655,4 +656,74 @@ def unified_person(request, pid):
     return render(request, "shajara/boshqaruv/umumiy_shaxs.html", {
         "section": "unified", "ind": ind, "records": records, "links": links,
         "key": u.component[iid], "min_score": min_score,
+    })
+
+
+# --------------------------------------------------------- open (SEO) pages --
+
+from django import forms  # noqa: E402
+from django.db.models import Sum  # noqa: E402
+
+from . import public_views  # noqa: E402
+
+
+class OpenPageForm(forms.ModelForm):
+    class Meta:
+        model = Tree
+        fields = ["is_featured", "slug", "seo_description"]
+
+    def clean_slug(self):
+        raw = (self.cleaned_data.get("slug") or "").strip()
+        slug = public_views.uz_slug(raw) if raw else ""
+        if self.cleaned_data.get("is_featured") or self.data.get("is_featured"):
+            slug = slug or public_views.uz_slug(self.instance.name)
+        if slug and Tree.objects.filter(slug=slug).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Bu manzil boshqa shajarada band.")
+        return slug or None
+
+    def clean(self):
+        cd = super().clean()
+        if cd.get("is_featured") and not self.instance.can_be_featured:
+            raise forms.ValidationError("Faqat ommaviy ta'limiy shajara ochiq sahifaga chiqariladi.")
+        return cd
+
+
+@staff_required
+def seo_pages(request):
+    if request.method == "POST":
+        tree = get_object_or_404(Tree, pk=request.POST.get("tree"))
+        form = OpenPageForm(request.POST, instance=tree)
+        if form.is_valid():
+            was = tree.is_featured
+            obj = form.save(commit=False)
+            if obj.is_featured and not was:
+                obj.featured_at = timezone.now()
+            obj.save(update_fields=["is_featured", "slug", "seo_description", "featured_at"])
+            state = "ochiq sahifada" if obj.is_featured else "yopiq"
+            log_activity(request, "admin_seo_update", tree=obj, detail=f"{obj.name}: {state}, /{obj.slug or ''}")
+            messages.success(request, f"«{obj.name}» saqlandi — {state}.")
+        else:
+            errors = "; ".join(e for errs in form.errors.values() for e in errs)
+            messages.error(request, f"«{tree.name}» saqlanmadi: {errors}")
+        return redirect(f"{reverse('boshqaruv:seo')}#t{tree.pk}")
+
+    candidates = list(Tree.objects.filter(visibility="public", kind="talimiy")
+                      .select_related("owner", "root_person").order_by("-is_featured", "-public_views", "name"))
+    for t in candidates:
+        t.stats = public_views.tree_stats(t)
+        t.form = OpenPageForm(instance=t, prefix=None)
+        t.desc_len = len(t.seo_description or "")
+    featured = [t for t in candidates if t.is_open_page]
+    base = public_views.site_url(request)
+    return render(request, "shajara/boshqaruv/seo.html", {
+        "section": "seo", "candidates": candidates, "featured": featured, "base": base,
+        "totals": {
+            "featured": len(featured),
+            "views": Tree.objects.aggregate(n=Sum("public_views"))["n"] or 0,
+            "urls": public_views.sitemap_count(),
+            "people": sum(t.stats["people"] for t in featured),
+            "family_public": Tree.objects.filter(visibility="public", kind="oilaviy").count(),
+        },
+        "site_url_set": bool(getattr(settings, "SITE_URL", "")),
+        "debug": settings.DEBUG,
     })

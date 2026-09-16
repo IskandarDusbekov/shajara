@@ -1,12 +1,23 @@
 from django.urls import include, path, register_converter
 
-from . import collab_views, export_views, maps_views, quiz, views
+from . import collab_views, export_views, maps_views, public_views, quiz, views
 from .converters import TreeKeyConverter
 
 register_converter(TreeKeyConverter, "treekey")
 
 urlpatterns = [
-    path("", views.landing_view, name="landing"),
+    path("", public_views.landing_view, name="landing"),
+    path("shajaralar/", public_views.open_index_view, name="open_index"),
+    path("shajaralar/karta.png", public_views.open_tree_card_view, name="open_tree_card_default"),
+    path("shajaralar/<slug:slug>/", public_views.open_tree_view, name="open_tree"),
+    path("shajaralar/<slug:slug>/karta.png", public_views.open_tree_card_view, name="open_tree_card"),
+    path("shajaralar/<slug:slug>/<slug:person_slug>/", public_views.open_person_view, name="open_person"),
+    path("u/test/<str:token>/", public_views.share_test_view, name="share_test"),
+    path("u/test/<str:token>/karta.png", public_views.share_test_png_view, name="share_test_png"),
+    path("u/avlod/<str:token>/", public_views.share_avlod_view, name="share_avlod"),
+    path("u/avlod/<str:token>/karta.png", public_views.share_avlod_png_view, name="share_avlod_png"),
+    path("sitemap.xml", public_views.sitemap_view, name="sitemap"),
+    path("robots.txt", public_views.robots_view, name="robots"),
     path("shajaralarim/", views.my_trees_view, name="my_trees"),
     path("royxatdan-otish/", views.register_view, name="register"),
     path("kirish/", views.ShajaraLoginView.as_view(), name="login"),

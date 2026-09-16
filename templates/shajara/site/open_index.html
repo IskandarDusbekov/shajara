@@ -1,0 +1,34 @@
+{% extends "shajara/site/_base.html" %}
+{% block title %}Tarixiy shajaralar — sulolalar va avlodlar | e-Shajara{% endblock %}
+{% block og_title %}Tarixiy shajaralar — e-Shajara{% endblock %}
+{% block main %}
+<section class="page-hero">
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Sahifa yo'li"><a href="{% url 'landing' %}">Bosh sahifa</a><span>/</span><b>Tarixiy shajaralar</b></nav>
+    <h1 class="display display-sm">Tarixiy shajaralar</h1>
+    <p class="lead">Sulolalar va tarixiy shaxslarning avlodlari: kim kimning farzandi bo'lgan, qachon yashagan va nima bilan tarixda qolgan. Har bir shaxs haqida tarjimai hol, hikoyalar va manbalar — ro'yxatdan o'tmasdan o'qing.</p>
+  </div>
+</section>
+
+<section class="section section-tight">
+  <div class="wrap">
+    {% if trees %}
+    <div class="tree-cards">
+      {% for item in trees %}{% include "shajara/site/_tree_card.html" %}{% endfor %}
+    </div>
+    {% else %}
+    <p class="empty">Hozircha ochiq shajaralar qo'shilmagan.</p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="cta cta-compact">
+  <div class="wrap cta-inner">
+    <h2 class="h2 h2-light">O'z oilangiz shajarasini ham tuzing</h2>
+    <p class="lead lead-light">Tarixiy shajaralar kabi — faqat bu safar sizning bobo-buvilaringiz haqida. Qarindoshlar bilan birga, bepul.</p>
+    <div class="hero-actions hero-actions-center">
+      <a class="btn btn-gold btn-lg" href="{% url 'register' %}?rol=oila">Oila shajarasini boshlash</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

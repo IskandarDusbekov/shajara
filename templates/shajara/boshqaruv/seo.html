@@ -1,0 +1,122 @@
+{% extends "shajara/boshqaruv/base.html" %}
+{% block adm_title %}Ochiq sahifalar (SEO){% endblock %}
+{% block adm_crumb %}Ochiq sahifalar (SEO){% endblock %}
+{% block adm_content %}
+<header class="adm-head">
+  <div>
+    <h1 class="adm-title">Ochiq sahifalar (SEO)</h1>
+    <p class="adm-sub">Ro'yxatdan o'tmasdan ochiladigan va Google indekslaydigan tarixiy shajaralar. Bu yerda faqat <b>ommaviy ta'limiy</b> shajaralar chiqariladi — oila shajaralarida tirik odamlar bor, ular hech qachon ochiq sahifaga chiqmaydi.</p>
+  </div>
+  <div class="head-actions">
+    <a class="btn" href="{% url 'open_index' %}" target="_blank" rel="noopener">Ochiq sahifani ko'rish ↗</a>
+    <a class="btn" href="{% url 'sitemap' %}" target="_blank" rel="noopener">sitemap.xml ↗</a>
+  </div>
+</header>
+
+<section class="kpi-grid" aria-label="Ko'rsatkichlar">
+  <div class="kpi">
+    <span class="kpi-label">Ochiq shajaralar</span>
+    <span class="kpi-value">{{ totals.featured }}<small> / {{ candidates|length }}</small></span>
+    <span class="kpi-foot">ommaviy ta'limiy shajaralardan</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Sahifa ko'rishlari</span>
+    <span class="kpi-value">{{ totals.views }}</span>
+    <span class="kpi-foot">ochiq shajara sahifalari, jami</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Sitemap'dagi manzillar</span>
+    <span class="kpi-value">{{ totals.urls }}</span>
+    <span class="kpi-foot">bosh sahifa, ro'yxat, shajara va shaxs sahifalari</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Ochiq shaxs sahifalari</span>
+    <span class="kpi-value">{{ totals.people }}</span>
+    <span class="kpi-foot">har biri alohida qidiruv natijasi bo'la oladi</span>
+  </div>
+</section>
+
+<div class="adm-grid-2 adm-grid-wide-left">
+  <section class="panel panel-flush">
+    <header class="panel-head panel-head-pad">
+      <h2 class="panel-title">Shajaralar</h2>
+      <span class="panel-meta">belgilang, manzil va tavsif yozing, saqlang</span>
+    </header>
+    {% if candidates %}
+    <ul class="seo-list">
+      {% for t in candidates %}
+      <li class="seo-item{% if t.is_open_page %} is-on{% endif %}" id="t{{ t.pk }}">
+        <form method="post" class="seo-form">
+          {% csrf_token %}
+          <input type="hidden" name="tree" value="{{ t.pk }}">
+          <div class="seo-top">
+            <label class="seo-toggle">
+              <input type="checkbox" name="is_featured" {% if t.is_featured %}checked{% endif %}>
+              <span class="seo-switch" aria-hidden="true"></span>
+              <span class="seo-name"><b>{{ t.name }}</b><small>@{{ t.owner.username }} · {{ t.stats.people }} shaxs · {{ t.stats.generations }} avlod{% if t.era %} · {{ t.era }}{% endif %}</small></span>
+            </label>
+            <span class="seo-views" title="Ochiq sahifa ko'rishlari"><b>{{ t.public_views }}</b> ko'rish</span>
+          </div>
+          <div class="seo-fields">
+            <label class="seo-field">
+              <span>Manzil</span>
+              <span class="seo-slug"><i>{{ base }}/shajaralar/</i><input class="f-input" type="text" name="slug" value="{{ t.slug|default:'' }}" placeholder="masalan: temuriylar" maxlength="160"></span>
+            </label>
+            <label class="seo-field">
+              <span>Qidiruv tizimlari uchun tavsif <em data-count>{{ t.desc_len }}</em>/160</span>
+              <textarea class="f-input" name="seo_description" rows="2" maxlength="300" placeholder="Google natijasida sarlavha ostida chiqadigan 1–2 gap. Bo'sh bo'lsa, shajara tavsifi olinadi.">{{ t.seo_description }}</textarea>
+            </label>
+          </div>
+          <div class="seo-actions">
+            <button class="btn btn-primary" type="submit">Saqlash</button>
+            {% if t.is_open_page %}<a class="btn" href="{% url 'open_tree' t.slug %}" target="_blank" rel="noopener">Ochiq sahifa ↗</a>{% endif %}
+            <a class="btn" href="{% url 'boshqaruv:tree_detail' t.pk %}">Shajara ma'lumotlari</a>
+          </div>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty-line panel-pad">Ommaviy ta'limiy shajara hali yo'q. Avval ta'limiy shajara tuzib, sozlamalarida «Ommaviy» qiling.</p>
+    {% endif %}
+  </section>
+
+  <aside>
+    <section class="panel">
+      <header class="panel-head"><h2 class="panel-title">Tekshiruv ro'yxati</h2></header>
+      <ul class="seo-checks">
+        <li class="{% if site_url_set %}is-ok{% else %}is-warn{% endif %}"><b>SITE_URL</b>{% if site_url_set %} sozlangan — kanonik havolalar to'g'ri domen bilan.{% else %} .env da ko'rsatilmagan — havolalar so'rov manzilidan olinadi. Serverda <code>SITE_URL=https://e-shajara.uz</code> yozing.{% endif %}</li>
+        <li class="{% if not debug %}is-ok{% else %}is-warn{% endif %}"><b>DEBUG</b> {% if debug %}yoqilgan (lokal rejim){% else %}o'chirilgan{% endif %}</li>
+        <li class="{% if totals.featured %}is-ok{% else %}is-warn{% endif %}"><b>Ochiq shajaralar</b> — {% if totals.featured %}{{ totals.featured }} ta{% else %}hali yo'q{% endif %}. Kamida 10–20 ta sifatli sulola va tarixiy shaxs shajarasi tavsiya etiladi.</li>
+        <li class="is-ok"><b>Oila shajaralari</b> ochiq sahifalarga hech qachon chiqmaydi{% if totals.family_public %} ({{ totals.family_public }} ta ommaviy oila shajarasi ham yopiq qoladi){% endif %}.</li>
+        <li class="is-ok"><b>robots.txt</b> ilova sahifalarini yopadi, ochiq sahifalarga ruxsat beradi. <a href="{% url 'robots' %}" target="_blank" rel="noopener">Ko'rish ↗</a></li>
+      </ul>
+    </section>
+    <section class="panel">
+      <header class="panel-head"><h2 class="panel-title">Google'ga qo'shish</h2></header>
+      <ol class="seo-steps">
+        <li><b>Google Search Console</b>ga kiring va <code>{{ base }}</code> domenini qo'shing (DNS TXT yozuvi orqali tasdiqlanadi).</li>
+        <li>«Sitemaps» bo'limiga <code>{{ base }}/sitemap.xml</code> manzilini yuboring.</li>
+        <li>Yangi shajara qo'shgach, «URL Inspection» orqali uning sahifasini tezroq indekslashni so'rang.</li>
+        <li>Yandex uchun ham xuddi shu ishni <b>Yandex Webmaster</b>da qiling.</li>
+      </ol>
+      <p class="panel-foot">Yaxshi tavsif 70–160 belgi: kim, qaysi davr va sahifada nima borligini aytadi. Masalan: «Amir Temur va Temuriylar sulolasining to'liq shajarasi: Shohrux, Ulug'bek, Husayn Boyqaro — tarjimai hollar va manbalar.»</p>
+    </section>
+  </aside>
+</div>
+{% endblock %}
+
+{% block adm_scripts %}
+<script>
+document.querySelectorAll(".seo-form textarea[name=seo_description]").forEach(function (area) {
+  var counter = area.closest(".seo-field").querySelector("[data-count]");
+  function sync() {
+    var n = area.value.length;
+    counter.textContent = n;
+    counter.className = n === 0 ? "" : (n < 70 || n > 160) ? "is-warn" : "is-ok";
+  }
+  area.addEventListener("input", sync);
+  sync();
+});
+</script>
+{% endblock %}

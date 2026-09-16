@@ -1,4 +1,5 @@
 {% extends "shajara/base.html" %}
+{% load assets %}
 {% block title %}{{ tree.name }} — e-Shajara{% endblock %}
 {% block body %}
 {% include "shajara/_header.html" %}
@@ -27,10 +28,26 @@
           <div class="pf-stat"><b>{{ tree.gratitude_count }}</b><span>minnatdorchilik</span></div>
         </div>
 
+        <div class="pf-yetti{% if yetti.generations >= 7 %} is-full{% endif %}">
+          <div class="pf-yetti-top">
+            <div>
+              <p class="pf-yetti-kicker">#YettiOtam — yetti otangni bilasanmi?</p>
+              <p class="pf-yetti-title">{% if yetti.generations >= 7 %}{{ yetti.generations }} avlod — yetti ota to'liq!{% else %}7 avloddan {{ yetti.filled }} tasi to'ldirilgan{% endif %}</p>
+            </div>
+            <ol class="pf-yetti-steps" aria-label="{{ yetti.filled }} / 7 avlod">
+              {% for n in "1234567" %}<li{% if forloop.counter <= yetti.filled %} class="on"{% endif %}>{{ forloop.counter }}</li>{% endfor %}
+            </ol>
+          </div>
+          {% if yetti.generations < 7 %}<p class="pf-help" style="margin:8px 0 0;">{% if tree.is_learning %}Sulolaning oldingi va keyingi avlodlarini qo'shib, shajarani boyiting.{% else %}Bobo-buvilaringizdan so'rang: ularning ota-onasi kim bo'lgan? Har bir yangi avlod shajarani chuqurlashtiradi.{% endif %}</p>{% endif %}
+          <p class="pf-yetti-share-label">Kartangizni ulashing — do'stlaringiz ham o'z avlodlarini sanasin:</p>
+          {% include "shajara/_share_box.html" with url=yetti.share_url text=yetti.text card=yetti.card_url %}
+        </div>
+
         <div class="pf-actions">
           <a class="pf-btn pf-btn-primary" href="{% url 'index' tree.url_key %}">{% include "shajara/_icon.html" with name="map" %}Xaritani ochish</a>
           <a class="pf-btn pf-btn-edu" href="{% url 'tree_quiz' tree.url_key %}">{% include "shajara/_icon.html" with name="quiz" %}{% if tree.is_learning %}O'zingizni sinang{% else %}Oilangizni qanchalik bilasiz?{% endif %}</a>
           {% if role %}<a class="pf-btn" href="{% url 'tree_members' tree.url_key %}">{% include "shajara/_icon.html" with name="users" %}{% if is_owner %}A'zolar va ulashish{% else %}A'zolar{% endif %}</a>{% endif %}
+          {% if tree.is_open_page %}<a class="pf-btn" href="{% url 'open_tree' tree.slug %}" target="_blank" rel="noopener">{% include "shajara/_icon.html" with name="globe" %}Ochiq sahifa</a>{% endif %}
           {% if is_owner %}<a class="pf-btn" href="{% url 'tree_settings' tree.url_key %}">{% include "shajara/_icon.html" with name="settings" %}Sozlamalar</a>{% endif %}
         </div>
         {% if best_attempt %}
@@ -121,4 +138,5 @@
     </aside>
   </div>
 </main>
+<script src="{% static_v 'js/share.js' %}"></script>
 {% endblock %}
