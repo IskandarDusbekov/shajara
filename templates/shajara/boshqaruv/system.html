@@ -1,0 +1,86 @@
+{% extends "shajara/boshqaruv/base.html" %}
+{% block adm_title %}Tizim holati{% endblock %}
+{% block adm_crumb %}Tizim holati{% endblock %}
+{% block adm_content %}
+<header class="adm-head">
+  <div>
+    <h1 class="adm-title">Tizim holati</h1>
+    <p class="adm-sub">Server sozlamalari to'g'rimi va email xatlar ketyaptimi — shu yerda ko'rasiz. Test xat yuborib, xatoni to'liq matni bilan olishingiz mumkin.</p>
+  </div>
+</header>
+
+<section class="kpi-grid" aria-label="Ko'rsatkichlar">
+  <div class="kpi{% if env.email_real %} kpi-live{% else %} kpi-accent{% endif %}">
+    <span class="kpi-label">Email yuborish</span>
+    <span class="kpi-value" style="font-size:20px">{% if env.email_real %}SMTP{% else %}Konsol{% endif %}</span>
+    <span class="kpi-foot">{% if env.email_real %}{{ env.email_host }}:{{ env.email_port }}{% else %}xatlar haqiqatda yuborilmaydi{% endif %}</span>
+  </div>
+  <div class="kpi{% if failures_7 %} kpi-accent{% endif %}">
+    <span class="kpi-label">Yuborilmagan xatlar (7 kun)</span>
+    <span class="kpi-value">{{ failures_7 }}</span>
+    <span class="kpi-foot">tasdiqlash / parol tiklash kodlari</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Email tasdiqlanmagan</span>
+    <span class="kpi-value">{{ unverified }}<small> / {{ total_users }}</small></span>
+    <span class="kpi-foot">foydalanuvchilar</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Saqlash hajmi</span>
+    <span class="kpi-value" style="font-size:20px">{{ db_size }}</span>
+    <span class="kpi-foot">baza · rasmlar: {{ media_size }}</span>
+  </div>
+</section>
+
+<div class="adm-grid-2 adm-grid-wide-left">
+  <div>
+    <section class="panel">
+      <header class="panel-head"><h2 class="panel-title">Test xat yuborish</h2></header>
+      <p class="panel-note">Xat SMTP orqali haqiqatan ketadi. Xato bo'lsa sababi (parol noto'g'ri, port yopiq va h.k.) shu yerda ko'rsatiladi. Kelgan xat <b>Spam</b> papkasiga tushgan bo'lsa, «Spam emas» deb belgilang.</p>
+      <form method="post" action="{% url 'boshqaruv:system_test_email' %}" class="sf-inline">
+        {% csrf_token %}
+        <input class="f-input" type="email" name="to" value="{{ test_to }}" placeholder="kimga: nom@example.com" required>
+        <button class="btn btn-primary" type="submit">Test xat yuborish</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <header class="panel-head"><h2 class="panel-title">Tekshiruv</h2></header>
+      <ul class="seo-checks">
+        {% for c in checks %}
+        <li class="{% if c.ok %}is-ok{% else %}is-warn{% endif %}"><b>{{ c.label }}</b> — {{ c.text }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="panel">
+      <header class="panel-head"><h2 class="panel-title">Oxirgi email xatolari</h2>
+        <a class="panel-link" href="{% url 'boshqaruv:activity' %}?action=email_failed">Hammasi →</a></header>
+      {% if failures %}
+      <ul class="sf-failures">
+        {% for a in failures %}
+        <li><b>{{ a.created_at|date:"d.m H:i" }}</b> {% if a.user %}<a href="{% url 'boshqaruv:user_detail' a.user.pk %}">@{{ a.user.username }}</a>{% endif %}<code>{{ a.detail }}</code></li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="empty-line">Xatolik yo'q.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <aside>
+    <section class="panel">
+      <header class="panel-head"><h2 class="panel-title">Sozlamalar</h2></header>
+      <dl class="sf-dl">
+        <dt>Email server</dt><dd>{{ env.email_host|default:"—" }}:{{ env.email_port }}</dd>
+        <dt>Login</dt><dd>{{ env.email_user|default:"—" }}</dd>
+        <dt>Shifrlash</dt><dd>{% if env.email_ssl %}SSL{% elif env.email_tls %}STARTTLS{% else %}yo'q{% endif %}</dd>
+        <dt>Kimdan</dt><dd>{{ env.from_email }}</dd>
+        <dt>SITE_URL</dt><dd>{{ env.site_url|default:"— (so'rovdan olinadi)" }}</dd>
+        <dt>DEBUG</dt><dd>{{ env.debug|yesno:"yoqilgan,o'chirilgan" }}</dd>
+      </dl>
+      <p class="panel-foot">Sozlamalar serverdagi <code>.env</code> faylida. O'zgartirgach: <code>sudo systemctl restart e-shajara</code>. Parol bu yerda hech qachon ko'rsatilmaydi.</p>
+    </section>
+  </aside>
+</div>
+{% endblock %}

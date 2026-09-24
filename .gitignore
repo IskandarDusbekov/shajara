@@ -226,3 +226,9 @@ __marimo__/
 
 # Server zaxira nusxalari
 backups/
+
+# Graphify (kod tahlil vositasi va uning natijalari)
+graphify-out/
+graphify-8/
+graphify*.md
+GRAPH_REPORT.md

@@ -1,0 +1,10 @@
+Assalomu alaykum, {{ username }}!
+
+Sizning {{ action }} uchun bir martalik kodingiz:
+
+    {{ code }}
+
+Kod {{ ttl_minutes }} daqiqa davomida amal qiladi. Uni {{ max_attempts }} martagacha kiritib ko'rishingiz mumkin.
+Agar bu so'rovni siz yubormagan bo'lsangiz, ushbu xatni e'tiborsiz qoldiring.
+
+— e-Shajara · e-shajara.uz

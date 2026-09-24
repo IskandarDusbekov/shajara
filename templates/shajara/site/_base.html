@@ -4,27 +4,30 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>{% block title %}e-Shajara{% endblock %}</title>
-<meta name="description" content="{{ meta_description }}">
+<meta name="description" content="{{ meta_description|default:seo.default_description }}">
 <meta name="robots" content="{% block robots %}index, follow, max-image-preview:large{% endblock %}">
 {% if canonical %}<link rel="canonical" href="{{ canonical }}">{% endif %}
-<meta name="theme-color" content="#0f2a22">
-<meta property="og:site_name" content="e-Shajara">
+<meta name="theme-color" content="#0d3d26">
+<meta property="og:site_name" content="{{ seo.site_name|default:'e-Shajara' }}">
 <meta property="og:locale" content="uz_UZ">
 <meta property="og:type" content="{% block og_type %}website{% endblock %}">
 <meta property="og:title" content="{% block og_title %}e-Shajara{% endblock %}">
-<meta property="og:description" content="{{ meta_description }}">
+<meta property="og:description" content="{{ meta_description|default:seo.default_description }}">
 {% if canonical %}<meta property="og:url" content="{{ canonical }}">{% endif %}
-{% if og_image %}<meta property="og:image" content="{{ og_image }}">
+{% with img=og_image|default:seo_og_default %}{% if img %}<meta property="og:image" content="{{ img }}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="{{ og_image }}">{% endif %}
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230f2a22'/%3E%3Cpath d='M32 52V38M32 38c-9 0-15-6-15-15 0 0 9 0 15 6 0-9 0-15 0-15s0 6 0 15c6-6 15-6 15-6 0 9-6 15-15 15z' fill='none' stroke='%23e9c869' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<meta name="twitter:image" content="{{ img }}">{% endif %}{% endwith %}
+<link rel="icon" type="image/svg+xml" href="{% static_v 'img/logo.svg' %}">
+<link rel="icon" type="image/png" sizes="32x32" href="{% static_v 'img/favicon-32.png' %}">
+<link rel="apple-touch-icon" href="{% static_v 'img/apple-touch-icon.png' %}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="{% static_v 'css/site.css' %}">
 {% if ld_json %}<script type="application/ld+json">{{ ld_json|safe }}</script>{% endif %}
+{% seo_head %}
 {% block head %}{% endblock %}
 </head>
 <body class="site {% block body_class %}{% endblock %}">
@@ -33,9 +36,7 @@
 <header class="nav" id="nav">
   <div class="wrap nav-row">
     <a class="brand" href="{% url 'landing' %}" aria-label="e-Shajara bosh sahifa">
-      <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-6"/><path d="M12 16c-3.5 0-6-2.4-6-6 0 0 3.4 0 6 2.4C12 8 12 5 12 5s0 3 0 7.4C14.6 10 18 10 18 10c0 3.6-2.5 6-6 6z"/></svg>
-      </span>
+      <span class="brand-mark" aria-hidden="true">{% include "shajara/_logo.html" %}</span>
       <span class="brand-name">e-Shajara</span>
     </a>
     <nav class="nav-links" id="nav-links" aria-label="Asosiy">
@@ -74,7 +75,7 @@
   <div class="wrap footer-grid">
     <div class="footer-brand">
       <a class="brand brand-light" href="{% url 'landing' %}">
-        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-6"/><path d="M12 16c-3.5 0-6-2.4-6-6 0 0 3.4 0 6 2.4C12 8 12 5 12 5s0 3 0 7.4C14.6 10 18 10 18 10c0 3.6-2.5 6-6 6z"/></svg></span>
+        <span class="brand-mark" aria-hidden="true">{% include "shajara/_logo.html" %}</span>
         <span class="brand-name">e-Shajara</span>
       </a>
       <p>Oila tarixini qarindoshlar bilan birga yozish va sulolalar shajarasi orqali tarixni o'rganish uchun platforma.</p>

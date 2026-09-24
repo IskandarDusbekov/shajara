@@ -7,9 +7,7 @@
 <div class="adm" id="adm">
   <aside class="adm-side" id="adm-side" aria-label="Boshqaruv bo'limlari">
     <a class="adm-brand" href="{% url 'boshqaruv:dashboard' %}">
-      <span class="adm-brand-mark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-7"/><path d="M12 15c-3 0-5-2-5-5 0 0 3 0 5 2 0-3 0-5 0-5s0 2 0 5c2-2 5-2 5-2 0 3-2 5-5 5z"/></svg>
-      </span>
+      <span class="adm-brand-mark">{% include "shajara/_logo.html" %}</span>
       <span class="adm-brand-text"><b>e-Shajara</b><small>Boshqaruv paneli</small></span>
     </a>
 
@@ -51,10 +49,14 @@
       <p class="adm-side-group">Sayt</p>
       <a class="adm-nav-item{% if section == 'seo' %} is-current{% endif %}" href="{% url 'boshqaruv:seo' %}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
-        <span>Ochiq sahifalar (SEO)</span>
+        <span>SEO va ochiq sahifalar</span>
       </a>
 
       <p class="adm-side-group">Nazorat</p>
+      <a class="adm-nav-item{% if section == 'system' %} is-current{% endif %}" href="{% url 'boshqaruv:system' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/><path d="m7 10 3 2 4-4 3 2"/></svg>
+        <span>Tizim holati</span>
+      </a>
       <a class="adm-nav-item{% if section == 'activity' %} is-current{% endif %}" href="{% url 'boshqaruv:activity' %}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
         <span>Faollik jurnali</span>

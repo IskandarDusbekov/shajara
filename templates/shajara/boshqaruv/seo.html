@@ -1,6 +1,6 @@
 {% extends "shajara/boshqaruv/base.html" %}
 {% block adm_title %}Ochiq sahifalar (SEO){% endblock %}
-{% block adm_crumb %}Ochiq sahifalar (SEO){% endblock %}
+{% block adm_crumb %}SEO va ochiq sahifalar{% endblock %}
 {% block adm_content %}
 <header class="adm-head">
   <div>
@@ -12,6 +12,7 @@
     <a class="btn" href="{% url 'sitemap' %}" target="_blank" rel="noopener">sitemap.xml ↗</a>
   </div>
 </header>
+{% include "shajara/boshqaruv/_seo_tabs.html" with seo_tab="pages" %}
 
 <section class="kpi-grid" aria-label="Ko'rsatkichlar">
   <div class="kpi">
@@ -95,7 +96,7 @@
     <section class="panel">
       <header class="panel-head"><h2 class="panel-title">Google'ga qo'shish</h2></header>
       <ol class="seo-steps">
-        <li><b>Google Search Console</b>ga kiring va <code>{{ base }}</code> domenini qo'shing (DNS TXT yozuvi orqali tasdiqlanadi).</li>
+        <li><b>Google Search Console</b>ga kiring, «Havola prefiksi»ga <code>{{ base }}/</code> ni yozing va «HTML tegi» usulini tanlang. Tegni <a href="{% url 'boshqaruv:seo_settings' %}">Sayt sozlamalari</a>ga qo'ying (yoki HTML fayl bo'lsa — <a href="{% url 'boshqaruv:seo_files' %}">Fayllar</a>ga).</li>
         <li>«Sitemaps» bo'limiga <code>{{ base }}/sitemap.xml</code> manzilini yuboring.</li>
         <li>Yangi shajara qo'shgach, «URL Inspection» orqali uning sahifasini tezroq indekslashni so'rang.</li>
         <li>Yandex uchun ham xuddi shu ishni <b>Yandex Webmaster</b>da qiling.</li>

@@ -35,29 +35,29 @@
 }
 
 html.app-light {
-  --pf-bg: #fbfaf5;
+  --pf-bg: #f8fcf6;
   --pf-card: #ffffff;
-  --pf-card-2: #f4f8f5;
-  --pf-line: #e3ede7;
-  --pf-line-strong: #c9dad2;
-  --pf-ink: #14332e;
-  --pf-ink-2: #2b4a43;
-  --pf-muted: #5b736c;
-  --pf-accent: #1d4a46;
-  --pf-accent-2: #123b37;
+  --pf-card-2: #f0f8f2;
+  --pf-line: #dbeddf;
+  --pf-line-strong: #c3dccb;
+  --pf-ink: #123d27;
+  --pf-ink-2: #2a5040;
+  --pf-muted: #4f705d;
+  --pf-accent: #1a7a46;
+  --pf-accent-2: #12633a;
   --pf-on-accent: #ffffff;
-  --pf-soft: #e5f1ec;
+  --pf-soft: #e4f5ea;
   --pf-edu: #2f5ea8;
   --pf-edu-soft: #eaf1fc;
   --pf-edu-line: #c4d6f2;
-  --pf-fam: #276846;
-  --pf-fam-soft: #e5f1ec;
+  --pf-fam: #1c7a46;
+  --pf-fam-soft: #e4f5ea;
   --pf-fam-line: #c2dccd;
   --pf-good: #1f7a46;
   --pf-good-soft: #e4f4ea;
   --pf-bad: #b04a4a;
   --pf-bad-soft: #fbecec;
-  --pf-shadow: 0 10px 28px rgba(20, 50, 45, 0.08);
+  --pf-shadow: 0 10px 28px rgba(15,61,39, 0.08);
 }
 
 .pf-shell { max-width: 1080px; margin: 0 auto; padding: 30px 20px 72px; font-family: var(--pf-sans); color: var(--pf-ink); }
@@ -715,4 +715,51 @@ html:not(.app-light) .hm-detail-year { color: #e9c869; }
   .pf-yetti-steps li { width: 24px; height: 24px; font-size: 11px; }
   .pf-yetti-steps li + li { margin-left: 5px; }
   .pf-yetti-steps li + li::before { width: 5px; }
+}
+
+/* --- first visit: welcome, steps, other options --- */
+.pf-btn-lg { min-height: 50px; padding: 0 24px; font-size: 15.5px; }
+.pf-btn-lg svg { width: 19px; height: 19px; }
+.pf-welcome { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr); gap: 20px; align-items: center;
+  padding: 34px 34px 30px; border-radius: 26px; border: 1px solid var(--pf-line);
+  background: radial-gradient(520px 260px at 92% 8%, rgba(233, 200, 105, 0.22), transparent 70%),
+              linear-gradient(140deg, var(--pf-soft) 0%, var(--pf-card) 70%);
+  box-shadow: var(--pf-shadow); }
+.pf-welcome-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 13px; border-radius: 999px; font-size: 12.5px; font-weight: 700;
+  color: var(--pf-accent); background: var(--pf-card); border: 1px solid var(--pf-line-strong); }
+.pf-welcome-badge svg { width: 16px; height: 16px; }
+.pf-welcome-title { margin: 16px 0 0; font-family: var(--pf-serif); font-size: clamp(26px, 3.6vw, 38px); line-height: 1.15; color: var(--pf-ink); }
+.pf-welcome-lead { margin: 14px 0 0; max-width: 520px; font-size: 16px; line-height: 1.65; color: var(--pf-ink-2); }
+.pf-welcome-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.pf-welcome-note { display: flex; align-items: flex-start; gap: 9px; margin: 20px 0 0; max-width: 520px; font-size: 13.5px; line-height: 1.55; color: var(--pf-muted); }
+.pf-welcome-note svg { width: 17px; height: 17px; margin-top: 2px; color: var(--pf-accent); }
+.pf-welcome-art svg { width: 100%; height: auto; display: block; max-width: 360px; margin: 0 auto; }
+.wa-lines { stroke: var(--pf-line-strong); }
+.wa-nodes .n-old { fill: var(--pf-card); stroke: var(--pf-line-strong); stroke-width: 2.4; }
+.wa-nodes .n-mid { fill: var(--pf-soft); stroke: var(--pf-accent); stroke-width: 2.4; opacity: 0.95; }
+.wa-nodes .n-me { fill: var(--pf-accent); stroke: #f5d67f; stroke-width: 3.4; }
+.wa-me-text { fill: var(--pf-on-accent); font: 700 15px var(--pf-sans); }
+.wa-ground { stroke: #e9c869; }
+.pf-steps { margin-top: 30px; }
+.pf-steps-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 14px; }
+.pf-steps-list li { display: flex; gap: 14px; align-items: flex-start; padding: 18px; border-radius: var(--pf-radius); background: var(--pf-card); border: 1px solid var(--pf-line); }
+.pf-step-n { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  font: 800 15px var(--pf-sans); color: var(--pf-on-accent); background: var(--pf-accent); }
+.pf-steps-list b { display: block; font-size: 15px; color: var(--pf-ink); margin-bottom: 4px; }
+.pf-steps-list p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--pf-muted); }
+.pf-more { margin-top: 22px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); gap: 12px; }
+.pf-more-item { display: flex; gap: 12px; align-items: center; padding: 14px 16px; border-radius: 16px; background: var(--pf-card); border: 1px solid var(--pf-line);
+  text-decoration: none; color: inherit; transition: transform .15s, border-color .15s; }
+.pf-more-item:hover { transform: translateY(-2px); border-color: var(--pf-accent); }
+.pf-more-item b { display: block; font-size: 14.5px; color: var(--pf-ink); }
+.pf-more-item small { display: block; margin-top: 2px; font-size: 12.5px; line-height: 1.45; color: var(--pf-muted); }
+.pf-more-ic { flex-shrink: 0; width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--pf-fam); background: var(--pf-fam-soft); }
+.pf-more-ic.is-edu { color: var(--pf-edu); background: var(--pf-edu-soft); }
+.pf-more-ic svg { width: 21px; height: 21px; }
+@media (max-width: 760px) {
+  .pf-welcome { grid-template-columns: 1fr; padding: 24px 20px; }
+  .pf-welcome-art { order: -1; }
+  .pf-welcome-art svg { max-width: 230px; }
+  .pf-welcome-cta .pf-btn { flex: 1 1 100%; }
 }

@@ -14,13 +14,15 @@ from django.core.cache import cache
 from django.db.models import F
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.text import slugify
 from django.views.decorators.cache import cache_control
 
+from . import seo as seo_tools
 from . import share_cards
 from .book import Lineage, life_span, long_date, ordinal_generation
-from .models import REGION_CHOICES, Person, PersonStory, QuizAttempt, Tree
+from .models import REGION_CHOICES, PageSeo, Person, PersonStory, QuizAttempt, SeoFile, Tree
 from .tree import compute_levels
 
 OPEN_CACHE_SECONDS = 600
@@ -167,6 +169,7 @@ def landing_view(request):
         trees.append({"tree": tree, "people": data["count"], "generations": data["generation_count"],
                       "stories": data["story_count"]})
     base = site_url(request)
+    page_seo = PageSeo.for_key("landing")
     faq = LANDING_FAQ
     ld = [
         {"@context": "https://schema.org", "@type": "WebSite", "name": "e-Shajara", "url": base + "/",
@@ -183,9 +186,9 @@ def landing_view(request):
             "trees": Tree.objects.count(),
             "learning": Tree.objects.filter(visibility="public", kind="talimiy").count(),
         },
-        "faq": faq, "ld_json": ld_json(ld), "base": base,
-        "canonical": base + "/", "meta_description": LANDING_DESCRIPTION,
-        "og_image": base + reverse("open_tree_card_default"),
+        "faq": faq, "ld_json": ld_json(ld), "base": base, "page_seo": page_seo,
+        "canonical": base + "/", "meta_description": page_seo.description or LANDING_DESCRIPTION,
+        "og_image": seo_tools.og_image(base, page_seo.og_image) or base + reverse("open_tree_card_default"),
     })
 
 
@@ -224,8 +227,10 @@ def open_index_view(request):
         trees.append({"tree": tree, "people": data["count"], "generations": data["generation_count"],
                       "stories": data["story_count"]})
     base = site_url(request)
-    description = ("Temuriylar, Boburiylar, Chingiziylar va boshqa sulolalarning to'liq shajaralari: avlodlar, "
-                   "tarjimai hollar, tarixiy hikoyalar va manbalar. Ro'yxatdan o'tmasdan o'qing.")
+    page_seo = PageSeo.for_key("open_index")
+    description = page_seo.description or (
+        "Temuriylar, Boburiylar, Chingiziylar va boshqa sulolalarning to'liq shajaralari: avlodlar, "
+        "tarjimai hollar, tarixiy hikoyalar va manbalar. Ro'yxatdan o'tmasdan o'qing.")
     ld = [
         _breadcrumbs(base, [("Bosh sahifa", "/"), ("Tarixiy shajaralar", reverse("open_index"))]),
         {"@context": "https://schema.org", "@type": "CollectionPage", "name": "Tarixiy shajaralar",
@@ -234,9 +239,9 @@ def open_index_view(request):
                       "url": base + reverse("open_tree", args=[t["tree"].slug])} for t in trees]},
     ]
     return render(request, "shajara/site/open_index.html", {
-        "trees": trees, "base": base, "canonical": base + reverse("open_index"),
+        "trees": trees, "base": base, "canonical": base + reverse("open_index"), "page_seo": page_seo,
         "meta_description": description, "ld_json": ld_json(ld),
-        "og_image": base + reverse("open_tree_card_default"),
+        "og_image": seo_tools.og_image(base, page_seo.og_image) or base + reverse("open_tree_card_default"),
     })
 
 
@@ -412,18 +417,32 @@ def share_avlod_png_view(request, token):
 
 # -------------------------------------------------------- sitemap & robots --
 
-def sitemap_view(request):
+def sitemap_entries(request):
+    """[(url, lastmod, priority)] — what sitemap.xml lists, also shown in the admin."""
+    cfg = seo_tools.site_setting()
+    if cfg.block_indexing:
+        return []
     base = site_url(request)
-    urls = [(base + "/", None, "1.0"), (base + reverse("open_index"), None, "0.9")]
+    urls = []
+    if not PageSeo.for_key("landing").noindex:
+        urls.append((base + "/", None, "1.0"))
+    if not PageSeo.for_key("open_index").noindex:
+        urls.append((base + reverse("open_index"), None, "0.9"))
     for tree in open_trees():
         data = open_tree_data(tree)
         lastmod = tree.updated_at.date().isoformat()
         urls.append((base + reverse("open_tree", args=[tree.slug]), lastmod, "0.8"))
         for info in data["people"].values():
             urls.append((base + info["url"], lastmod, "0.6"))
+    for extra in cfg.extra_sitemap_urls:
+        urls.append((seo_tools.absolute(base, extra), None, "0.5"))
+    return urls
+
+
+def sitemap_view(request):
     lines = ['<?xml version="1.0" encoding="UTF-8"?>',
              '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
-    for loc, lastmod, priority in urls:
+    for loc, lastmod, priority in sitemap_entries(request):
         lines.append("  <url><loc>%s</loc>%s<priority>%s</priority></url>" % (
             loc.replace("&", "&amp;"), f"<lastmod>{lastmod}</lastmod>" if lastmod else "", priority))
     lines.append("</urlset>")
@@ -431,28 +450,28 @@ def sitemap_view(request):
 
 
 def robots_view(request):
-    base = site_url(request)
-    body = "\n".join([
-        "User-agent: *",
-        "Allow: /$",
-        "Allow: /shajaralar/",
-        "Allow: /static/",
-        "Disallow: /shajara/",
-        "Disallow: /boshqaruv/",
-        "Disallow: /admin/",
-        "Disallow: /taklif/",
-        "Disallow: /media/",
-        "",
-        f"Sitemap: {base}/sitemap.xml",
-        "",
-    ])
-    return HttpResponse(body, content_type="text/plain; charset=utf-8")
+    return HttpResponse(seo_tools.robots_body(site_url(request)), content_type="text/plain; charset=utf-8")
 
 
-def sitemap_count():
+def sitemap_count(request):
     """How many URLs the sitemap lists — for the admin's SEO page."""
-    total = 2
-    for tree in open_trees():
-        total += 1 + open_tree_data(tree)["count"]
-    return total
+    return len(sitemap_entries(request))
+
+
+def favicon_view(request):
+    return redirect(static("img/favicon-32.png"), permanent=True)
+
+
+@cache_control(public=True, max_age=300)
+def seo_file_view(request, path):
+    """Files an admin publishes at the site root (search-engine verification, ads.txt...)."""
+    key = f"seo-file:{path}"
+    row = cache.get(key)
+    if row is None:
+        found = SeoFile.objects.filter(path=path, is_active=True).values("content", "content_type").first()
+        row = found or False
+        cache.set(key, row, 300)
+    if not row:
+        raise Http404
+    return HttpResponse(row["content"], content_type=f"{row['content_type']}; charset=utf-8")
 

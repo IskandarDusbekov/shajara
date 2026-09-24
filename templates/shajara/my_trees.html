@@ -15,6 +15,74 @@
   <div class="pf-alert{% if message.tags == 'success' %} pf-alert-good{% elif message.tags == 'error' %} pf-alert-bad{% endif %}">{{ message }}</div>
   {% endfor %}
 
+  {% if not has_any %}
+  {% comment %}First visit: one clear next step instead of a wall of options.{% endcomment %}
+  <section class="pf-welcome" aria-labelledby="welcome-title">
+    <div class="pf-welcome-main">
+      <span class="pf-welcome-badge">{% include "shajara/_icon.html" with name="leaf" %}Xush kelibsiz</span>
+      <h1 class="pf-welcome-title" id="welcome-title">Salom, {{ request.user.first_name|default:request.user.username }}!<br>Keling, shajarangizni boshlaymiz</h1>
+      <p class="pf-welcome-lead">Bir necha daqiqada birinchi shajarangiz tayyor bo'ladi: o'zingizni kiritasiz, qolganini qarindoshlaringiz birga to'ldiradi.</p>
+
+      <div class="pf-welcome-cta">
+        {% if profile.role == "oqituvchi" or profile.role == "talaba" %}
+        <a class="pf-btn pf-btn-primary pf-btn-lg" href="{% url 'tree_create' %}?tur=talimiy">{% include "shajara/_icon.html" with name="edu" %}Ta'limiy shajara tuzish</a>
+        <a class="pf-btn pf-btn-lg" data-tour="start-fam" href="{% url 'tree_create' %}?tur=oilaviy">{% include "shajara/_icon.html" with name="fam" %}Oilaviy shajara</a>
+        {% elif profile.role == "abituriyent" or profile.role == "ixlosmand" %}
+        <a class="pf-btn pf-btn-primary pf-btn-lg" href="{% url 'public_trees' %}">{% include "shajara/_icon.html" with name="book" %}Kutubxonani ochish</a>
+        <a class="pf-btn pf-btn-lg" data-tour="start-fam" href="{% url 'tree_create' %}?tur=oilaviy">{% include "shajara/_icon.html" with name="fam" %}Oilaviy shajara tuzish</a>
+        {% else %}
+        <a class="pf-btn pf-btn-primary pf-btn-lg" data-tour="start-fam" href="{% url 'tree_create' %}?tur=oilaviy">{% include "shajara/_icon.html" with name="plus" %}Shajaramni boshlash</a>
+        <a class="pf-btn pf-btn-lg" href="{% url 'public_trees' %}">{% include "shajara/_icon.html" with name="book" %}Tarixiy shajaralarni ko'rish</a>
+        {% endif %}
+      </div>
+      <p class="pf-welcome-note">{% include "shajara/_icon.html" with name="link" %}Sizni kimdir taklif qilganmi? U yuborgan havolani oching — shajara shu yerda paydo bo'ladi.</p>
+    </div>
+
+    <div class="pf-welcome-art" aria-hidden="true">
+      <svg viewBox="0 0 320 260" fill="none">
+        <g class="wa-lines" stroke-width="2.4" stroke-linecap="round">
+          <path d="M160 190V158"/><path d="M160 158C160 140 88 146 88 118"/><path d="M160 158C160 140 232 146 232 118"/>
+          <path d="M88 118C88 100 52 106 52 78"/><path d="M88 118C88 100 124 106 124 78"/>
+          <path d="M232 118C232 100 196 106 196 78"/><path d="M232 118C232 100 268 106 268 78"/>
+        </g>
+        <g class="wa-nodes">
+          <circle class="n-old" cx="52" cy="70" r="15"/><circle class="n-old" cx="124" cy="70" r="15"/>
+          <circle class="n-old" cx="196" cy="70" r="15"/><circle class="n-old" cx="268" cy="70" r="15"/>
+          <circle class="n-mid" cx="88" cy="112" r="17"/><circle class="n-mid" cx="232" cy="112" r="17"/>
+          <circle class="n-me" cx="160" cy="200" r="22"/>
+        </g>
+        <text x="160" y="205" text-anchor="middle" class="wa-me-text">Siz</text>
+        <path class="wa-ground" d="M118 244h84" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </section>
+
+  <section class="pf-steps" aria-label="Qanday boshlanadi">
+    <h2 class="pf-h2">{% include "shajara/_icon.html" with name="flag" %}Uch qadamda tayyor</h2>
+    <ol class="pf-steps-list">
+      <li><span class="pf-step-n">1</span><div><b>O'zingizni kiriting</b><p>Faqat ism majburiy. Yilni bilmasangiz, «taxminan» deb yozasiz.</p></div></li>
+      <li><span class="pf-step-n">2</span><div><b>Ota-onangiz va bobo-buvilaringizni qo'shing</b><p>Bilganingizcha yozing — qolganini qarindoshlar to'ldiradi.</p></div></li>
+      <li><span class="pf-step-n">3</span><div><b>Qarindoshlarni taklif qiling</b><p>Havolani Telegram'da yuboring: har kim o'z shoxini qo'shadi.</p></div></li>
+    </ol>
+  </section>
+
+  <section class="pf-more" aria-label="Boshqa imkoniyatlar">
+    <a class="pf-more-item" href="{% url 'tree_create' %}?tur=talimiy">
+      <span class="pf-more-ic is-edu">{% include "shajara/_icon.html" with name="edu" %}</span>
+      <span><b>Ta'limiy shajara</b><small>Sulola yoki tarixiy shaxs: mavzu, davr, manbalar va test bilan.</small></span>
+    </a>
+    <a class="pf-more-item" href="{% url 'public_trees' %}">
+      <span class="pf-more-ic">{% include "shajara/_icon.html" with name="book" %}</span>
+      <span><b>Kutubxona</b><small>Temuriylar, Boburiylar va boshqa tayyor shajaralarni o'rganing.</small></span>
+    </a>
+    <a class="pf-more-item" href="{% url 'tree_import_create' %}">
+      <span class="pf-more-ic">{% include "shajara/_icon.html" with name="upload" %}</span>
+      <span><b>Zaxiradan tiklash</b><small>Avval yuklab olingan JSON fayldan shajarani qayta tiklang.</small></span>
+    </a>
+  </section>
+
+  {% else %}
+
   <header class="pf-head">
     <div>
       <p class="pf-kicker">Salom, {{ request.user.first_name|default:request.user.username }}</p>
@@ -48,15 +116,10 @@
     <span class="pf-hint-text"><b>Tarix ixlosmandlari uchun:</b> tarixiy shaxslar shajarasini manbalari bilan tuzing va ommaviy qilib, Kutubxonada boshqalar bilan ulashing.</span>
     <a class="pf-btn pf-btn-edu pf-btn-sm" href="{% url 'public_trees' %}">{% include "shajara/_icon.html" with name="book" %}Kutubxona</a>
   </div>
-  {% elif not has_any %}
-  <div class="pf-hint is-fam">
-    <span class="pf-hint-ic">{% include "shajara/_icon.html" with name="users" %}</span>
-    <span class="pf-hint-text"><b>Shajara birga tuziladi.</b> Siz boshlaysiz, so'ng qarindoshlaringizga taklif havolasini yuborasiz — har kim o'z shoxini, o'z farzandlari va nevaralarini qo'shadi.</span>
-  </div>
   {% endif %}
 
   <section class="pf-start" aria-label="Yangi shajara">
-    <a class="pf-start-tile is-fam" href="{% url 'tree_create' %}?tur=oilaviy">
+    <a class="pf-start-tile is-fam" data-tour="start-fam" href="{% url 'tree_create' %}?tur=oilaviy">
       <span class="pf-start-ic">{% include "shajara/_icon.html" with name="fam" %}</span>
       <span class="pf-start-body">
         <span class="pf-start-title">Oilaviy shajara</span>
@@ -74,7 +137,6 @@
     </a>
   </section>
 
-  {% if has_any %}
   <div class="pf-toolbar pf-section">
     <nav class="pf-tabs" aria-label="Shajara turi">
       <a class="pf-tab{% if not kind %} is-on{% endif %}" href="{% url 'my_trees' %}">Hammasi</a>
@@ -83,9 +145,7 @@
     </nav>
     <a class="pf-btn pf-btn-sm" href="{% url 'tree_import_create' %}">{% include "shajara/_icon.html" with name="upload" %}JSON zaxiradan tiklash</a>
   </div>
-  {% endif %}
 
-  {% if has_any %}
   <section>
     <h2 class="pf-h2">{% include "shajara/_icon.html" with name="leaf" %}Men yaratganlar <small>{{ trees|length }}</small></h2>
     {% if trees %}
@@ -134,16 +194,6 @@
     </div>
   </section>
   {% endif %}
-  {% else %}
-  <div class="pf-empty pf-section">
-    {% include "shajara/_icon.html" with name="leaf" %}
-    <h3>Hali shajarangiz yo'q</h3>
-    <p>Yuqoridan turini tanlab boshlang. Agar sizni kimdir taklif qilgan bo'lsa, u yuborgan havolani oching — shajara shu yerda paydo bo'ladi.</p>
-    <div class="pf-actions">
-      <a class="pf-btn" href="{% url 'public_trees' %}">{% include "shajara/_icon.html" with name="book" %}Kutubxonani ko'rish</a>
-      <a class="pf-btn" href="{% url 'tree_import_create' %}">{% include "shajara/_icon.html" with name="upload" %}JSON zaxiradan tiklash</a>
-    </div>
-  </div>
   {% endif %}
 </main>
 {% endblock %}

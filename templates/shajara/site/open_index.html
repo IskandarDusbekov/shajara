@@ -1,6 +1,7 @@
 {% extends "shajara/site/_base.html" %}
-{% block title %}Tarixiy shajaralar — sulolalar va avlodlar | e-Shajara{% endblock %}
-{% block og_title %}Tarixiy shajaralar — e-Shajara{% endblock %}
+{% block title %}{{ page_seo.title|default:"Tarixiy shajaralar — sulolalar va avlodlar | e-Shajara" }}{% endblock %}
+{% block og_title %}{{ page_seo.title|default:"Tarixiy shajaralar — e-Shajara" }}{% endblock %}
+{% block robots %}{% if page_seo.noindex %}noindex, follow{% else %}index, follow, max-image-preview:large{% endif %}{% endblock %}
 {% block main %}
 <section class="page-hero">
   <div class="wrap">

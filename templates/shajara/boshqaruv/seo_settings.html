@@ -1,0 +1,116 @@
+{% extends "shajara/boshqaruv/base.html" %}
+{% block adm_title %}Sayt SEO sozlamalari{% endblock %}
+{% block adm_crumb %}Sayt SEO sozlamalari{% endblock %}
+{% block adm_content %}
+<header class="adm-head">
+  <div>
+    <h1 class="adm-title">Sayt SEO sozlamalari</h1>
+    <p class="adm-sub">Google, Bing va Yandex uchun tasdiqlash kodlari, bosh sahifa sarlavhasi va tavsifi, ulashish rasmi, analitika, robots.txt va sitemap — hammasi shu yerda. Saqlagach o'zgarish 1 daqiqada saytda ko'rinadi.</p>
+  </div>
+  <div class="head-actions">
+    <a class="btn" href="{{ base }}/" target="_blank" rel="noopener">Bosh sahifa ↗</a>
+    <a class="btn" href="{% url 'robots' %}" target="_blank" rel="noopener">robots.txt ↗</a>
+    <a class="btn" href="{% url 'sitemap' %}" target="_blank" rel="noopener">sitemap.xml ↗</a>
+  </div>
+</header>
+{% include "shajara/boshqaruv/_seo_tabs.html" %}
+
+<form method="post" class="sf-form" novalidate>
+  {% csrf_token %}
+  <div class="adm-grid-2 adm-grid-wide-left">
+    <div>
+      <section class="panel" id="tasdiqlash">
+        <header class="panel-head"><h2 class="panel-title">1. Qidiruv tizimlarida saytni tasdiqlash</h2></header>
+        <p class="panel-note"><b>Google Search Console</b> → «Havola prefiksi» (URL prefix) → <code>{{ base }}/</code> → <b>HTML tegi</b> usulini tanlang. Ko'rsatilgan <code>&lt;meta ...&gt;</code> tegini <u>butunligicha</u> yoki faqat <code>content</code> qiymatini pastga qo'ying — kod o'zi ajratib olinadi. So'ng «Saqlash» va Search Console'da «Tasdiqlash». Fayl usuli kerak bo'lsa — <a href="{% url 'boshqaruv:seo_files' %}">Fayllar</a> bo'limiga o'ting.</p>
+        {% include "shajara/boshqaruv/_field.html" with f=form.google_verification %}
+        {% include "shajara/boshqaruv/_field.html" with f=form.bing_verification %}
+        {% include "shajara/boshqaruv/_field.html" with f=form.yandex_verification %}
+      </section>
+
+      {% for key, label, pf in page_forms %}
+      <section class="panel">
+        <header class="panel-head"><h2 class="panel-title">{% if forloop.first %}2. {% endif %}{{ label }}</h2>
+          <span class="panel-meta">Google natijasida ko'rinadigan matn</span></header>
+        {% include "shajara/boshqaruv/_field.html" with f=pf.title counter=70 %}
+        {% include "shajara/boshqaruv/_field.html" with f=pf.description counter=160 %}
+        {% include "shajara/boshqaruv/_field.html" with f=pf.og_image %}
+        {% include "shajara/boshqaruv/_switch.html" with f=pf.noindex %}
+      </section>
+      {% endfor %}
+
+      <section class="panel">
+        <header class="panel-head"><h2 class="panel-title">3. Standart meta va ulashish</h2></header>
+        <p class="panel-note">O'z tavsifi yo'q sahifalarda va Telegram/Facebook'da ulashilganda shu ishlatiladi.</p>
+        {% include "shajara/boshqaruv/_field.html" with f=form.site_name %}
+        {% include "shajara/boshqaruv/_field.html" with f=form.default_description counter=160 %}
+        {% include "shajara/boshqaruv/_field.html" with f=form.default_og_image %}
+        {% if og_default %}<img class="sf-og-preview" src="{{ og_default }}" alt="Ulashish rasmi ko'rinishi" loading="lazy">{% endif %}
+      </section>
+
+      <section class="panel">
+        <header class="panel-head"><h2 class="panel-title">4. Analitika</h2></header>
+        {% include "shajara/boshqaruv/_field.html" with f=form.ga_measurement_id %}
+        {% include "shajara/boshqaruv/_field.html" with f=form.yandex_metrica_id %}
+      </section>
+
+      <section class="panel">
+        <header class="panel-head"><h2 class="panel-title">5. robots.txt va sitemap</h2></header>
+        {% include "shajara/boshqaruv/_switch.html" with f=form.block_indexing %}
+        {% include "shajara/boshqaruv/_field.html" with f=form.robots_txt %}
+        {% include "shajara/boshqaruv/_field.html" with f=form.sitemap_extra %}
+      </section>
+
+      <section class="panel">
+        <header class="panel-head"><h2 class="panel-title">6. Qo'shimcha &lt;head&gt; teglar</h2>
+          {% if not form.can_edit_head %}<span class="tag tag-admin">faqat superadmin</span>{% endif %}</header>
+        <p class="panel-note">Faqat <code>&lt;meta&gt;</code>, <code>&lt;link&gt;</code> va <code>&lt;script&gt;</code>. Boshqa tegli yoki matnli kod saqlanmaydi.</p>
+        {% include "shajara/boshqaruv/_field.html" with f=form.extra_head_html %}
+      </section>
+
+      <div class="sf-savebar">
+        <button class="btn btn-primary" type="submit">Saqlash</button>
+        <span class="panel-meta">Oxirgi o'zgarish: {% if cfg.updated_by %}@{{ cfg.updated_by.username }}, {% endif %}{{ cfg.updated_at|date:"d.m.Y H:i" }}</span>
+      </div>
+    </div>
+
+    <aside>
+      <section class="panel">
+        <header class="panel-head"><h2 class="panel-title">Holat</h2></header>
+        <ul class="seo-checks">
+          <li class="{% if cfg.google_verification %}is-ok{% else %}is-warn{% endif %}"><b>Google</b> {% if cfg.google_verification %}kod kiritilgan{% else %}tasdiqlash kodi yo'q{% endif %}</li>
+          <li class="{% if cfg.yandex_verification %}is-ok{% else %}is-warn{% endif %}"><b>Yandex</b> {% if cfg.yandex_verification %}kod kiritilgan{% else %}tasdiqlash kodi yo'q{% endif %}</li>
+          <li class="{% if cfg.bing_verification %}is-ok{% else %}is-warn{% endif %}"><b>Bing</b> {% if cfg.bing_verification %}kod kiritilgan{% else %}tasdiqlash kodi yo'q{% endif %}</li>
+          <li class="{% if cfg.block_indexing %}is-warn{% else %}is-ok{% endif %}"><b>Indekslash</b> {% if cfg.block_indexing %}butun sayt yopilgan!{% else %}ochiq{% endif %}</li>
+          <li class="is-ok"><b>Sitemap</b> — {{ sitemap_total }} ta manzil</li>
+          <li class="is-ok"><b>Fayllar</b> — {{ files_active }} ta yoqilgan. <a href="{% url 'boshqaruv:seo_files' %}">Boshqarish →</a></li>
+        </ul>
+      </section>
+      <section class="panel">
+        <header class="panel-head"><h2 class="panel-title">Sahifaga qo'shiladigan teglar</h2></header>
+        <pre class="sf-code">{{ head_preview|force_escape|default:"— hozircha hech narsa qo'shilmaydi —" }}</pre>
+      </section>
+      <section class="panel">
+        <header class="panel-head"><h2 class="panel-title">Hozirgi robots.txt</h2></header>
+        <pre class="sf-code">{{ robots_preview }}</pre>
+      </section>
+    </aside>
+  </div>
+</form>
+{% endblock %}
+
+{% block adm_scripts %}
+<script>
+document.querySelectorAll("[data-count-for]").forEach(function (em) {
+  var input = document.getElementById(em.getAttribute("data-count-for"));
+  if (!input) return;
+  var lim = parseInt(em.nextSibling && em.nextSibling.textContent.replace("/", ""), 10) || 160;
+  function sync() {
+    var n = input.value.length;
+    em.textContent = n;
+    em.className = n === 0 ? "" : (n > lim) ? "is-warn" : "is-ok";
+  }
+  input.addEventListener("input", sync);
+  sync();
+});
+</script>
+{% endblock %}

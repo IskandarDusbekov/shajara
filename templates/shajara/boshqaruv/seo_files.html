@@ -1,0 +1,109 @@
+{% extends "shajara/boshqaruv/base.html" %}
+{% block adm_title %}SEO fayllar{% endblock %}
+{% block adm_crumb %}SEO fayllar{% endblock %}
+{% block adm_content %}
+<header class="adm-head">
+  <div>
+    <h1 class="adm-title">Fayllar va tasdiqlash</h1>
+    <p class="adm-sub">Saytning ildizida ochiladigan fayllar: Google/Yandex/Bing tasdiqlash fayllari, <code>ads.txt</code>, <code>security.txt</code> va boshqalar. Serverga kirmasdan shu yerdan qo'shasiz — manzil darrov ishlaydi.</p>
+  </div>
+</header>
+{% include "shajara/boshqaruv/_seo_tabs.html" %}
+
+<div class="adm-grid-2 adm-grid-wide-left">
+  <section class="panel panel-flush">
+    <header class="panel-head panel-head-pad"><h2 class="panel-title">Mavjud fayllar</h2><span class="panel-meta">{{ files|length }} ta</span></header>
+    {% if files %}
+    <ul class="seo-list">
+      {% for f in files %}
+      <li class="seo-item{% if f.is_active %} is-on{% endif %}" id="f{{ f.pk }}">
+        <form method="post" class="seo-form">
+          {% csrf_token %}
+          <input type="hidden" name="id" value="{{ f.pk }}">
+          <div class="seo-top">
+            <label class="seo-toggle">
+              <input type="checkbox" name="is_active"{% if f.is_active %} checked{% endif %}>
+              <span class="seo-switch" aria-hidden="true"></span>
+              <span class="seo-name"><b>/{{ f.path }}</b><small>{{ f.get_content_type_display }}{% if f.note %} · {{ f.note }}{% endif %}</small></span>
+            </label>
+            <a class="seo-views" href="{{ base }}/{{ f.path }}" target="_blank" rel="noopener">ochish ↗</a>
+          </div>
+          <div class="seo-fields">
+            <label class="seo-field"><span>Fayl yo'li</span><input class="f-input" type="text" name="path" value="{{ f.path }}" maxlength="120"></label>
+            <label class="seo-field"><span>Mazmuni</span><textarea class="f-input sf-mono" name="content" rows="3" spellcheck="false">{{ f.content }}</textarea></label>
+            <label class="seo-field"><span>Turi</span>
+              <select class="f-select" name="content_type">
+                {% for value, label in types %}<option value="{{ value }}"{% if value == f.content_type %} selected{% endif %}>{{ label }}</option>{% endfor %}
+              </select>
+            </label>
+            <label class="seo-field"><span>Izoh</span><input class="f-input" type="text" name="note" value="{{ f.note }}" maxlength="200"></label>
+          </div>
+          <div class="seo-actions">
+            <button class="btn btn-primary" type="submit" name="action" value="save">Saqlash</button>
+            <button class="btn btn-danger" type="submit" name="action" value="delete" onclick="return confirm('/{{ f.path|escapejs }} o‘chirilsinmi?');">O'chirish</button>
+          </div>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty-line panel-pad">Hozircha fayl yo'q. Birinchisini «Yangi fayl» bo'limidan qo'shing.</p>
+    {% endif %}
+  </section>
+
+  <aside>
+    <section class="panel">
+      <header class="panel-head"><h2 class="panel-title">Yangi fayl</h2></header>
+      <form method="post" class="seo-form" id="new-file">
+        {% csrf_token %}
+        <div class="seo-fields" style="margin-left:0">
+          <label class="seo-field"><span>Fayl nomi</span><input class="f-input" type="text" name="path" id="nf-path" placeholder="google1a2b3c4d5e6f.html" maxlength="120" required></label>
+          <label class="seo-field"><span>Mazmuni</span><textarea class="f-input sf-mono" name="content" id="nf-content" rows="4" spellcheck="false"></textarea></label>
+          <label class="seo-field"><span>Turi</span>
+            <select class="f-select" name="content_type" id="nf-type">
+              {% for value, label in types %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+          </label>
+          <label class="seo-field"><span>Izoh (ixtiyoriy)</span><input class="f-input" type="text" name="note" maxlength="200"></label>
+        </div>
+        <input type="hidden" name="is_active" value="on">
+        <div class="seo-actions"><button class="btn btn-primary" type="submit">Qo'shish</button></div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <header class="panel-head"><h2 class="panel-title">Qanday ishlatiladi</h2></header>
+      <ol class="seo-steps">
+        <li><b>Google (HTML fayl):</b> Search Console bergan faylni nomini yozing (masalan <code>google1a2b3c.html</code>) — mazmuni o'zi to'ldiriladi.</li>
+        <li><b>Yandex:</b> <code>yandex_1a2b3c.html</code> deb yozing — mazmuni tayyor bo'ladi.</li>
+        <li><b>Bing:</b> <code>BingSiteAuth.xml</code> — Bing bergan <code>&lt;users&gt;</code> XML kodini mazmunga qo'ying.</li>
+        <li><b>ads.txt / security.txt:</b> matn faylini yozing; <code>.well-known/security.txt</code> ham ishlaydi.</li>
+      </ol>
+      <p class="panel-foot"><code>robots.txt</code> va <code>sitemap.xml</code> bu yerda emas — ular «Sayt sozlamalari»da.</p>
+    </section>
+  </aside>
+</div>
+{% endblock %}
+
+{% block adm_scripts %}
+<script>
+(function () {
+  var path = document.getElementById("nf-path"), content = document.getElementById("nf-content"), type = document.getElementById("nf-type");
+  if (!path) return;
+  var touched = false;
+  content.addEventListener("input", function () { touched = true; });
+  path.addEventListener("input", function () {
+    var v = path.value.trim().replace(/^\/+/, "");
+    var ext = (v.split(".").pop() || "").toLowerCase();
+    if (ext === "html" || ext === "htm") type.value = "text/html";
+    else if (ext === "xml") type.value = "application/xml";
+    else if (ext === "json") type.value = "application/json";
+    else if (ext) type.value = "text/plain";
+    if (touched && content.value) return;
+    var g = /^google[0-9a-z]+\.html$/i.exec(v), y = /^yandex_([0-9a-z]+)\.html$/i.exec(v);
+    if (g) { content.value = "google-site-verification: " + v; type.value = "text/html"; }
+    else if (y) { content.value = '<html>\n  <head>\n    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">\n  </head>\n  <body>Verification: ' + y[1] + '</body>\n</html>'; type.value = "text/html"; }
+  });
+})();
+</script>
+{% endblock %}

@@ -18,3 +18,12 @@ def pending_requests(request):
             from .presence import online_since
             context["adm_online"] = UserProfile.objects.filter(last_seen__gte=online_since(), user__is_active=True).count()
     return context
+
+
+def seo(request):
+    """Site-wide SEO settings for every template (cached for a minute)."""
+    from .models import SiteSetting
+    from .public_views import site_url
+    from .seo import absolute
+    cfg = SiteSetting.load()
+    return {"seo": cfg, "seo_og_default": absolute(site_url(request), cfg.default_og_image)}

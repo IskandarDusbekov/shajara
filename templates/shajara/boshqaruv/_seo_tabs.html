@@ -1,0 +1,5 @@
+<nav class="adm-tabs" aria-label="SEO bo'limlari">
+  <a class="adm-tab{% if seo_tab == 'pages' %} is-on{% endif %}" href="{% url 'boshqaruv:seo' %}">Ochiq shajaralar</a>
+  <a class="adm-tab{% if seo_tab == 'settings' %} is-on{% endif %}" href="{% url 'boshqaruv:seo_settings' %}">Sayt sozlamalari</a>
+  <a class="adm-tab{% if seo_tab == 'files' %} is-on{% endif %}" href="{% url 'boshqaruv:seo_files' %}">Fayllar va tasdiqlash</a>
+</nav>

@@ -112,6 +112,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'shajara.context_processors.pending_requests',
+                'shajara.context_processors.seo',
             ],
         },
     },
@@ -230,7 +231,7 @@ else:
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ------------------------------------------------------------- security --
-# Session/CSRF cookie hardening — see Django deployment checklist for prod overrides
+# Session/CSRF cookie hardening вЂ” see Django deployment checklist for prod overrides
 CSRF_COOKIE_HTTPONLY = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'

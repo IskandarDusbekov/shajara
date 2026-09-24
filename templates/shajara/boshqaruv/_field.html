@@ -1,0 +1,6 @@
+<div class="sf-field{% if f.errors %} has-error{% endif %}">
+  <label for="{{ f.id_for_label }}">{{ f.label }}{% if counter %} <em data-count-for="{{ f.id_for_label }}">0</em>/{{ counter }}{% endif %}</label>
+  {{ f }}
+  {% if f.help_text %}<small class="sf-help">{{ f.help_text }}</small>{% endif %}
+  {% for e in f.errors %}<small class="sf-err">{{ e }}</small>{% endfor %}
+</div>

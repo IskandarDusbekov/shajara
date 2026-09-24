@@ -4,6 +4,7 @@ Non-staff get a plain 404, so the panel does not advertise itself.
 """
 
 import json
+import os
 from collections import Counter, defaultdict
 from datetime import timedelta
 from functools import wraps
@@ -125,7 +126,24 @@ def dashboard(request):
     for r in region_rank:
         r["pct"] = round(r["users"] / peak_users * 100)
 
+    alerts = []
+    if not settings.EMAIL_BACKEND.endswith("smtp.EmailBackend"):
+        alerts.append(("warn", "Email xatlar yuborilmayapti: server konsol rejimida (.env da EMAIL_HOST_USER yo'q).",
+                       reverse("boshqaruv:system")))
+    failed_mail = ActivityLog.objects.filter(action="email_failed", created_at__gte=now - timedelta(days=7)).count()
+    if failed_mail:
+        alerts.append(("bad", f"So'nggi 7 kunda {failed_mail} ta tasdiqlash/parol kodi yuborilmadi.",
+                       f"{reverse('boshqaruv:activity')}?action=email_failed"))
+    if not settings.DEBUG:
+        from .models import SeoFile, SiteSetting
+        cfg = SiteSetting.objects.filter(pk=1).first()
+        has_google = bool(cfg and cfg.google_verification) or SeoFile.objects.filter(path__startswith="google", is_active=True).exists()
+        if not has_google:
+            alerts.append(("info", "Google Search Console tasdiqlash kodi kiritilmagan — sayt qidiruvda tezroq chiqishi uchun qo'shing.",
+                           reverse("boshqaruv:seo_settings")))
+
     return render(request, "shajara/boshqaruv/dashboard.html", {
+        "alerts": alerts,
         "section": "dashboard", "stats": stats, "region_rank": region_rank[:8], "region_totals": regions["totals"],
         "map_data": {"rows": regions["rows"], "links": regions["links"], "marriages": regions["marriages"],
                      "metric": "users", "compact": True,
@@ -148,6 +166,35 @@ USER_SORTS = {
     "joined": "-date_joined", "login": "-last_login", "trees": "-tree_count",
     "persons": "-person_count", "activity": "-activity_count", "name": "username",
 }
+
+
+def _csv_cell(value):
+    """Keep spreadsheet apps from running =formulas typed into a user's name."""
+    text = "" if value is None else str(value)
+    return "'" + text if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text
+
+
+def _users_csv(request, qs):
+    import csv
+
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="foydalanuvchilar-{timezone.localdate():%Y%m%d}.csv"'
+    response.write("﻿")
+    writer = csv.writer(response)
+    writer.writerow(["ID", "Login", "Ism", "Familya", "Email", "Email tasdiqlangan", "Viloyat", "Rol",
+                     "Ro'yxatdan o'tgan", "Oxirgi kirish", "Shajaralar", "Shaxslar", "Faol", "Admin"])
+    for u in qs.iterator():
+        profile = getattr(u, "profile", None)
+        writer.writerow([_csv_cell(x) for x in (
+            u.pk, u.username, u.first_name, u.last_name, u.email,
+            "ha" if profile and profile.email_verified else "yo'q",
+            profile.region if profile else "", profile.role if profile else "",
+            timezone.localtime(u.date_joined).strftime("%Y-%m-%d %H:%M"),
+            timezone.localtime(u.last_login).strftime("%Y-%m-%d %H:%M") if u.last_login else "",
+            u.tree_count, u.person_count, "ha" if u.is_active else "yo'q", "ha" if u.is_staff else "yo'q",
+        )])
+    log_activity(request, "admin_user_update", detail="Foydalanuvchilar CSV yuklab olindi")
+    return response
 
 
 @staff_required
@@ -179,6 +226,9 @@ def user_list(request):
     elif status == "unverified":
         qs = qs.exclude(profile__email_verified=True)
     qs = qs.order_by(USER_SORTS.get(sort, "-date_joined"), "username")
+
+    if request.GET.get("eksport") == "csv":
+        return _users_csv(request, qs)
 
     return render(request, "shajara/boshqaruv/users.html", {
         "section": "users", "page": _page(request, qs, 25), "q": q, "status": status, "sort": sort,
@@ -720,10 +770,286 @@ def seo_pages(request):
         "totals": {
             "featured": len(featured),
             "views": Tree.objects.aggregate(n=Sum("public_views"))["n"] or 0,
-            "urls": public_views.sitemap_count(),
+            "urls": public_views.sitemap_count(request),
             "people": sum(t.stats["people"] for t in featured),
             "family_public": Tree.objects.filter(visibility="public", kind="oilaviy").count(),
         },
         "site_url_set": bool(getattr(settings, "SITE_URL", "")),
         "debug": settings.DEBUG,
     })
+
+
+# ------------------------------------------------------- site SEO settings --
+
+import re as _re  # noqa: E402
+
+from django.core.mail import EmailMultiAlternatives  # noqa: E402
+
+from . import seo as seo_tools  # noqa: E402
+from .models import PAGE_SEO_KEYS, SEO_FILE_RESERVED, PageSeo, SeoFile, SiteSetting  # noqa: E402
+
+
+class SiteSettingForm(forms.ModelForm):
+    class Meta:
+        model = SiteSetting
+        fields = [
+            "site_name", "default_description", "default_og_image",
+            "google_verification", "bing_verification", "yandex_verification",
+            "ga_measurement_id", "yandex_metrica_id",
+            "extra_head_html", "block_indexing", "robots_txt", "sitemap_extra",
+        ]
+        widgets = {
+            "default_description": forms.Textarea(attrs={"rows": 2}),
+            "extra_head_html": forms.Textarea(attrs={"rows": 4, "spellcheck": "false"}),
+            "robots_txt": forms.Textarea(attrs={"rows": 8, "spellcheck": "false"}),
+            "sitemap_extra": forms.Textarea(attrs={"rows": 3, "spellcheck": "false"}),
+        }
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.can_edit_head = bool(user and user.is_superuser)
+        if not self.can_edit_head:
+            self.fields["extra_head_html"].disabled = True
+        for name in ("google_verification", "bing_verification", "yandex_verification"):
+            self.fields[name].widget.attrs.update({"placeholder": "Kodni yoki butun <meta> tegini qo'ying", "spellcheck": "false"})
+
+    def _verification(self, name):
+        code = seo_tools.parse_verification(self.cleaned_data.get(name))
+        if code and not seo_tools.CODE_RE.match(code):
+            raise forms.ValidationError("Kod noto'g'ri: faqat harf, raqam va - _ . belgilari (6–200 ta).")
+        return code
+
+    def clean_google_verification(self):
+        return self._verification("google_verification")
+
+    def clean_bing_verification(self):
+        return self._verification("bing_verification")
+
+    def clean_yandex_verification(self):
+        return self._verification("yandex_verification")
+
+    def clean_ga_measurement_id(self):
+        value = (self.cleaned_data.get("ga_measurement_id") or "").strip().upper()
+        if value and not seo_tools.GA_RE.match(value):
+            raise forms.ValidationError("Masalan: G-ABC123XYZ4")
+        return value
+
+    def clean_yandex_metrica_id(self):
+        value = (self.cleaned_data.get("yandex_metrica_id") or "").strip()
+        if value and not seo_tools.METRICA_RE.match(value):
+            raise forms.ValidationError("Faqat raqamlar (4–12 ta).")
+        return value
+
+    def clean_extra_head_html(self):
+        value = self.cleaned_data.get("extra_head_html") or ""
+        if not self.can_edit_head:
+            return self.instance.extra_head_html
+        error = seo_tools.check_head_html(value)
+        if error:
+            raise forms.ValidationError(error)
+        return value.strip()
+
+    def clean_default_og_image(self):
+        value = (self.cleaned_data.get("default_og_image") or "").strip()
+        if value and not value.startswith(("http://", "https://", "/")):
+            raise forms.ValidationError("https://... yoki /static/... ko'rinishida yozing.")
+        return value
+
+    def clean_sitemap_extra(self):
+        lines = [x.strip() for x in (self.cleaned_data.get("sitemap_extra") or "").splitlines() if x.strip()]
+        for line in lines:
+            if not line.startswith(("http://", "https://", "/")) or " " in line:
+                raise forms.ValidationError(f"«{line[:50]}» manzili noto'g'ri: / yoki https:// bilan boshlang.")
+        return "\n".join(lines)
+
+
+class PageSeoForm(forms.ModelForm):
+    class Meta:
+        model = PageSeo
+        fields = ["title", "description", "og_image", "noindex"]
+        widgets = {"description": forms.Textarea(attrs={"rows": 2})}
+
+    def clean_og_image(self):
+        value = (self.cleaned_data.get("og_image") or "").strip()
+        if value and not value.startswith(("http://", "https://", "/")):
+            raise forms.ValidationError("https://... yoki /static/... ko'rinishida yozing.")
+        return value
+
+
+@staff_required
+def seo_settings(request):
+    cfg, _ = SiteSetting.objects.get_or_create(pk=1)
+    page_rows = {key: PageSeo.objects.filter(key=key).first() or PageSeo(key=key) for key, _ in PAGE_SEO_KEYS}
+
+    if request.method == "POST":
+        form = SiteSettingForm(request.POST, instance=cfg, user=request.user)
+        page_forms = {key: PageSeoForm(request.POST, instance=page_rows[key], prefix=key) for key, _ in PAGE_SEO_KEYS}
+        if form.is_valid() and all(f.is_valid() for f in page_forms.values()):
+            obj = form.save(commit=False)
+            obj.updated_by = request.user
+            obj.save()
+            for key, pf in page_forms.items():
+                row = pf.save(commit=False)
+                row.key = key
+                row.save()
+            log_activity(request, "admin_seo_settings", detail="Sayt SEO sozlamalari saqlandi")
+            messages.success(request, "SEO sozlamalari saqlandi.")
+            return redirect("boshqaruv:seo_settings")
+        messages.error(request, "Saqlanmadi — qizil belgilangan maydonlarni tuzating.")
+    else:
+        form = SiteSettingForm(instance=cfg, user=request.user)
+        page_forms = {key: PageSeoForm(instance=page_rows[key], prefix=key) for key, _ in PAGE_SEO_KEYS}
+
+    base = public_views.site_url(request)
+    return render(request, "shajara/boshqaruv/seo_settings.html", {
+        "section": "seo", "seo_tab": "settings", "form": form, "cfg": cfg,
+        "page_forms": [(key, label, page_forms[key]) for key, label in PAGE_SEO_KEYS],
+        "base": base,
+        "head_preview": seo_tools.head_snippets(cfg),
+        "robots_preview": seo_tools.robots_body(base, cfg),
+        "sitemap_total": public_views.sitemap_count(request),
+        "og_default": seo_tools.absolute(base, cfg.default_og_image),
+        "files_active": SeoFile.objects.filter(is_active=True).count(),
+    })
+
+
+class SeoFileForm(forms.ModelForm):
+    class Meta:
+        model = SeoFile
+        fields = ["path", "content_type", "content", "note", "is_active"]
+        widgets = {"content": forms.Textarea(attrs={"rows": 3, "spellcheck": "false"})}
+
+    def clean_path(self):
+        value = (self.cleaned_data.get("path") or "").strip().lstrip("/")
+        if not seo_tools.FILE_PATH_RE.match(value):
+            raise forms.ValidationError("Masalan: google1a2b3c.html, BingSiteAuth.xml, ads.txt yoki .well-known/security.txt")
+        if value.lower() in SEO_FILE_RESERVED:
+            raise forms.ValidationError("Bu manzil tizimniki (robots.txt va sitemap.xml «Sozlamalar»da boshqariladi).")
+        if SeoFile.objects.filter(path=value).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Bunday fayl allaqachon bor.")
+        return value
+
+    def clean_content(self):
+        value = self.cleaned_data.get("content") or ""
+        if len(value) > 20000:
+            raise forms.ValidationError("Fayl juda katta (20 000 belgigacha).")
+        return value
+
+
+def _guess_content_type(path):
+    ext = path.rsplit(".", 1)[-1].lower()
+    return {"html": "text/html", "htm": "text/html", "xml": "application/xml", "json": "application/json"}.get(ext, "text/plain")
+
+
+@staff_required
+def seo_files(request):
+    base = public_views.site_url(request)
+    if request.method == "POST":
+        action = request.POST.get("action", "save")
+        if action == "delete":
+            row = get_object_or_404(SeoFile, pk=request.POST.get("id"))
+            path = row.path
+            row.delete()
+            log_activity(request, "admin_seo_file", detail=f"/{path} o'chirildi")
+            messages.success(request, f"/{path} o'chirildi.")
+            return redirect("boshqaruv:seo_files")
+        instance = SeoFile.objects.filter(pk=request.POST.get("id")).first() if request.POST.get("id") else None
+        data = request.POST.copy()
+        if not data.get("content_type"):
+            data["content_type"] = _guess_content_type(data.get("path", ""))
+        form = SeoFileForm(data, instance=instance)
+        if form.is_valid():
+            row = form.save()
+            log_activity(request, "admin_seo_file", detail=f"/{row.path} saqlandi")
+            messages.success(request, f"/{row.path} saqlandi — {base}/{row.path}")
+            return redirect("boshqaruv:seo_files")
+        errors = "; ".join(e for errs in form.errors.values() for e in errs)
+        messages.error(request, f"Saqlanmadi: {errors}")
+        return redirect("boshqaruv:seo_files")
+
+    return render(request, "shajara/boshqaruv/seo_files.html", {
+        "section": "seo", "seo_tab": "files", "files": SeoFile.objects.all(), "base": base,
+        "new_form": SeoFileForm(), "types": SeoFile._meta.get_field("content_type").choices,
+    })
+
+
+# ------------------------------------------------------------ system health --
+
+def _redact(text):
+    secret = settings.EMAIL_HOST_PASSWORD
+    return text.replace(secret, "********") if secret else text
+
+
+def _dir_size(path):
+    total = 0
+    try:
+        for root, _dirs, files in os.walk(path):
+            for name in files:
+                try:
+                    total += os.path.getsize(os.path.join(root, name))
+                except OSError:
+                    pass
+    except OSError:
+        pass
+    return total
+
+
+def _human(size):
+    for unit in ("B", "KB", "MB", "GB"):
+        if size < 1024 or unit == "GB":
+            return f"{size:.0f} {unit}" if unit == "B" else f"{size:.1f} {unit}"
+        size /= 1024
+
+
+@staff_required
+def system_health(request):
+    now = timezone.now()
+    week = now - timedelta(days=7)
+    db_name = settings.DATABASES["default"]["NAME"]
+    db_size = os.path.getsize(db_name) if os.path.exists(db_name) else 0
+    failures = ActivityLog.objects.filter(action="email_failed").select_related("user")
+    total_users = User.objects.count()
+    unverified = User.objects.exclude(profile__email_verified=True).count()
+    checks = [
+        {"ok": not settings.DEBUG, "label": "DEBUG rejimi", "text": "o'chirilgan" if not settings.DEBUG else "yoqilgan — serverda DJANGO_DEBUG=0 bo'lishi kerak"},
+        {"ok": bool(getattr(settings, "SITE_URL", "")), "label": "SITE_URL", "text": settings.SITE_URL or "bo'sh — .env ga SITE_URL=https://e-shajara.uz yozing"},
+        {"ok": settings.EMAIL_BACKEND.endswith("smtp.EmailBackend"), "label": "Email yuborish",
+         "text": "SMTP ulangan" if settings.EMAIL_BACKEND.endswith("smtp.EmailBackend") else "konsol rejimi — xatlar haqiqatda yuborilmaydi (.env da EMAIL_HOST_USER yo'q)"},
+        {"ok": "@" in settings.DEFAULT_FROM_EMAIL.split("<")[-1], "label": "Jo'natuvchi manzil", "text": settings.DEFAULT_FROM_EMAIL},
+    ]
+    return render(request, "shajara/boshqaruv/system.html", {
+        "section": "system", "env": seo_tools.env_report(), "checks": checks,
+        "db_size": _human(db_size), "media_size": _human(_dir_size(settings.MEDIA_ROOT)),
+        "failures_7": failures.filter(created_at__gte=week).count(),
+        "failures": failures[:8],
+        "unverified": unverified, "total_users": total_users,
+        "test_to": request.user.email,
+    })
+
+
+@staff_required
+@require_POST
+def system_test_email(request):
+    to = (request.POST.get("to") or request.user.email or "").strip()
+    if "@" not in to:
+        messages.error(request, "Test xat uchun to'g'ri email manzil kiriting.")
+        return redirect("boshqaruv:system")
+    try:
+        msg = EmailMultiAlternatives(
+            "e-Shajara — test xat", "Bu boshqaruv panelidan yuborilgan test xat. Agar buni o'qiyotgan bo'lsangiz, email to'g'ri ishlayapti.",
+            settings.DEFAULT_FROM_EMAIL, [to])
+        msg.attach_alternative(
+            "<div style=\"font-family:Georgia,serif;max-width:420px;margin:auto;padding:24px;border:1px solid #dbeddf;border-radius:14px\">"
+            "<h2 style=\"color:#12633a;margin:0 0 8px\">e-Shajara</h2>"
+            "<p>Bu boshqaruv panelidan yuborilgan <b>test xat</b>. Agar buni o'qiyotgan bo'lsangiz, email to'g'ri ishlayapti.</p></div>",
+            "text/html")
+        msg.send(fail_silently=False)
+    except Exception as exc:
+        detail = _redact(f"{type(exc).__name__}: {exc}")[:280]
+        log_activity(request, "admin_email_test", detail=f"{to}: XATO — {detail}")
+        messages.error(request, f"Xat yuborilmadi. {detail}")
+    else:
+        log_activity(request, "admin_email_test", detail=f"{to}: yuborildi")
+        note = "" if settings.EMAIL_BACKEND.endswith("smtp.EmailBackend") else " (konsol rejimi: xat faqat server logida ko'rinadi)"
+        messages.success(request, f"Test xat {to} manziliga yuborildi{note}. Spam papkasini ham tekshiring.")
+    return redirect("boshqaruv:system")

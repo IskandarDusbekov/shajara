@@ -76,6 +76,9 @@ body {
   font-weight: 700; color: #e9c869; text-decoration: none; letter-spacing: 0.01em; flex-shrink: 0;
   min-width: 0; max-width: 38%; }
 .brand-ic { width: 21px; height: 21px; flex-shrink: 0; color: #7fc99a; align-self: center; }
+.brand .logo-mark { width: 30px; height: 30px; flex-shrink: 0; align-self: center; border-radius: 9px; }
+.big-leaf .logo-mark { width: 68px; height: 68px; display: block; margin: 0 auto 4px; border-radius: 18px;
+  filter: drop-shadow(0 10px 22px rgba(15, 107, 59, 0.32)); }
 .brand-name { white-space: nowrap; }
 .brand-tree { font-family: system-ui, sans-serif; font-size: 12.5px; font-weight: 400; color: #cfe0d4;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;

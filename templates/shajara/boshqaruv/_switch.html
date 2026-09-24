@@ -1,0 +1,5 @@
+<label class="seo-toggle sf-switch">
+  <input type="checkbox" name="{{ f.html_name }}" id="{{ f.id_for_label }}"{% if f.value %} checked{% endif %}>
+  <span class="seo-switch" aria-hidden="true"></span>
+  <span class="seo-name"><b>{{ f.label }}</b>{% if f.help_text %}<small>{{ f.help_text }}</small>{% endif %}</span>
+</label>

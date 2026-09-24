@@ -6,7 +6,10 @@
     <h1 class="adm-title">Foydalanuvchilar</h1>
     <p class="adm-sub">Kim ro'yxatdan o'tgan, qancha shajara va shaxs kiritgan, oxirgi marta qachon faol bo'lgan.</p>
   </div>
-  <span class="adm-count">{{ total }} ta</span>
+  <div class="head-actions">
+    <span class="adm-count">{{ total }} ta</span>
+    <a class="btn" href="?{% if qs %}{{ qs }}&amp;{% endif %}eksport=csv">CSV yuklab olish</a>
+  </div>
 </header>
 
 <form class="filters" method="get">

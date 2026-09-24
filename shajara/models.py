@@ -731,6 +731,10 @@ ACTIVITY_CHOICES = [
     ("admin_match_reject", "Admin: moslikni rad etdi"),
     ("admin_merge", "Admin: shaxslarni birlashtirdi"),
     ("admin_seo_update", "Admin: ochiq (SEO) sahifani o'zgartirdi"),
+    ("admin_seo_settings", "Admin: sayt SEO sozlamalarini o'zgartirdi"),
+    ("admin_seo_file", "Admin: SEO faylini o'zgartirdi"),
+    ("admin_email_test", "Admin: test xat yubordi"),
+    ("email_failed", "Email yuborilmadi"),
 ]
 
 
@@ -835,3 +839,152 @@ class MergeRecord(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+# ================================================================ SEO & site --
+
+class SiteSetting(models.Model):
+    """One row (pk=1) of site-wide SEO settings, edited in /boshqaruv/seo/sozlamalar/.
+    Search-engine verification codes, default meta tags, analytics, robots.txt."""
+
+    site_name = models.CharField("Sayt nomi", max_length=80, default="e-Shajara")
+    default_description = models.CharField(
+        "Standart tavsif (meta description)", max_length=300, blank=True,
+        help_text="Sahifada o'z tavsifi bo'lmasa shu chiqadi. 70–160 belgi tavsiya etiladi.",
+    )
+    default_og_image = models.CharField(
+        "Standart ulashish rasmi (og:image)", max_length=300, blank=True,
+        help_text="To'liq havola (https://...) yoki /static/img/... yo'li. 1200×630 tavsiya etiladi.",
+    )
+    google_verification = models.CharField("Google Search Console kodi", max_length=200, blank=True)
+    bing_verification = models.CharField("Bing Webmaster kodi", max_length=200, blank=True)
+    yandex_verification = models.CharField("Yandex Webmaster kodi", max_length=200, blank=True)
+    ga_measurement_id = models.CharField("Google Analytics (G-XXXXXXX)", max_length=30, blank=True)
+    yandex_metrica_id = models.CharField("Yandex Metrica raqami", max_length=20, blank=True)
+    extra_head_html = models.TextField(
+        "Qo'shimcha <head> teglar", blank=True,
+        help_text="Faqat <meta>, <link> va <script> teglari. Ochiq sahifalarning <head> qismiga qo'yiladi.",
+    )
+    block_indexing = models.BooleanField(
+        "Butun saytni qidiruvdan yopish", default=False,
+        help_text="Sinov serveri uchun. Yoqilsa robots.txt hammasini taqiqlaydi va sahifalarga noindex qo'shiladi.",
+    )
+    robots_txt = models.TextField(
+        "robots.txt (qo'lda)", blank=True,
+        help_text="Bo'sh qoldirsangiz avtomatik robots.txt ishlatiladi.",
+    )
+    sitemap_extra = models.TextField(
+        "Sitemap'ga qo'shimcha manzillar", blank=True,
+        help_text="Har bir manzilni yangi qatordan yozing (masalan: /haqida/ yoki to'liq https://...).",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
+    )
+
+    class Meta:
+        verbose_name = "Sayt SEO sozlamasi"
+        verbose_name_plural = "Sayt SEO sozlamalari"
+
+    def __str__(self):
+        return "Sayt SEO sozlamalari"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+        from django.core.cache import cache
+        cache.delete("site-setting")
+
+    @classmethod
+    def load(cls):
+        from django.core.cache import cache
+        obj = cache.get("site-setting")
+        if obj is None:
+            obj, _ = cls.objects.get_or_create(pk=1)
+            cache.set("site-setting", obj, 60)
+        return obj
+
+    @property
+    def extra_sitemap_urls(self):
+        return [line.strip() for line in self.sitemap_extra.splitlines() if line.strip()]
+
+
+PAGE_SEO_KEYS = [
+    ("landing", "Bosh sahifa (/)"),
+    ("open_index", "Tarixiy shajaralar ro'yxati (/shajaralar/)"),
+]
+
+
+class PageSeo(models.Model):
+    """Hand-written title, description and preview image for a fixed public page."""
+
+    key = models.CharField(max_length=20, unique=True, choices=PAGE_SEO_KEYS)
+    title = models.CharField("Sarlavha (title)", max_length=70, blank=True)
+    description = models.CharField("Tavsif (description)", max_length=300, blank=True)
+    og_image = models.CharField("Ulashish rasmi", max_length=300, blank=True)
+    noindex = models.BooleanField("Qidiruvdan yashirish (noindex)", default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Sahifa SEO'si"
+        verbose_name_plural = "Sahifalar SEO'si"
+
+    def __str__(self):
+        return self.get_key_display()
+
+    @classmethod
+    def for_key(cls, key):
+        from django.core.cache import cache
+        ck = f"page-seo:{key}"
+        obj = cache.get(ck)
+        if obj is None:
+            obj = cls.objects.filter(key=key).first() or cls(key=key)
+            cache.set(ck, obj, 60)
+        return obj
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        from django.core.cache import cache
+        cache.delete(f"page-seo:{self.key}")
+
+
+SEO_FILE_TYPES = [
+    ("text/plain", "Matn (.txt)"),
+    ("text/html", "HTML (Google/Yandex tasdiqlash)"),
+    ("application/xml", "XML (Bing BingSiteAuth.xml)"),
+    ("application/json", "JSON"),
+]
+
+SEO_FILE_RESERVED = {"robots.txt", "sitemap.xml"}
+
+
+class SeoFile(models.Model):
+    """A file served straight from the site root, e.g. google1234.html for
+    Search Console, BingSiteAuth.xml, ads.txt or .well-known/security.txt."""
+
+    path = models.CharField("Fayl yo'li", max_length=120, unique=True)
+    content = models.TextField("Mazmuni", blank=True)
+    content_type = models.CharField("Turi", max_length=30, choices=SEO_FILE_TYPES, default="text/plain")
+    is_active = models.BooleanField("Yoqilgan", default=True)
+    note = models.CharField("Izoh", max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["path"]
+        verbose_name = "SEO fayli"
+        verbose_name_plural = "SEO fayllari"
+
+    def __str__(self):
+        return f"/{self.path}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        from django.core.cache import cache
+        cache.delete(f"seo-file:{self.path}")
+
+    def delete(self, *args, **kwargs):
+        path = self.path
+        super().delete(*args, **kwargs)
+        from django.core.cache import cache
+        cache.delete(f"seo-file:{path}")

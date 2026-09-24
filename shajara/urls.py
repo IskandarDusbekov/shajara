@@ -1,4 +1,4 @@
-from django.urls import include, path, register_converter
+from django.urls import include, path, re_path, register_converter
 
 from . import collab_views, export_views, maps_views, public_views, quiz, views
 from .converters import TreeKeyConverter
@@ -79,4 +79,9 @@ urlpatterns = [
     path("sorovlar/<int:pk>/rad/", views.decline_request_view, name="decline_request"),
 
     path("boshqaruv/", include("shajara.admin_urls")),
+
+    path("favicon.ico", public_views.favicon_view, name="favicon"),
+
+    # Must stay last: serves the root files an admin publishes (google123.html, ads.txt...).
+    re_path(r"^(?P<path>(?:\.well-known/)?[A-Za-z0-9_\-]+\.[A-Za-z0-9]{1,8})$", public_views.seo_file_view, name="seo_file"),
 ]

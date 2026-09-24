@@ -1126,3 +1126,212 @@ class OpenPagesAndSharingTests(TestCase):
         self.client.post(reverse("boshqaruv:seo"), {"tree": self.family_tree.pk, "is_featured": "on", "slug": "oila2"})
         self.family_tree.refresh_from_db()
         self.assertFalse(self.family_tree.is_featured)
+
+
+class SeoSettingsTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.staff = User.objects.create_user("seo_staff", password="pw-12345678", is_staff=True)
+        self.boss = User.objects.create_user("seo_boss", password="pw-12345678", is_staff=True, is_superuser=True)
+        self.plain = User.objects.create_user("seo_plain", password="pw-12345678")
+
+    def _post(self, **extra):
+        data = {
+            "site_name": "e-Shajara", "default_description": "", "default_og_image": "",
+            "google_verification": "", "bing_verification": "", "yandex_verification": "",
+            "ga_measurement_id": "", "yandex_metrica_id": "", "extra_head_html": "",
+            "robots_txt": "", "sitemap_extra": "",
+            "landing-title": "", "landing-description": "", "landing-og_image": "",
+            "open_index-title": "", "open_index-description": "", "open_index-og_image": "",
+        }
+        data.update(extra)
+        return self.client.post(reverse("boshqaruv:seo_settings"), data)
+
+    def test_verification_code_is_extracted_from_whole_meta_tag(self):
+        from .seo import parse_verification
+        tag = '<meta name="google-site-verification" content="AbC123_xyz-987654" />'
+        self.assertEqual(parse_verification(tag), "AbC123_xyz-987654")
+        self.assertEqual(parse_verification("  AbC123_xyz-987654 "), "AbC123_xyz-987654")
+
+    def test_google_tag_appears_on_landing_after_saving(self):
+        self.client.login(username="seo_staff", password="pw-12345678")
+        r = self._post(google_verification='<meta name="google-site-verification" content="AbC123_xyz-987654">')
+        self.assertRedirects(r, reverse("boshqaruv:seo_settings"))
+        self.client.logout()
+        html = self.client.get(reverse("landing")).content.decode()
+        self.assertIn('<meta name="google-site-verification" content="AbC123_xyz-987654">', html)
+
+    def test_bad_code_and_bad_head_html_are_rejected(self):
+        self.client.login(username="seo_boss", password="pw-12345678")
+        r = self._post(google_verification="bad code!<script>")
+        self.assertEqual(r.status_code, 200)
+        r = self._post(extra_head_html="<div>hi</div>")
+        self.assertEqual(r.status_code, 200)
+        r = self._post(extra_head_html='<meta name="x" content="y"><script>window.a=1</script>')
+        self.assertEqual(r.status_code, 302)
+
+    def test_only_superuser_can_change_extra_head_html(self):
+        self.client.login(username="seo_staff", password="pw-12345678")
+        self._post(extra_head_html='<meta name="x" content="staff">')
+        from .models import SiteSetting
+        self.assertEqual(SiteSetting.objects.get(pk=1).extra_head_html, "")
+
+    def test_page_seo_overrides_landing_title_and_description(self):
+        self.client.login(username="seo_staff", password="pw-12345678")
+        self._post(**{"landing-title": "Mening sarlavham", "landing-description": "Mening tavsifim uchun matn"})
+        self.client.logout()
+        html = self.client.get(reverse("landing")).content.decode()
+        self.assertIn('content="Mening tavsifim uchun matn"', html)
+        self.assertIn("<title>Mening sarlavham</title>", html)
+
+    def test_block_indexing_closes_robots_and_sitemap(self):
+        self.client.login(username="seo_staff", password="pw-12345678")
+        self._post(block_indexing="on")
+        self.client.logout()
+        self.assertIn("Disallow: /\n", self.client.get(reverse("robots")).content.decode())
+        self.assertNotIn("<url>", self.client.get(reverse("sitemap")).content.decode())
+        self.assertIn('content="noindex, nofollow"', self.client.get(reverse("landing")).content.decode())
+
+    def test_custom_robots_gets_sitemap_line_and_sitemap_extras(self):
+        self.client.login(username="seo_staff", password="pw-12345678")
+        self._post(robots_txt="User-agent: *\nDisallow: /x/", sitemap_extra="/haqida/")
+        self.client.logout()
+        robots = self.client.get(reverse("robots")).content.decode()
+        self.assertIn("Disallow: /x/", robots)
+        self.assertIn("Sitemap:", robots)
+        self.assertIn("/haqida/", self.client.get(reverse("sitemap")).content.decode())
+
+    def test_settings_pages_are_staff_only(self):
+        for name in ("boshqaruv:seo_settings", "boshqaruv:seo_files", "boshqaruv:system"):
+            self.assertEqual(self.client.get(reverse(name)).status_code, 302)
+        self.client.login(username="seo_plain", password="pw-12345678")
+        for name in ("boshqaruv:seo_settings", "boshqaruv:seo_files", "boshqaruv:system"):
+            self.assertEqual(self.client.get(reverse(name)).status_code, 404)
+        self.client.login(username="seo_staff", password="pw-12345678")
+        for name in ("boshqaruv:seo_settings", "boshqaruv:seo_files", "boshqaruv:system"):
+            self.assertEqual(self.client.get(reverse(name)).status_code, 200)
+
+
+class SeoFileTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.staff = User.objects.create_user("file_staff", password="pw-12345678", is_staff=True)
+
+    def _save(self, **extra):
+        data = {"path": "google1a2b3c.html", "content": "google-site-verification: google1a2b3c.html",
+                "content_type": "text/html", "note": "", "is_active": "on"}
+        data.update(extra)
+        return self.client.post(reverse("boshqaruv:seo_files"), data)
+
+    def test_file_is_served_from_site_root_and_can_be_switched_off(self):
+        from .models import SeoFile
+        self.client.login(username="file_staff", password="pw-12345678")
+        self._save()
+        self.client.logout()
+        r = self.client.get("/google1a2b3c.html")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.content.decode(), "google-site-verification: google1a2b3c.html")
+        self.assertTrue(r["Content-Type"].startswith("text/html"))
+        row = SeoFile.objects.get(path="google1a2b3c.html")
+        row.is_active = False
+        row.save()
+        self.assertEqual(self.client.get("/google1a2b3c.html").status_code, 404)
+
+    def test_unknown_root_file_is_404(self):
+        self.assertEqual(self.client.get("/nothing-here.txt").status_code, 404)
+
+    def test_favicon_redirects_to_static_icon(self):
+        r = self.client.get("/favicon.ico")
+        self.assertEqual(r.status_code, 301)
+        self.assertIn("favicon-32", r["Location"])
+
+    def test_reserved_and_invalid_paths_are_refused(self):
+        from .models import SeoFile
+        self.client.login(username="file_staff", password="pw-12345678")
+        self._save(path="robots.txt")
+        self._save(path="../etc/passwd")
+        self._save(path="a/b.txt")
+        self.assertEqual(SeoFile.objects.count(), 0)
+
+    def test_well_known_path_and_delete(self):
+        from .models import SeoFile
+        self.client.login(username="file_staff", password="pw-12345678")
+        self._save(path=".well-known/security.txt", content="Contact: mailto:a@b.uz", content_type="text/plain")
+        self.assertEqual(self.client.get("/.well-known/security.txt").status_code, 200)
+        row = SeoFile.objects.get()
+        self.client.post(reverse("boshqaruv:seo_files"), {"action": "delete", "id": row.pk})
+        self.assertEqual(SeoFile.objects.count(), 0)
+        self.assertEqual(self.client.get("/.well-known/security.txt").status_code, 404)
+
+
+class EmailFailureAndHealthTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    def test_failed_otp_email_is_logged_with_reason_and_no_password(self):
+        from unittest import mock
+        from django.test import override_settings
+        from .emails import send_otp_email
+        from .models import EmailOTP
+        user = User.objects.create_user("mailfail", email="a@example.com", password="pw-12345678")
+        otp = EmailOTP.issue(user, "a@example.com", "verify")
+        with override_settings(EMAIL_HOST_PASSWORD="s3cret-pass"), \
+                mock.patch("django.core.mail.message.EmailMessage.send", side_effect=RuntimeError("login failed s3cret-pass")):
+            self.assertFalse(send_otp_email(otp))
+        row = ActivityLog.objects.get(action="email_failed")
+        self.assertIn("RuntimeError", row.detail)
+        self.assertNotIn("s3cret-pass", row.detail)
+
+    def test_otp_email_has_html_and_text_parts(self):
+        from django.core import mail
+        from .emails import send_otp_email
+        from .models import EmailOTP
+        user = User.objects.create_user("mailok", email="b@example.com", password="pw-12345678")
+        otp = EmailOTP.issue(user, "b@example.com", "verify")
+        self.assertTrue(send_otp_email(otp))
+        msg = mail.outbox[0]
+        self.assertIn(otp.code, msg.body)
+        self.assertEqual(msg.alternatives[0][1], "text/html")
+        self.assertIn(otp.code, msg.alternatives[0][0])
+
+    def test_admin_test_email_reports_result(self):
+        from django.core import mail
+        User.objects.create_user("health_staff", password="pw-12345678", is_staff=True)
+        self.client.login(username="health_staff", password="pw-12345678")
+        r = self.client.post(reverse("boshqaruv:system_test_email"), {"to": "who@example.com"}, follow=True)
+        self.assertContains(r, "Test xat who@example.com manziliga yuborildi")
+        self.assertEqual(mail.outbox[-1].to, ["who@example.com"])
+        self.assertTrue(ActivityLog.objects.filter(action="admin_email_test").exists())
+
+    def test_new_user_without_trees_sees_welcome_page(self):
+        User.objects.create_user("newbie", password="pw-12345678")
+        self.client.login(username="newbie", password="pw-12345678")
+        page = self.client.get(reverse("my_trees"))
+        self.assertContains(page, "pf-welcome")
+        self.assertContains(page, 'data-tour="start-fam"')
+
+class AdminExtrasTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.staff = User.objects.create_user("extras_staff", password="pw-12345678", is_staff=True)
+        self.client.login(username="extras_staff", password="pw-12345678")
+
+    def test_users_csv_export_neutralises_formulas(self):
+        User.objects.create_user("=cmd", first_name="+SUM(A1)", email="x@example.com", password="pw-12345678")
+        r = self.client.get(reverse("boshqaruv:users"), {"eksport": "csv"})
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r["Content-Type"].startswith("text/csv"))
+        body = r.content.decode("utf-8")
+        self.assertIn("'=cmd", body)
+        self.assertIn("'+SUM(A1)", body)
+        self.assertIn("Login", body)
+
+    def test_dashboard_warns_when_emails_are_failing(self):
+        ActivityLog.objects.create(action="email_failed", detail="verify → a@b.uz: SMTPAuthenticationError")
+        r = self.client.get(reverse("boshqaruv:dashboard"))
+        self.assertContains(r, "yuborilmadi")
+        self.assertContains(r, "action=email_failed")

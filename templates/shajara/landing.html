@@ -1,6 +1,7 @@
 {% extends "shajara/site/_base.html" %}
-{% block title %}e-Shajara — oila shajarasini birga tuzing, yetti avlodni saqlang{% endblock %}
-{% block og_title %}e-Shajara — yetti otangni bilasanmi?{% endblock %}
+{% block title %}{{ page_seo.title|default:"e-Shajara — oila shajarasini birga tuzing, yetti avlodni saqlang" }}{% endblock %}
+{% block og_title %}{{ page_seo.title|default:"e-Shajara — yetti otangni bilasanmi?" }}{% endblock %}
+{% block robots %}{% if page_seo.noindex %}noindex, follow{% else %}index, follow, max-image-preview:large{% endif %}{% endblock %}
 {% block body_class %}page-landing{% endblock %}
 {% block main %}
 

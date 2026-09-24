@@ -3,7 +3,7 @@
 {% block title %}Kirish — e-Shajara{% endblock %}
 {% block body %}
 <div class="center-screen">
-  <div class="big-leaf"><svg class="hero-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c9 0 16-4.8 16-15C11.5 5 4 8.2 4 15.5z"/><path d="M4 20c2.2-5.5 6-9.2 11-11.5"/></svg></div>
+  <div class="big-leaf">{% include "shajara/_logo.html" %}</div>
   <h1>e-Shajara</h1>
   <p class="sub">{% if next and "/taklif/" in next %}Taklifni qabul qilish uchun hisobingizga kiring.{% else %}Foydalanuvchi nomi yoki email va parolingizni kiriting.{% endif %}</p>
 
