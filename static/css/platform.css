@@ -760,6 +760,10 @@ html:not(.app-light) .hm-detail-year { color: #e9c869; }
 @media (max-width: 760px) {
   .pf-welcome { grid-template-columns: 1fr; padding: 24px 20px; }
   .pf-welcome-art { order: -1; }
-  .pf-welcome-art svg { max-width: 230px; }
+  .pf-welcome-art svg { max-width: 132px; }
+  .pf-welcome { gap: 6px; }
+  .pf-welcome-title { margin-top: 12px; }
+  .pf-welcome-lead { font-size: 15px; margin-top: 10px; }
+  .pf-welcome-cta { margin-top: 16px; }
   .pf-welcome-cta .pf-btn { flex: 1 1 100%; }
 }

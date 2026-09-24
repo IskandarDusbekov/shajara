@@ -1,0 +1,60 @@
+{% load trees %}{% with page=request.resolver_match.url_name %}
+{% if tree %}{% tree_role tree request.user as my_role %}{% endif %}
+<nav class="tabbar" id="tabbar" aria-label="Tezkor navigatsiya">
+  {% if tree %}
+  <a class="tab{% if page == 'index' %} is-current{% endif %}" href="{% url 'index' tree.url_key %}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>
+    <span>Xarita</span>
+  </a>
+  <a class="tab{% if page == 'tree_overview' %} is-current{% endif %}" data-tour="nav-about" href="{% url 'tree_overview' tree.url_key %}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+    <span>Haqida</span>
+  </a>
+  {% if my_role %}
+  <a class="tab{% if page == 'tree_members' %} is-current{% endif %}" data-tour="nav-members" href="{% url 'tree_members' tree.url_key %}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2A5 5 0 0 1 21 19"/></svg>
+    <span>A'zolar</span>
+  </a>
+  {% else %}
+  <a class="tab{% if page == 'public_trees' %} is-current{% endif %}" href="{% url 'public_trees' %}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 11h6"/></svg>
+    <span>Kutubxona</span>
+  </a>
+  {% endif %}
+  <a class="tab{% if page == 'tree_quiz' %} is-current{% endif %}" data-tour="nav-quiz" href="{% url 'tree_quiz' tree.url_key %}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.3 9.2a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2.9-1.2 1.8"/><path d="M12 17h.01"/></svg>
+    <span>Test</span>
+  </a>
+  {% else %}
+  <a class="tab{% if page == 'my_trees' %} is-current{% endif %}" data-tour="nav-trees" href="{% url 'my_trees' %}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10.5 9-7 9 7"/><path d="M5 9v11h14V9"/><path d="M10 20v-5h4v5"/></svg>
+    <span>Shajaralarim</span>
+  </a>
+  <a class="tab{% if page == 'public_trees' %} is-current{% endif %}" data-tour="nav-library" href="{% url 'public_trees' %}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 11h6"/></svg>
+    <span>Kutubxona</span>
+  </a>
+  <a class="tab tab-fab{% if page == 'tree_create' %} is-current{% endif %}" href="{% url 'tree_create' %}" aria-label="Yangi shajara boshlash">
+    <span class="tab-fab-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>
+    <span>Yangi</span>
+  </a>
+  <a class="tab{% if page == 'requests' %} is-current{% endif %}" href="{% url 'requests' %}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>
+    <span>So'rovlar</span>{% if pending_count > 0 %}<i class="tab-badge">{{ pending_count }}</i>{% endif %}
+  </a>
+  {% endif %}
+  <button type="button" class="tab" id="tabbar-menu" aria-haspopup="true" aria-controls="header-nav" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    <span>Menyu</span>
+  </button>
+</nav>
+<script>
+(function () {
+  var t = document.getElementById("tabbar-menu"), h = document.getElementById("header-menu-btn"), nav = document.getElementById("header-nav");
+  if (!t || !h || !nav) return;
+  t.addEventListener("click", function () { h.click(); });
+  new MutationObserver(function () { t.setAttribute("aria-expanded", nav.classList.contains("open") ? "true" : "false"); t.classList.toggle("is-current", nav.classList.contains("open")); })
+    .observe(nav, { attributes: true, attributeFilter: ["class"] });
+})();
+</script>
+{% endwith %}

@@ -340,3 +340,15 @@ html.app-light .how-steps b { color: var(--l-ink); }
 html.app-light .how-num { color: #fff; background: var(--l-green); }
 html.app-light .menu-item-admin { color: #8a6a2f; }
 html.app-light .menu-item-admin .menu-ic { color: var(--l-gold); }
+
+
+/* mobile tab bar on the light theme */
+@media (max-width: 620px) {
+  html.app-light .tabbar { background: rgba(255,255,255,0.97); border-top-color: var(--l-line); box-shadow: 0 -8px 24px rgba(15,61,39,0.10); }
+  html.app-light .tab { color: #5f7f6d; }
+  html.app-light .tab.is-current { color: var(--l-green); }
+  html.app-light .tab.is-current::before { background: var(--l-green); }
+  html.app-light .tab-fab-btn { background: var(--l-green); color: #fff; box-shadow: 0 8px 18px rgba(26,122,70,0.35); }
+  html.app-light .tab-badge { background: var(--l-gold); color: #fff; }
+  html.app-light .app-header { background: rgba(248,252,246,0.96); }
+}

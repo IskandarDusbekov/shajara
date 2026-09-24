@@ -30,7 +30,7 @@
       body: "Siz tuzgan va qarindoshlaringiz sizga ulashgan barcha shajaralar shu yerda turadi." },
     { page: "my_trees", el: '[data-tour="nav-library"]', title: "Kutubxona",
       body: "Hamma uchun ochiq shajaralar: tarixiy shaxslar, sulolalar. O'rganish, darsda ko'rsatish va o'zingizni sinash uchun." },
-    { page: "my_trees", el: "#header-menu-btn", title: "Menyu",
+    { page: "my_trees", el: "#header-menu-btn, #tabbar-menu", title: "Menyu",
       body: "Xaritalar, so'rovlar, profil, odam qidirish va sozlamalar shu yerda. «Yordam» bandi shu qo'llanmani qayta ochadi." },
     { page: "my_trees", el: '[data-tour="start-fam"]', action: "click", title: "Qani, boshladik!",
       body: "Oilaviy shajara tugmasini bosing — o'z oilangiz shajarasini tuzamiz." },
@@ -116,7 +116,12 @@
     var cs = getComputedStyle(el);
     return cs.visibility !== "hidden" && cs.display !== "none";
   }
-  function find(step) { return step.el ? document.querySelector(step.el) : null; }
+  function find(step) {
+    if (!step.el) return null;
+    var all = document.querySelectorAll(step.el);
+    for (var i = 0; i < all.length; i++) if (visible(all[i])) return all[i];
+    return all[0] || null;
+  }
 
   // ------------------------------------------------------------------ view
   var ui = null, index = -1, target = null, raf = 0, lastKey = "";

@@ -27,6 +27,7 @@
 </head>
 <body {% block body_attrs %}{% endblock %}>
 {% block body %}{% endblock %}
+{% if request.user.is_authenticated and request.resolver_match.namespace != 'boshqaruv' %}{% include "shajara/_tabbar.html" %}{% endif %}
 {% if request.user.is_authenticated %}
 <script>window.SHAJARA_TOUR = {user: "{{ request.user.username|escapejs }}", page: "{{ request.resolver_match.url_name|default:''|escapejs }}", pending: {{ tour_pending|yesno:"true,false" }}, doneUrl: "{% url 'tour_done' %}", startUrl: "{% url 'my_trees' %}", csrf: "{{ csrf_token }}"};</script>
 <script src="{% static_v 'js/tour.js' %}"></script>
