@@ -78,6 +78,34 @@ because a caption would stay behind when a card is dragged away from it.
     </button>
   </div>
 
+  {% comment %}Tells a builder exactly what to add next, so nobody has to find the tiny "+" on a card.{% endcomment %}
+  {% if can_edit and next_steps %}
+  <aside class="next-card" id="next-card" data-key="{{ tree.url_key }}" data-people="{{ next_progress.people }}" aria-label="Keyingi qadam">
+    <button type="button" class="nc-min" id="nc-min" aria-label="Kichraytirish" title="Keyinroq">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 12h12"/></svg>
+    </button>
+    <p class="nc-kicker">{{ next_intro.kicker }}</p>
+    <h2 class="nc-title">{{ next_intro.title }}</h2>
+    <p class="nc-lead">{{ next_intro.lead }}</p>
+    <div class="nc-steps">
+      {% for s in next_steps %}
+      <a class="nc-step{% if forloop.first %} is-primary{% endif %}" href="{{ s.url }}"{% if forloop.first %} data-tour="start-next"{% endif %}>
+        <span class="nc-plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+        <span class="nc-txt"><b>{{ s.title }}</b><small>{{ s.hint }}</small></span>
+      </a>
+      {% endfor %}
+    </div>
+    <p class="nc-progress" title="#YettiOtam — yetti avlod">
+      <span class="nc-dots">{% for on in next_progress.dots %}<i{% if on %} class="on"{% endif %}></i>{% endfor %}</span>
+      {{ next_progress.people }} kishi · {{ next_progress.generations }}/{{ next_progress.goal }} avlod
+    </p>
+  </aside>
+  <button type="button" class="nc-pill" id="nc-pill" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    Keyingi qadam
+  </button>
+  {% endif %}
+
   <div class="map-hint" id="map-hint">
     <span>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m8 9-3 3 3 3M16 9l3 3-3 3"/></svg>

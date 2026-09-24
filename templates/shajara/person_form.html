@@ -4,13 +4,13 @@
 {% block body %}
 {% include "shajara/_header.html" %}
 <main class="pf-shell pf-formpage">
-  <a class="back-link" href="{% url 'person_detail' cancel_tree_key cancel_pk %}">← Orqaga</a>
+  <a class="back-link" href="{% if is_add %}{% url 'index' tree_key %}{% else %}{% url 'person_detail' cancel_tree_key cancel_pk %}{% endif %}">← {% if is_add %}Xaritaga qaytish{% else %}Orqaga{% endif %}</a>
 
   <header class="pf-head" style="margin-top:14px; margin-bottom:16px;">
     <div>
-      <p class="pf-kicker">{% if is_add %}{{ anchor.full_name }} uchun{% else %}Ma'lumotlarni tahrirlash{% endif %}</p>
+      <p class="pf-kicker">{% if is_add %}Yangi qarindosh{% else %}Ma'lumotlarni tahrirlash{% endif %}</p>
       <h1 class="pf-h1">{% if is_add %}{{ form_title }}{% else %}{{ subject_person.full_name }}{% endif %}</h1>
-      <p class="pf-lead">Faqat ismi majburiy. Qolganini bilganingizcha to'ldiring — keyin istalgan payt qo'shish mumkin.</p>
+      <p class="pf-lead">{% if is_add %}{{ intro_lead }} <b>Faqat ismi kerak</b> — qolganini bilganingizcha yozing, keyin istalgan payt qo'shish mumkin.{% else %}Faqat ismi majburiy. Qolganini bilganingizcha to'ldiring — keyin istalgan payt qo'shish mumkin.{% endif %}</p>
     </div>
   </header>
 
@@ -146,8 +146,13 @@
     </section>
 
     <div class="pf-savebar">
-      <a class="pf-btn" href="{% url 'person_detail' cancel_tree_key cancel_pk %}">Bekor qilish</a>
+      <a class="pf-btn" href="{% if is_add %}{% url 'index' tree_key %}{% else %}{% url 'person_detail' cancel_tree_key cancel_pk %}{% endif %}">Bekor qilish</a>
+      {% if is_add %}
+      <button class="pf-btn" type="submit" data-tour="save">{% include "shajara/_icon.html" with name="check" %}Saqlash</button>
+      <button class="pf-btn pf-btn-primary" type="submit" name="save_next" value="1">{% include "shajara/_icon.html" with name="arrow" %}Saqlash va keyingisini qo'shish</button>
+      {% else %}
       <button class="pf-btn pf-btn-primary" type="submit" data-tour="save">{% include "shajara/_icon.html" with name="check" %}Saqlash</button>
+      {% endif %}
     </div>
   </form>
 </main>

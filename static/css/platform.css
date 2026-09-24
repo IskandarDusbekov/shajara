@@ -767,3 +767,12 @@ html:not(.app-light) .hm-detail-year { color: #e9c869; }
   .pf-welcome-cta { margin-top: 16px; }
   .pf-welcome-cta .pf-btn { flex: 1 1 100%; }
 }
+
+
+/* form pages: the sticky save bar replaces the tab bar so the main button is never hidden */
+@media (max-width: 620px) {
+  body:has(.pf-formpage) .tabbar { display: none; }
+  .pf-formpage .pf-savebar { flex-direction: column-reverse; }
+  .pf-formpage .pf-savebar .pf-btn { flex: 0 0 auto; width: 100%; min-height: 48px; }
+  .pf-formpage .pf-savebar > a.pf-btn { display: none; }
+}

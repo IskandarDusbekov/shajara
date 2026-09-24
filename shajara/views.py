@@ -33,11 +33,30 @@ from .tree import (
     attach_existing, can_delete_in_tree, can_edit_in_tree, can_edit_tree, can_view_tree, compute_levels,
     tree_role,
     export_tree_json, get_or_create_child_family, get_or_create_spouse_family,
-    group_people_by_level, import_tree_json, level_label, person_ids_in_tree,
+    group_people_by_level, import_tree_json, level_label, next_intro, next_steps, person_ids_in_tree,
     sibling_groups,
 )
 
 User = get_user_model()
+
+def relation_intro(relation, anchor, root_id):
+    """Warm, concrete heading and one-line promise for the add-a-relative form."""
+    mine = anchor.id == root_id
+    own = anchor.first_name + "ning"
+    what = {
+        "ota": ("Otangizni qo'shamiz" if mine else f"{own} otasini qo'shamiz",
+                "Ismini yozing — shajarangiz ildizi shu yerdan o'sadi."),
+        "ona": ("Onangizni qo'shamiz" if mine else f"{own} onasini qo'shamiz",
+                "Ismini yozing — qolgan ma'lumotni keyin to'ldirsangiz ham bo'ladi."),
+        "farzand": ("Farzandingizni qo'shamiz" if mine else f"{own} farzandini qo'shamiz",
+                    "Ismini yozing va jinsini tanlang — o'zi to'g'ri joyga tushadi."),
+        "akauka": ("Aka-uka yoki opa-singilingizni qo'shamiz" if mine else f"{own} aka-uka yoki opa-singilini qo'shamiz",
+                   "Ismini yozing — bir oiladan bo'lgani uchun ota-onasi avtomatik bog'lanadi."),
+        "turmush": ("Turmush o'rtog'ingizni qo'shamiz" if mine else f"{own} turmush o'rtog'ini qo'shamiz",
+                    "Ismini yozing — er-xotin xaritada yonma-yon turadi."),
+    }
+    return what[relation]
+
 
 RELATION_TITLES = {
     "ota": "Otasini qo'shish",
@@ -579,11 +598,19 @@ def index_view(request, tree_key):
         for lvl in sorted(rows.keys())
     ]
 
+    can_edit = can_edit_tree(request.user, tree)
+    guide = {}
+    if can_edit:
+        steps, progress = next_steps(tree, people, families, levels)
+        if steps:
+            guide = {"next_steps": steps, "next_progress": progress, "next_intro": next_intro(progress["people"])}
+
     return private_response(render(request, "shajara/tree.html", {
         "tree": tree, "root": root, "rows": rows_list,
         "families_json": families_json_for(families),
-        "can_edit": can_edit_tree(request.user, tree),
+        "can_edit": can_edit,
         "saved_layout": tree.layout or {},
+        **guide,
     }))
 
 
@@ -885,10 +912,18 @@ def add_relative_view(request, tree_key):
                 request, "person_add", tree=tree, person=new_person,
                 detail=f"{new_person.full_name} — {anchor.full_name}ning {RELATION_TITLES[relation].split()[0].lower()}",
             )
-            return redirect("person_detail", tree_key=tree.url_key, pk=anchor.id)
+            messages.success(request, f"{new_person.first_name} shajaraga qo'shildi — zo'r, shajarangiz o'sib bormoqda!")
+            if request.POST.get("save_next"):
+                levels, people, families = compute_levels(tree.root_person)
+                upcoming, _ = next_steps(tree, people, families, levels, limit=1)
+                if upcoming:
+                    return redirect(upcoming[0]["url"])
+            return redirect("index", tree_key=tree.url_key)
 
+    intro_title, intro_lead = relation_intro(relation, anchor, tree.root_person_id)
     return render(request, "shajara/person_form.html", {
-        "form": form, "form_title": RELATION_TITLES[relation], "ask_gender": ask_gender,
+        "intro_lead": intro_lead,
+        "form": form, "form_title": intro_title, "ask_gender": ask_gender,
         "cancel_tree_key": tree.url_key, "cancel_pk": anchor.id,
         "error": error, "is_add": True, "tree_key": tree.url_key,
         "anchor_id": anchor.id, "relation": relation, "family_id": family_id,

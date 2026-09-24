@@ -52,21 +52,12 @@
       body: "Tojli karta — shajaraning bosh shaxsi. Butun oila shu kartadan tarqaladi: ota-ona tepada, farzandlar pastda." },
     { page: "index", el: ".map-hud", title: "Xarita tugmalari",
       body: "Kattalashtirish, kichiklashtirish, hammasini ko'rsatish, yuklab olish va bosh shaxsga qaytish. Xaritaning o'zini sichqoncha yoki barmoq bilan surasiz." },
-    { page: "index", el: "#map-export-btn", title: "Yuklab olish",
-      body: "Shajarani chiroyli PDF kitob yoki tiniq rasm sifatida saqlaysiz — chop etish va Telegram'da ulashish uchun." },
-    { page: "index", el: '[data-tour="nav-about"]', title: "Shajara haqida",
-      body: "Nechta avlod, nechta odam, kimlar qo'shgan — umumiy ma'lumotlar." },
+    { page: "index", el: "#next-card, #nc-pill", title: "Keyingi qadam doim shu yerda",
+      body: "Kimni qo'shishni bilmay qolsangiz — bu kartochka aytib turadi: avval ota-ona, keyin aka-uka, turmush o'rtog'i, farzandlar va bobo-buvilar." },
     { page: "index", el: '[data-tour="nav-members"]', title: "A'zolar",
       body: "Qarindoshlaringizga taklif havolasini yuborasiz — ular ham o'z shoxini qo'shadi va shajara birga to'ladi." },
-    { page: "index", el: '[data-tour="nav-quiz"]', title: "Test",
-      body: "Oilangiz bo'yicha qiziqarli savollar: kim kimning otasi, qachon tug'ilgan." },
-    { page: "index", el: ".leaf-node-root", action: "click", title: "Kartangizni bosing",
-      body: "Endi birinchi qarindoshni qo'shamiz. Tojli kartangizni bosing." },
-    { page: "index", el: "#pp-add", action: "click", title: "Qarindosh qo'shish",
-      body: "Ochilgan oynada «Qarindosh qo'shish» (+) tugmasini bosing." },
-    { page: "index", el: "#pp-relations", action: "click", clickIn: "a[data-relation]", title: "Kimni qo'shasiz?",
-      body: "Birini tanlang — masalan «Otasi»." },
-
+    { page: "index", el: '[data-tour="start-next"]', action: "click", title: "Birinchi qarindosh",
+      body: "Yashil tugmani bosing — ota yoki onangizni qo'shamiz. Bu atigi bir daqiqa." },
     // ------------------------------------------------------ add a relative
     { page: "add_relative", el: '[data-tour="person-name"]', require: "#id_first_name", title: "Ismini yozing",
       body: "Faqat ism majburiy. Familiya va otasining ismini bilsangiz, ular ham yordam beradi." },
@@ -77,13 +68,9 @@
     { page: "add_relative", el: '[data-tour="save"]', action: "click", title: "Saqlang",
       body: "«Saqlash» tugmasini bosing." },
 
-    // ---------------------------------------------------------- person page
-    { page: "person_detail", el: ".relation-section", title: "Qarindosh qo'shildi!",
-      body: "Bu shaxs sahifasi. Ota-ona, aka-uka, turmush o'rtog'i va farzandlarni shu yerdagi «qo'shish» tugmalari bilan ham qo'shasiz." },
-    { page: "person_detail", el: ".story-compose", title: "Hikoyalar",
-      body: "Bu inson haqida xotira yoki voqea yozing — u PDF kitobda ham chiqadi." },
-    { page: "person_detail", el: ".back-link", title: "Tayyor!", primary: "Tugatish",
-      body: "Shajarangiz boshlandi. Chapdagi havola orqali xaritaga qaytasiz. Qo'llanmani istalgan payt menyudagi «Yordam» orqali qayta ochishingiz mumkin." }
+    // ------------------------------------------------------ back on the map
+    { page: "index", el: "#next-card, #nc-pill", title: "Ajoyib, qarindosh qo'shildi!", primary: "Tugatish",
+      body: "Endi shu yo'l bilan davom eting: kartochkadagi keyingi qadamni bosing yoki formada «Saqlash va keyingisini qo'shish» tugmasidan foydalaning. Qo'llanmani istalgan payt menyudagi «Yordam» orqali qayta ochishingiz mumkin." }
   ];
 
   var STORE = "eshajara_tour_" + CFG.user;

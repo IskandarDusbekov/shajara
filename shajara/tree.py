@@ -338,3 +338,89 @@ def import_tree_json(user, data):
             PersonStory.objects.create(person=person, author=author, text=sdata.get("text", ""))
 
     return key_to_person.get(data.get("root_key"))
+
+
+# ------------------------------------------------------------ what to add next --
+
+def _own(name):
+    """«Karim» -> «Karimning» (genitive, for «Karimning otasi»)."""
+    return f"{name}ning"
+
+
+def next_steps(tree, people, families, levels, limit=3):
+    """A short, ordered list of the relatives worth adding next, so nobody has
+    to guess: the person's parents first, then siblings, spouse and children,
+    then the grandparents. Each item is ready to link to the add-relative form.
+    Returns (steps, progress)."""
+    from django.urls import reverse
+
+    add_url = reverse("add_relative", args=[tree.url_key])
+    root = people[tree.root_person_id]
+
+    def parents(p):
+        fam = families.get(p.child_family_id) if p.child_family_id else None
+        return (fam.father_id, fam.mother_id) if fam else (None, None)
+
+    def siblings_of(p):
+        return [q for q in people.values() if q.id != p.id and p.child_family_id and q.child_family_id == p.child_family_id]
+
+    def spouse_families(p):
+        return [f for f in families.values() if p.id in (f.father_id, f.mother_id)]
+
+    def step(anchor, relation, title, hint):
+        return {"anchor": anchor.id, "relation": relation, "title": title, "hint": hint,
+                "url": f"{add_url}?anchor={anchor.id}&relation={relation}"}
+
+    steps = []
+    father_id, mother_id = parents(root)
+    if not father_id:
+        steps.append(step(root, "ota", "Otangizni qo'shing", "Faqat ismi yetarli — yilni bilmasangiz, bo'sh qoldiring."))
+    if not mother_id:
+        steps.append(step(root, "ona", "Onangizni qo'shing", "Shajara ota-onadan o'sadi. Bir daqiqa yetadi."))
+    if (father_id or mother_id) and not siblings_of(root):
+        steps.append(step(root, "akauka", "Aka-uka, opa-singillaringizni qo'shing", "Yonma-yon turgan avlod shajarani jonlantiradi."))
+    fams = spouse_families(root)
+    spouse_present = any((f.mother_id if f.father_id == root.id else f.father_id) for f in fams)
+    if not spouse_present:
+        steps.append(step(root, "turmush", "Turmush o'rtog'ingizni qo'shing", "Er-xotin xaritada doim yonma-yon turadi."))
+    has_children = any(p.child_family_id in {f.id for f in fams} for p in people.values())
+    if not has_children:
+        steps.append(step(root, "farzand", "Farzandlaringizni qo'shing", "Kelajak avlod ham shajaraning bir qismi."))
+
+    for pid, label in ((father_id, "ota"), (mother_id, "ona")):
+        person = people.get(pid) if pid else None
+        if not person:
+            continue
+        gf, gm = parents(person)
+        who = _own(person.first_name)
+        if not gf:
+            steps.append(step(person, "ota", f"{who} otasini qo'shing", "Bobo-buvilar hayotligida yozib qo'yish — eng qimmat ish."))
+        if not gm:
+            steps.append(step(person, "ona", f"{who} onasini qo'shing", "Bilganingizcha yozing, qolganini qarindoshlar to'ldiradi."))
+
+    # Farther up: any top-most ancestor still missing a parent.
+    for p in sorted(people.values(), key=lambda p: levels[p.id]):
+        if len(steps) >= limit + 4:
+            break
+        if p.id in (root.id, father_id, mother_id):
+            continue
+        f, m = parents(p)
+        if levels[p.id] < 0 and not f:
+            steps.append(step(p, "ota", f"{_own(p.first_name)} otasini qo'shing", "Yana bir avlod ildizga yaqinlashtiradi."))
+
+    generations = (max(levels.values()) - min(levels.values()) + 1) if levels else 1
+    progress = {"people": len(people), "generations": generations, "goal": 7,
+                "dots": [i < generations for i in range(7)]}
+    return steps[:limit], progress
+
+
+def next_intro(people_count):
+    """Warm, specific wording for the guide card, by how far along the tree is."""
+    if people_count <= 1:
+        return {"kicker": "1-qadam", "title": "Ajoyib boshlanish! Endi ota-onangizni qo'shamiz",
+                "lead": "Shajara ildizdan o'sadi. Bir tugmani bosing, ismini yozing — o'zi saqlanadi."}
+    if people_count <= 3:
+        return {"kicker": "Yaxshi ketyapti", "title": "Shajarangiz o'sib bormoqda",
+                "lead": "Har bir yangi inson oilangiz xotirasini boyitadi. Keyingi qadamni tanlang:"}
+    return {"kicker": "Zo'r natija", "title": "Yana kimni qo'shamiz?",
+            "lead": "Bilgan odamingizdan boshlang — qolganini qarindoshlaringiz to'ldiradi."}

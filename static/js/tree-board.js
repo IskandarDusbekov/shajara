@@ -1137,3 +1137,18 @@
     setTimeout(hideHint, 7000);
   }
 })();
+
+
+/* "Keyingi qadam" guide: can be minimised to a pill; comes back when the tree grows. */
+(function () {
+  "use strict";
+  var card = document.getElementById("next-card"), pill = document.getElementById("nc-pill"), min = document.getElementById("nc-min");
+  if (!card || !pill || !min) return;
+  var key = "eshajara_nc_" + card.getAttribute("data-key"), people = card.getAttribute("data-people");
+  function read() { try { return localStorage.getItem(key); } catch (e) { return null; } }
+  function write(v) { try { localStorage.setItem(key, v); } catch (e) { /* ignore */ } }
+  function show(open) { card.hidden = !open; pill.hidden = open; }
+  show(read() !== people);
+  min.addEventListener("click", function () { write(people); show(false); });
+  pill.addEventListener("click", function () { try { localStorage.removeItem(key); } catch (e) { /* ignore */ } show(true); });
+})();

@@ -459,7 +459,7 @@ class SharedTreeTests(TestCase):
         self.client.force_login(self.relative)
         self.assertContains(self.client.get(url), "Qo'shilish")
         r = self.client.post(url)
-        self.assertRedirects(r, reverse("index", args=[self.key]))
+        self.assertRedirects(r, reverse("index", args=[self.key]), fetch_redirect_response=False)
         from .models import TreeInvite, TreeMember
         member = TreeMember.objects.get(tree=self.tree, user=self.relative)
         self.assertEqual(member.role, "muharrir")
@@ -1335,3 +1335,62 @@ class AdminExtrasTests(TestCase):
         r = self.client.get(reverse("boshqaruv:dashboard"))
         self.assertContains(r, "yuborilmadi")
         self.assertContains(r, "action=email_failed")
+
+class NextStepGuideTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user("guide_owner", password="pw-12345678")
+        self.viewer = User.objects.create_user("guide_viewer", password="pw-12345678")
+        self.me = person("Sardor", "Karimov")
+        self.tree = Tree.objects.create(owner=self.owner, root_person=self.me, name="Karimovlar")
+        self.key = self.tree.url_key
+
+    def _add(self, relation, first, anchor=None, **extra):
+        url = reverse("add_relative", args=[self.key]) + f"?anchor={(anchor or self.me).id}&relation={relation}"
+        return self.client.post(url, {"first_name": first, "last_name": "Karimov", "gender": "erkak", **extra})
+
+    def test_lone_root_is_asked_for_parents_first(self):
+        from .tree import compute_levels, next_steps
+        levels, people, families = compute_levels(self.me)
+        steps, progress = next_steps(self.tree, people, families, levels)
+        self.assertEqual([s["relation"] for s in steps][:2], ["ota", "ona"])
+        self.assertEqual(progress["people"], 1)
+        self.assertIn(f"anchor={self.me.id}&relation=ota", steps[0]["url"])
+
+    def test_map_shows_guide_to_editor_only(self):
+        self.client.force_login(self.owner)
+        page = self.client.get(reverse("index", args=[self.key]))
+        self.assertContains(page, "Otangizni qo&#x27;shing")
+        self.assertContains(page, 'id="next-card"')
+        self.client.force_login(self.viewer)
+        self.tree.visibility = "public"
+        self.tree.save()
+        self.assertNotContains(self.client.get(reverse("index", args=[self.key])), 'id="next-card"')
+
+    def test_after_saving_user_lands_on_map_with_a_warm_message(self):
+        self.client.force_login(self.owner)
+        r = self._add("ota", "Karim")
+        self.assertRedirects(r, reverse("index", args=[self.key]), fetch_redirect_response=False)
+        page = self.client.get(reverse("index", args=[self.key]))
+        self.assertContains(page, "shajaraga qo&#x27;shildi")
+        self.assertNotContains(page, "Otangizni qo&#x27;shing")
+        self.assertContains(page, "Onangizni qo&#x27;shing")
+
+    def test_save_and_add_next_goes_straight_to_the_next_form(self):
+        self.client.force_login(self.owner)
+        r = self._add("ota", "Karim", save_next="1")
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("relation=ona", r["Location"])
+        form = self.client.get(r["Location"])
+        self.assertContains(form, "Onangizni qo&#x27;shamiz")
+        self.assertContains(form, "Saqlash va keyingisini qo'shish")
+
+    def test_grandparents_are_suggested_after_parents(self):
+        from .tree import compute_levels, next_steps
+        self.client.force_login(self.owner)
+        self._add("ota", "Karim")
+        self._add("ona", "Zulfiya")
+        levels, people, families = compute_levels(Person.objects.get(pk=self.me.pk))
+        steps, _ = next_steps(self.tree, people, families, levels, limit=10)
+        titles = " | ".join(s["title"] for s in steps)
+        self.assertIn("Karimning otasini qo'shing", titles)
+        self.assertIn("Zulfiyaning onasini qo'shing", titles)
