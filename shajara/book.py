@@ -1373,6 +1373,11 @@ def person_entry(fam, pid, st, tree, show_children=True):
             quote_style = ParagraphStyle("quote", parent=st["story"], leftIndent=12, borderPadding=0)
             parts = [par for par in s.text.split("\n") if par.strip()] or [s.text]
             out.append(Spacer(1, 3))
+            if s.title or s.when:
+                head = f"<b>{clean(s.title)}</b>" if s.title else ""
+                if s.when:
+                    head += f"{' · ' if head else ''}<font color='{M_HEX}'><i>{clean(s.when)}</i></font>"
+                out.append(Paragraph(head, ParagraphStyle("quote_head", parent=st["body_left"], leftIndent=12, spaceAfter=2)))
             for n, par in enumerate(parts):
                 mark = f"<font color='{A_HEX}'><b>“</b></font> " if n == 0 else ""
                 out.append(Paragraph(mark + clean(par), quote_style))

@@ -106,13 +106,18 @@ because a caption would stay behind when a card is dragged away from it.
     <form method="post" action="{% url 'tree_whoami' tree.url_key %}" class="who-form" data-who-panel="new" hidden>
       {% csrf_token %}
       <input type="hidden" name="action" value="child">
-      <label class="who-label" for="who-parent">Otangiz yoki onangiz kim?</label>
+      <ol class="who-steps">
+        <li><b>Ota-onangizni toping.</b> Ular ro'yxatda bo'lsa, tanlang va o'zingizni ularning farzandi qilib qo'shing.</li>
+        <li><b>Ular ham yo'q bo'lsa</b> — bobongiz yoki buvingizni tanlang: avval otangiz (onangiz)ni ularning farzandi qilib qo'shing, keyin o'zingizni.</li>
+        <li><b>Hech kimni tanimasangiz</b> — eng tepadagi boshlang'ich shaxsdan boshlang va o'z shoxingizni avloddan-avlodga pastga qarab tuzib keling.</li>
+      </ol>
+      <label class="who-label" for="who-parent">Kimning farzandi sifatida qo'shasiz?</label>
       <select id="who-parent" name="person" class="who-select" required>
-        <option value="">— tanlang —</option>
+        <option value="">— otangiz, onangiz yoki ajdodingiz —</option>
         {% for p in whoami_people %}<option value="{{ p.id }}">{{ p.label }}</option>{% endfor %}
       </select>
-      <button type="submit" class="who-go">O'zimni qo'shaman</button>
-      <p class="who-note">Ota-onangiz ham yo'q bo'lsa, avval bobongizni toping va unga farzand qilib otangizni qo'shing.</p>
+      <button type="submit" class="who-go">Uning farzandini qo'shaman</button>
+      <p class="who-note">Bu o'zingiz bo'lsangiz, keyingi sahifa sizni shajaradagi «Siz» deb belgilaydi. Ota-onangizni qo'shayotgan bo'lsangiz, o'zingizni keyin ularning ostiga qo'shasiz.</p>
     </form>
     {% endif %}
   </aside>
@@ -278,11 +283,11 @@ because a caption would stay behind when a card is dragged away from it.
     <div class="pp-actions">
       <a class="pp-btn pp-btn-primary" id="pp-open" href="#">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
-        <span>Profilni ochish</span>
+        <span>Batafsil ochish</span>
       </a>
       <button type="button" class="pp-btn pp-more" id="pp-more" aria-expanded="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg>
-        <span>Batafsil</span>
+        <span>Ko'proq</span>
       </button>
       {% if can_edit %}
       <button type="button" class="pp-btn pp-add" id="pp-add" aria-expanded="false" aria-controls="pp-relations" aria-label="Qarindosh qo'shish">

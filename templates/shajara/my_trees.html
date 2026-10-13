@@ -77,7 +77,7 @@
     </a>
     <a class="pf-more-item" href="{% url 'tree_import_create' %}">
       <span class="pf-more-ic">{% include "shajara/_icon.html" with name="upload" %}</span>
-      <span><b>Zaxiradan tiklash</b><small>Avval yuklab olingan JSON fayldan shajarani qayta tiklang.</small></span>
+      <span><b>Arxivdan tiklash</b><small>Avval arxivlangan fayldan shajarani qayta tiklang.</small></span>
     </a>
   </section>
 
@@ -143,7 +143,7 @@
       <a class="pf-tab{% if kind == 'oilaviy' %} is-on{% endif %}" href="?tur=oilaviy">Oilaviy</a>
       <a class="pf-tab{% if kind == 'talimiy' %} is-on{% endif %}" href="?tur=talimiy">Ta'limiy</a>
     </nav>
-    <a class="pf-btn pf-btn-sm" href="{% url 'tree_import_create' %}">{% include "shajara/_icon.html" with name="upload" %}JSON zaxiradan tiklash</a>
+    <a class="pf-btn pf-btn-sm" href="{% url 'tree_import_create' %}">{% include "shajara/_icon.html" with name="upload" %}Arxivdan tiklash</a>
   </div>
 
   <section>

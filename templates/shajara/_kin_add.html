@@ -1,0 +1,5 @@
+{% comment %}A dashed «add» tile in a family group on a person's page.{% endcomment %}
+<a class="pd-kin pd-kin-add" href="{% url 'add_relative' tree.url_key %}?anchor={{ anchor }}&relation={{ relation }}{% if family %}&family={{ family }}{% endif %}">
+  <span class="pd-kin-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+  <span class="pd-kin-text"><b>{{ label }}</b>{% if hint %}<small>{{ hint }}</small>{% endif %}</span>
+</a>

@@ -892,7 +892,7 @@
     shell.classList.toggle("sheet-cover", state === "full" || (state === "peek" && !fits));
     var open = state === "full";
     [grabBtn, moreBtn].forEach(function (b) { if (b) b.setAttribute("aria-expanded", String(open)); });
-    if (moreBtn) moreBtn.querySelector("span").textContent = open ? "Yig'ish" : "Batafsil";
+    if (moreBtn) moreBtn.querySelector("span").textContent = open ? "Yig'ish" : "Ko'proq";
   }
 
   /* Keep the tapped card in the strip of board above the compact sheet. */

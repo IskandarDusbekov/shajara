@@ -132,7 +132,8 @@ class Person(models.Model):
 
     @property
     def birth_place(self):
-        return ", ".join(x for x in (self.birth_village, self.birth_district, self.birth_region) if x)
+        region = self.get_birth_region_display() if self.birth_region else ""
+        return ", ".join(x for x in (self.birth_village, self.birth_district, region) if x)
 
     @property
     def display_year(self):
@@ -165,8 +166,12 @@ class PersonStory(models.Model):
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="stories_written"
     )
+    title = models.CharField("Sarlavha", max_length=120, blank=True)
+    # When it happened, as people remember it: «1975», «urush yillari», «bolaligida».
+    when = models.CharField("Qachon bo'lgan", max_length=60, blank=True)
     text = models.TextField("Hikoya")
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -730,6 +735,8 @@ ACTIVITY_CHOICES = [
     ("person_edit", "Shaxsni tahrirladi"),
     ("person_delete", "Shaxsni o'chirdi"),
     ("story_add", "Hikoya yozdi"),
+    ("story_edit", "Hikoyani tahrirladi"),
+    ("story_delete", "Hikoyani o'chirdi"),
     ("comment_add", "Izoh qoldirdi"),
     ("gratitude", "Minnatdorchilik bildirdi"),
     ("request_send", "Bog'lanish so'rovi yubordi"),

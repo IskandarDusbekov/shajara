@@ -283,6 +283,7 @@ def export_tree_json(root):
             "stories": [
                 {
                     "author": story.author.username if story.author else None,
+                    "title": story.title, "when": story.when,
                     "text": story.text, "created_at": story.created_at.isoformat(),
                 }
                 for story in p.stories.select_related("author").order_by("created_at")
@@ -306,47 +307,80 @@ def export_tree_json(root):
     }
 
 
+MAX_IMPORT_PEOPLE = 5000
+
+
 def import_tree_json(user, data):
     """Recreate a tree from an export_tree_json() snapshot and make `user`
-    the owner of its root person. Caller must ensure `user` has no tree yet."""
-    from .models import Person, PersonStory
-    from django.contrib.auth import get_user_model
+    the owner of its root person.
 
-    User = get_user_model()
+    The file comes from the user's computer, so nothing in it is trusted:
+    every value is turned into text of the field's size, unknown choices are
+    dropped, and stories are never credited to another account just because
+    the file names it — only the importer's own stories keep their author.
+    Raises ValueError on a file that isn't a tree archive."""
+    import datetime
+    from .models import GENDER_CHOICES, REGION_CHOICES, Person, PersonStory
+
+    if not isinstance(data, dict) or not isinstance(data.get("people"), list):
+        raise ValueError("Fayl formati noto'g'ri.")
+    people = [p for p in data["people"] if isinstance(p, dict) and isinstance(p.get("key"), str)]
+    families = [f for f in data.get("families") or [] if isinstance(f, dict) and isinstance(f.get("key"), str)]
+    if len(people) > MAX_IMPORT_PEOPLE or len(families) > MAX_IMPORT_PEOPLE * 2:
+        raise ValueError(f"Arxivda juda ko'p shaxs bor (ko'pi bilan {MAX_IMPORT_PEOPLE}).")
+
+    genders = {v for v, _ in GENDER_CHOICES}
+    regions = {v for v, _ in REGION_CHOICES}
+
+    def text(src, name, limit=None):
+        value = src.get(name)
+        value = "" if value is None or isinstance(value, (dict, list)) else str(value).strip()
+        return value[:limit] if limit else value[:20000]
+
+    def date(value):
+        try:
+            return datetime.date.fromisoformat(str(value)[:10]) if value else None
+        except ValueError:
+            return None
+
     key_to_person = {}
-    for pdata in data.get("people", []):
+    for pdata in people:
         person = Person.objects.create(
-            first_name=pdata.get("first_name", ""), last_name=pdata.get("last_name", ""),
-            gender=pdata.get("gender") or "erkak",
-            birth_date=pdata.get("birth_date") or None,
-            birth_year=pdata.get("birth_year", ""), death_year=pdata.get("death_year", ""),
-            occupation=pdata.get("occupation", ""), location=pdata.get("location", ""),
-            bio=pdata.get("bio", ""), added_by=user,
-            patronymic=pdata.get("patronymic", ""), birth_region=pdata.get("birth_region", ""),
-            birth_district=pdata.get("birth_district", ""), birth_village=pdata.get("birth_village", ""),
+            first_name=text(pdata, "first_name", 100) or "Noma'lum", last_name=text(pdata, "last_name", 100),
+            gender=pdata.get("gender") if pdata.get("gender") in genders else "erkak",
+            birth_date=date(pdata.get("birth_date")),
+            birth_year=text(pdata, "birth_year", 20), death_year=text(pdata, "death_year", 20),
+            occupation=text(pdata, "occupation", 150), location=text(pdata, "location", 150),
+            bio=text(pdata, "bio"), added_by=user,
+            patronymic=text(pdata, "patronymic", 100),
+            birth_region=pdata.get("birth_region") if pdata.get("birth_region") in regions else "",
+            birth_district=text(pdata, "birth_district", 100), birth_village=text(pdata, "birth_village", 150),
         )
         key_to_person[pdata["key"]] = person
 
-    key_to_family = {fdata["key"]: Family.objects.create() for fdata in data.get("families", [])}
-    for fdata in data.get("families", []):
+    key_to_family = {fdata["key"]: Family.objects.create() for fdata in families}
+    for fdata in families:
         fam = key_to_family[fdata["key"]]
         fam.father = key_to_person.get(fdata.get("father_key"))
         fam.mother = key_to_person.get(fdata.get("mother_key"))
         fam.save()
 
-    for pdata in data.get("people", []):
+    for pdata in people:
         person = key_to_person[pdata["key"]]
         cf_key = pdata.get("child_family_key")
-        if cf_key:
-            person.child_family = key_to_family.get(cf_key)
+        if isinstance(cf_key, str) and cf_key in key_to_family:
+            person.child_family = key_to_family[cf_key]
             person.save(update_fields=["child_family"])
-        for sdata in pdata.get("stories", []):
-            author = None
-            if sdata.get("author"):
-                author = User.objects.filter(username=sdata["author"]).first()
-            PersonStory.objects.create(person=person, author=author, text=sdata.get("text", ""))
+        for sdata in pdata.get("stories") or []:
+            if not isinstance(sdata, dict) or not text(sdata, "text"):
+                continue
+            mine = sdata.get("author") == user.username
+            PersonStory.objects.create(person=person, author=user if mine else None,
+                                       title=text(sdata, "title", 120), when=text(sdata, "when", 60),
+                                       text=text(sdata, "text"))
 
-    return key_to_person.get(data.get("root_key"))
+    root = data.get("root_key")
+    return key_to_person.get(root) if isinstance(root, str) else None
 
 
 # ------------------------------------------------------------ what to add next --

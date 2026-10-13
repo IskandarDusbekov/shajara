@@ -73,9 +73,9 @@
 
   <section class="pf-card" style="margin-top:16px;">
     <h2 class="pf-h2">Xavfli hudud</h2>
-    <p class="pf-help" style="margin:0 0 12px;">Shajara o'chirilsa, undagi barcha shaxslar, hikoyalar va a'zoliklar ham yo'qoladi. Avval JSON zaxira yuklab olishni maslahat beramiz.</p>
+    <p class="pf-help" style="margin:0 0 12px;">Shajara o'chirilsa, undagi barcha shaxslar, hikoyalar va a'zoliklar ham yo'qoladi. Avval arxivlab qo'yishni maslahat beramiz.</p>
     <div class="pf-actions" style="margin-top:0;">
-      <a class="pf-btn pf-btn-sm" href="{% url 'tree_export' tree.url_key %}">{% include "shajara/_icon.html" with name="upload" %}JSON zaxira</a>
+      <a class="pf-btn pf-btn-sm" href="{% url 'tree_export' tree.url_key %}">{% include "shajara/_icon.html" with name="upload" %}Arxivlash</a>
       <form method="post" action="{% url 'tree_delete' tree.url_key %}" onsubmit="return confirm('Rostdan ham &quot;{{ tree.name|escapejs }}&quot; shajarasini butunlay o\'chirmoqchimisiz? Bu amalni orqaga qaytarib bo\'lmaydi.');">
         {% csrf_token %}
         <button class="pf-btn pf-btn-sm pf-btn-danger" type="submit">{% include "shajara/_icon.html" with name="x" %}Shajarani o'chirish</button>

@@ -27,7 +27,7 @@ from .forms import (
     StoryForm, TreeCreateForm, TreeImportForm, TreeSettingsForm,
 )
 from .models import (
-    ConnectionRequest, EmailOTP, Family, Person, QuizAttempt, Tree, TreeGratitude, TreeMember, UserProfile,
+    ConnectionRequest, EmailOTP, Family, Person, PersonStory, QuizAttempt, Tree, TreeGratitude, TreeMember, UserProfile,
 )
 from .tree import (
     attach_existing, can_change_person, can_delete_in_tree, can_edit_in_tree, can_edit_tree, can_view_tree,
@@ -411,6 +411,9 @@ def tree_create_view(request):
     })
 
 
+MAX_ARCHIVE_BYTES = 10 * 1024 * 1024
+
+
 @login_required
 def tree_import_create_view(request):
     form = TreeImportForm(request.POST or None, request.FILES or None)
@@ -418,8 +421,10 @@ def tree_import_create_view(request):
     if request.method == "POST" and form.is_valid():
         upload = form.cleaned_data["backup_file"]
         try:
+            if upload.size > MAX_ARCHIVE_BYTES:
+                raise ValueError("arxiv fayli juda katta (ko'pi bilan 10 MB).")
             data = json.loads(upload.read().decode("utf-8"))
-            if "people" not in data or "root_key" not in data:
+            if not isinstance(data, dict) or "people" not in data or "root_key" not in data:
                 raise ValueError("Fayl formati noto'g'ri.")
             with transaction.atomic():
                 root_person = import_tree_json(request.user, data)
@@ -762,14 +767,15 @@ def verify_export_view(request, code):
 def tree_export_view(request, tree_key):
     tree = get_owned_tree(request, tree_key)
     if not tree:
-        return HttpResponseForbidden("Faqat shajara egasi JSON zaxira sifatida yuklab olishi mumkin.")
+        return HttpResponseForbidden("Shajarani faqat uning egasi arxivlay oladi.")
 
     data = export_tree_json(tree.root_person)
     data["tree_name"] = tree.name
+    data["archived_at"] = timezone.now().isoformat()
     response = HttpResponse(json.dumps(data, ensure_ascii=False, indent=2), content_type="application/json")
     slug = slugify(tree.name) or "shajara"
-    response["Content-Disposition"] = f'attachment; filename="{slug}.json"'
-    log_activity(request, "tree_export", tree=tree, detail=f"JSON: {tree.name}")
+    response["Content-Disposition"] = f'attachment; filename="{slug}-arxiv-{timezone.localdate():%Y-%m-%d}.json"'
+    log_activity(request, "tree_export", tree=tree, detail=f"Arxiv: {tree.name}")
     return private_response(response)
 
 
@@ -794,35 +800,99 @@ def person_detail_view(request, tree_key, pk):
         marriages.append({"family": fam, "spouse": spouse, "children": list(fam.children.all())})
 
     can_edit = can_edit_in_tree(request.user, tree, person)
+    role = tree_role(request.user, tree)
+    stories = list(person.stories.select_related("author").order_by("created_at"))
+    for s in stories:
+        s.can_edit = s.author_id == request.user.id
+        s.can_delete = s.can_edit or role == "owner"
+    lvl = levels.get(pk, 0)
     return private_response(render(request, "shajara/person_detail.html", {
         "tree": tree, "root": tree.root_person, "person": person,
-        "person_level": level_label(levels.get(pk, 0), tree.root_person.full_name),
+        "person_level": level_label(lvl, tree.root_person.full_name) if pk != tree.root_person_id else "Bosh shaxs",
         "can_edit": can_edit,
         "can_change": can_change_person(request.user, tree, person),
-        "can_lock": tree_role(request.user, tree) == "owner",
+        "can_lock": role == "owner",
         "can_delete": can_delete_in_tree(request.user, tree, person) and not person.rooted_trees.exists(),
+        "can_write": role is not None,
         "father": father, "mother": mother,
         "marriages": marriages,
         "siblings": person.siblings(),
-        "stories": person.stories.select_related("author"),
-        "story_form": StoryForm(),
+        "stories": stories,
+        "story_prompts": STORY_PROMPTS,
     }))
+
+
+# Questions that help someone start writing about a relative.
+STORY_PROMPTS = [
+    ("Bolaligi", "Bolaligi qayerda, qanday o'tgan?"),
+    ("Kasbi va mehnati", "Qanday ish qilgan, nima bilan faxrlangan?"),
+    ("Esda qolgan so'zi", "Doim aytadigan gapi, nasihati nima edi?"),
+    ("Oilaviy an'ana", "Oilada undan qolgan odat yoki taom bormi?"),
+    ("Qiyin yillar", "Urush, ko'chish yoki boshqa sinovli kunlarda nima bo'lgan?"),
+]
+
+
+def _story_target(request, tree_key, pk):
+    """(tree, person, error response) for the story views."""
+    tree = get_viewable_tree(request, tree_key)
+    if not tree or tree_role(request.user, tree) is None:
+        return None, None, HttpResponseForbidden("Hikoyani faqat shajara a'zolari yoza oladi.")
+    if pk not in person_ids_in_tree(tree.root_person):
+        return None, None, HttpResponseForbidden("Bu shaxs bu shajaraga tegishli emas.")
+    return tree, get_object_or_404(Person, pk=pk), None
 
 
 @require_POST
 @login_required
 def add_story_view(request, tree_key, pk):
-    tree = get_viewable_tree(request, tree_key)
-    if not tree:
-        return HttpResponseForbidden("Bu shajara sizga ko'rinmaydi.")
-    person = get_object_or_404(Person, pk=pk)
-    if pk not in person_ids_in_tree(tree.root_person):
-        return HttpResponseForbidden("Bu shaxs bu shajaraga tegishli emas.")
+    tree, person, denied = _story_target(request, tree_key, pk)
+    if denied:
+        return denied
     form = StoryForm(request.POST)
     if form.is_valid():
-        person.stories.create(author=request.user, text=form.cleaned_data["text"])
+        d = form.cleaned_data
+        person.stories.create(author=request.user, title=d["title"].strip(), when=d["when"].strip(), text=d["text"].strip())
         log_activity(request, "story_add", tree=tree, person=person, detail=person.full_name)
-    return redirect("person_detail", tree_key=tree.url_key, pk=pk)
+        messages.success(request, "Hikoya saqlandi — rahmat, oila xotirasi boyidi.")
+    else:
+        messages.error(request, "Hikoya matnini yozing.")
+    return redirect(reverse("person_detail", args=[tree.url_key, pk]) + "#hikoyalar")
+
+
+@require_POST
+@login_required
+def story_edit_view(request, tree_key, pk, story_id):
+    tree, person, denied = _story_target(request, tree_key, pk)
+    if denied:
+        return denied
+    story = get_object_or_404(PersonStory, pk=story_id, person=person)
+    if story.author_id != request.user.id:
+        return HttpResponseForbidden("Hikoyani faqat uning muallifi tahrirlay oladi.")
+    form = StoryForm(request.POST)
+    if form.is_valid():
+        d = form.cleaned_data
+        story.title, story.when, story.text = d["title"].strip(), d["when"].strip(), d["text"].strip()
+        story.save(update_fields=["title", "when", "text", "updated_at"])
+        log_activity(request, "story_edit", tree=tree, person=person, detail=person.full_name)
+        messages.success(request, "Hikoya yangilandi.")
+    else:
+        messages.error(request, "Hikoya matni bo'sh bo'lmasin.")
+    return redirect(reverse("person_detail", args=[tree.url_key, pk]) + f"#hikoya-{story.pk}")
+
+
+@require_POST
+@login_required
+def story_delete_view(request, tree_key, pk, story_id):
+    tree, person, denied = _story_target(request, tree_key, pk)
+    if denied:
+        return denied
+    story = get_object_or_404(PersonStory, pk=story_id, person=person)
+    if story.author_id != request.user.id and tree_role(request.user, tree) != "owner":
+        return HttpResponseForbidden("Hikoyani faqat muallifi yoki shajara egasi o'chira oladi.")
+    story.delete()
+    log_activity(request, "story_delete", tree=tree, person=person, detail=person.full_name)
+    messages.success(request, "Hikoya o'chirildi.")
+    return redirect(reverse("person_detail", args=[tree.url_key, pk]) + "#hikoyalar")
 
 
 LOCKED_TEXT = "Bu shaxs shajara egasi tomonidan qulflangan — uni faqat shajara egasi o'zgartira oladi."
@@ -1007,6 +1077,10 @@ def add_relative_view(request, tree_key):
                 request, "person_add", tree=tree, person=new_person,
                 detail=f"{new_person.full_name} — {anchor.full_name}ning {RELATION_TITLES[relation].split()[0].lower()}",
             )
+            if membership and request.POST.get("who") == "parent":
+                # a parent first; the member adds themselves under them next
+                messages.success(request, f"{new_person.first_name} qo'shildi. Endi o'zingizni uning farzandi qilib qo'shing.")
+                return redirect(f"{reverse('add_relative', args=[tree.url_key])}?anchor={new_person.id}&relation=farzand&men=1")
             if membership:
                 membership.person = new_person
                 membership.save(update_fields=["person"])
@@ -1023,8 +1097,9 @@ def add_relative_view(request, tree_key):
 
     intro_title, intro_lead = relation_intro(relation, anchor, my_person_id(request.user, tree))
     if membership:
-        intro_title = f"O'zingizni qo'shamiz — {anchor.first_name}ning farzandi sifatida"
-        intro_lead = "Ismingizni yozing va jinsingizni tanlang. Shundan keyin maslahatlar sizga qarab beriladi."
+        intro_title = f"{anchor.first_name}ning farzandini qo'shamiz"
+        intro_lead = ("Bu o'zingiz bo'lsangiz — ismingizni yozing, shajarada «Siz» deb belgilanasiz. "
+                      "Otangiz yoki onangiz bo'lsa — pastda shuni tanlang, keyin o'zingizni ularning ostiga qo'shasiz.")
     return render(request, "shajara/person_form.html", {
         "intro_lead": intro_lead,
         "form": form, "form_title": intro_title, "ask_gender": ask_gender,
@@ -1032,6 +1107,8 @@ def add_relative_view(request, tree_key):
         "error": error, "is_add": True, "tree_key": tree.url_key,
         "anchor_id": anchor.id, "relation": relation, "family_id": family_id,
         "tree": tree, "anchor": anchor, "adding_self": bool(membership),
+        "relation_label": {"ota": "Otasi", "ona": "Onasi", "farzand": "Farzandi", "akauka": "Aka-uka / opa-singili",
+                           "turmush": "Turmush o'rtog'i"}[relation],
     })
 
 

@@ -257,8 +257,10 @@ class PersonForm(forms.ModelForm):
 
 
 class StoryForm(forms.Form):
+    title = forms.CharField(label="Sarlavha", max_length=120, required=False)
+    when = forms.CharField(label="Qachon bo'lgan", max_length=60, required=False)
     text = forms.CharField(
-        label="Hikoya", widget=forms.Textarea(attrs={
+        label="Hikoya", max_length=20000, widget=forms.Textarea(attrs={
             "class": "field", "placeholder": "Bu odam haqida bir voqea yoki xotira yozing...", "rows": 4,
         }),
     )

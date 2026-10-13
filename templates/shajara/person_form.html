@@ -14,6 +14,15 @@
     </div>
   </header>
 
+  {% if is_add and anchor %}
+  <div class="pf-anchor">
+    <span class="pf-anchor-av{% if anchor.gender == 'ayol' %} is-f{% endif %}">{{ anchor.first_name|first|upper }}</span>
+    <span class="pf-anchor-text"><small>Kimga qo'shilyapti</small><b>{{ anchor.full_name }}{% if anchor.display_year %} · {{ anchor.display_year }}{% endif %}</b></span>
+    <span class="pf-anchor-arrow">→</span>
+    <span class="pf-anchor-rel">{{ relation_label }}</span>
+  </div>
+  {% endif %}
+
   {% if error or form.errors %}
   <div class="pf-alert pf-alert-bad pf-errors" role="alert">
     {% if error %}{{ error }}{% else %}Formada xato bor — qizil bilan belgilangan maydonlarni tekshiring.{% endif %}
@@ -29,6 +38,17 @@
       {% if adding_self %}<input type="hidden" name="men" value="1">{% endif %}
     {% endif %}
     {% if form.non_field_errors %}<p class="pf-error">{{ form.non_field_errors|join:" " }}</p>{% endif %}
+
+    {% if adding_self %}
+    <section class="pf-card pf-formcard">
+      <h2 class="pf-section-head">{% include "shajara/_icon.html" with name="users" %}Kimni qo'shyapsiz?</h2>
+      <div class="pf-seg" role="radiogroup" aria-label="Kimni qo'shyapsiz">
+        <label><input type="radio" name="who" value="me" checked><span>O'zimni</span></label>
+        <label><input type="radio" name="who" value="parent"><span>Otam yoki onamni</span></label>
+      </div>
+      <p class="pf-help">«Otam yoki onamni» tanlasangiz, saqlangandan keyin o'zingizni uning farzandi qilib qo'shasiz.</p>
+    </section>
+    {% endif %}
 
     {# ------------------------------------------------------- who #}
     <section class="pf-card pf-formcard">
@@ -58,8 +78,8 @@
     </section>
 
     {# ----------------------------------------------------- years #}
-    <section class="pf-card pf-formcard" data-tour="years">
-      <h2 class="pf-section-head">{% include "shajara/_icon.html" with name="clock" %}Yillari <small>ixtiyoriy</small></h2>
+    <details class="pf-card pf-formcard pf-fold" data-tour="years"{% if not is_add or form.birth_year_digits or form.errors %} open{% endif %}>
+      <summary class="pf-section-head">{% include "shajara/_icon.html" with name="clock" %}Yillari <small>ixtiyoriy · tug'ilgan va vafot yili</small></summary>
 
       <div class="pform-year">
         <label class="pf-label" for="id_birth_year">Tug'ilgan yili</label>
@@ -92,11 +112,11 @@
         <p class="pf-error" data-error-for="death_order" hidden>Vafot yili tug'ilgan yildan oldin bo'lishi mumkin emas.</p>
         {% if form.death_year.errors %}<p class="pf-error">{{ form.death_year.errors|join:" " }}</p>{% endif %}
       </div>
-    </section>
+    </details>
 
     {# ----------------------------------------------- birth place #}
-    <section class="pf-card pf-formcard" data-tour="birth-place">
-      <h2 class="pf-section-head">{% include "shajara/_icon.html" with name="flag" %}Tug'ilgan joyi <small>ixtiyoriy</small></h2>
+    <details class="pf-card pf-formcard pf-fold" data-tour="birth-place"{% if not is_add or form.birth_region.value or form.errors %} open{% endif %}>
+      <summary class="pf-section-head">{% include "shajara/_icon.html" with name="flag" %}Tug'ilgan joyi <small>ixtiyoriy · viloyat, tuman, qishloq</small></summary>
       <p class="pf-section-note">Boshqa shajaralardagi qarindoshlarni topishga yordam beradi. Bilmasangiz, bo'sh qoldiring.</p>
       <div class="pf-row">
         <div>
@@ -117,11 +137,11 @@
       </div>
       <label class="pf-label" for="id_birth_village">Qishloq yoki mahalla</label>
       <input class="pf-input" type="text" id="id_birth_village" name="birth_village" value="{{ form.birth_village.value|default:'' }}" placeholder="Masalan: Qoratepa" autocomplete="off">
-    </section>
+    </details>
 
     {# ---------------------------------------------------- more #}
-    <section class="pf-card pf-formcard">
-      <h2 class="pf-section-head">{% include "shajara/_icon.html" with name="book" %}Hayoti <small>ixtiyoriy</small></h2>
+    <details class="pf-card pf-formcard pf-fold"{% if not is_add or form.errors %} open{% endif %}>
+      <summary class="pf-section-head">{% include "shajara/_icon.html" with name="book" %}Hayoti va surati <small>ixtiyoriy · kasbi, qisqacha hayoti, surat</small></summary>
       <div class="pf-row">
         <div>
           <label class="pf-label" for="id_occupation">Kasbi</label>
@@ -144,7 +164,7 @@
         <input type="file" name="photo" id="id_photo" accept="image/*">
       </div>
       {% if form.photo.errors %}<p class="pf-error">{{ form.photo.errors|join:" " }}</p>{% endif %}
-    </section>
+    </details>
 
     <div class="pf-savebar">
       <a class="pf-btn" href="{% if is_add %}{% url 'index' tree_key %}{% else %}{% url 'person_detail' cancel_tree_key cancel_pk %}{% endif %}">Bekor qilish</a>

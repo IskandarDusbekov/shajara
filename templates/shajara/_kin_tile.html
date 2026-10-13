@@ -1,0 +1,9 @@
+{% comment %}One relative on a person's page: avatar, name, years and how they are related.{% endcomment %}
+<a class="pd-kin{% if rel.gender == 'ayol' %} is-f{% endif %}" href="{% url 'person_detail' tree.url_key rel.id %}">
+  {% if rel.photo %}<img class="pd-kin-av" src="{{ rel.photo.url }}" alt="">{% else %}<span class="pd-kin-av">{{ rel.first_name|first|upper }}</span>{% endif %}
+  <span class="pd-kin-text">
+    <b>{{ rel.full_name }}</b>
+    <small>{% if badge %}{{ badge }}{% endif %}{% if badge and rel.display_year %} · {% endif %}{% if rel.display_year %}{{ rel.display_year }}{% if rel.death_year %} – {{ rel.death_year }}{% endif %}{% endif %}</small>
+  </span>
+  <svg class="pd-kin-go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+</a>

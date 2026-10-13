@@ -150,6 +150,8 @@ body {
 .menu-item:hover { background: rgba(233,200,105,0.1); color: #ffe9a8; }
 .menu-item.is-current { background: rgba(233,200,105,0.14); color: #ffe9a8; font-weight: 700; }
 .menu-ic { width: 17px; height: 17px; flex-shrink: 0; color: #9dbba9; }
+.menu-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.menu-text small { margin-top: 1px; font-size: 11.5px; font-weight: 500; opacity: .72; }
 .menu-item:hover .menu-ic, .menu-item.is-current .menu-ic { color: #e9c869; }
 .menu-item-danger { color: #d9a9a9; }
 .menu-item-danger:hover { background: rgba(150,70,70,0.18); color: #f0c4c4; }
@@ -1022,6 +1024,12 @@ textarea.field { font-family: system-ui, sans-serif; resize: vertical; }
 .who-select { width: 100%; height: 44px; padding: 0 10px; border-radius: 12px; border: 1.5px solid #cde5d5; background: #fff; color: #123d27; font: 15px system-ui, sans-serif; }
 .who-go { height: 46px; border: 0; border-radius: 14px; background: #1a7a46; color: #fff; font: 700 15px system-ui, sans-serif; cursor: pointer;
   box-shadow: 0 8px 18px rgba(26,122,70,.30); }
+.who-steps { margin: 0 0 4px; padding-left: 18px; font: 12.5px/1.45 system-ui, sans-serif; color: #4f705d; }
+.who-steps li { margin-bottom: 5px; }
+.who-steps b { color: #123d27; }
+html:not(.app-light) .who-steps { color: #a9c1b1; }
+html:not(.app-light) .who-steps b { color: #f1ead9; }
+.next-card.who-card { max-height: calc(100% - 24px); overflow-y: auto; }
 .who-note { margin: 0; font-size: 12px; line-height: 1.45; color: #6b8a78; }
 @media (max-width: 620px) { .who-card .nc-lead { display: block; } }
 html:not(.app-light) .who-tabs { background: rgba(255,255,255,.06); }

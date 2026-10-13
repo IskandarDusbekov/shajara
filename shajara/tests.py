@@ -596,7 +596,7 @@ class SharedTreeTests(TestCase):
         r = self.client.post(reverse("tree_whoami", args=[self.key]), {"person": self.grandpa.id, "action": "child"})
         add = reverse("add_relative", args=[self.key])
         self.assertRedirects(r, f"{add}?anchor={self.grandpa.id}&relation=farzand&men=1", fetch_redirect_response=False)
-        self.assertContains(self.client.get(r["Location"]), "O&#x27;zingizni qo&#x27;shamiz")
+        self.assertContains(self.client.get(r["Location"]), "Kimni qo'shyapsiz?")
         self.client.post(add, {"anchor": self.grandpa.id, "relation": "farzand", "men": "1",
                                "first_name": "Nodir", "gender": "erkak"})
         member.refresh_from_db()
@@ -634,7 +634,8 @@ class SharedTreeTests(TestCase):
         # children and memories are still welcome
         self.assertEqual(self.client.get(f"{add}?anchor={self.grandpa.id}&relation=farzand").status_code, 200)
         page = self.client.get(reverse("person_detail", args=[self.key, self.grandpa.id]))
-        self.assertContains(page, "qulflangan")
+        self.assertContains(page, "Qulflangan")
+        self.assertContains(page, "qulflagan")
         self.assertNotContains(page, edit)
         # an editor's own addition, once locked, cannot be deleted by them either
         mine = Person.objects.create(first_name="Meniki", gender="erkak", added_by=self.relative,
@@ -644,6 +645,83 @@ class SharedTreeTests(TestCase):
         # the owner still edits freely
         self.client.force_login(self.owner)
         self.assertEqual(self.client.get(edit).status_code, 200)
+
+    def test_member_adds_parent_first_then_themselves(self):
+        from .models import Person, TreeMember
+        member = TreeMember.objects.create(tree=self.tree, user=self.relative, role="muharrir")
+        self.client.force_login(self.relative)
+        add = reverse("add_relative", args=[self.key])
+        r = self.client.post(add, {"anchor": self.grandpa.id, "relation": "farzand", "men": "1", "who": "parent",
+                                   "first_name": "Rahim", "gender": "erkak"})
+        rahim = Person.objects.get(first_name="Rahim")
+        self.assertRedirects(r, f"{add}?anchor={rahim.id}&relation=farzand&men=1", fetch_redirect_response=False)
+        member.refresh_from_db()
+        self.assertIsNone(member.person_id)            # the parent is not «me»
+        self.client.post(add, {"anchor": rahim.id, "relation": "farzand", "men": "1", "who": "me",
+                               "first_name": "Jasur", "gender": "erkak"})
+        member.refresh_from_db()
+        self.assertEqual(member.person.first_name, "Jasur")
+        self.assertEqual(member.person.child_family.father_id, rahim.id)
+
+    def test_stories_written_edited_and_deleted(self):
+        from .models import PersonStory, TreeMember
+        TreeMember.objects.create(tree=self.tree, user=self.relative, role="kuzatuvchi")
+        page_url = reverse("person_detail", args=[self.key, self.grandpa.id])
+        add = reverse("add_story", args=[self.key, self.grandpa.id])
+        # outsiders cannot write; a viewer member can
+        self.client.force_login(self.stranger)
+        self.assertEqual(self.client.post(add, {"text": "Begona"}).status_code, 403)
+        self.client.force_login(self.relative)
+        self.client.post(add, {"title": "Bog'", "when": "1975", "text": "Bobom bog' ekkan.\nHar kuni sug'organ."})
+        story = PersonStory.objects.get(person=self.grandpa)
+        self.assertEqual((story.title, story.when, story.author), ("Bog'", "1975", self.relative))
+        page = self.client.get(page_url)
+        self.assertContains(page, "Bog&#x27;")
+        self.assertContains(page, "<p>Bobom bog&#x27; ekkan.<br>Har kuni sug&#x27;organ.</p>", html=True)
+        edit = reverse("story_edit", args=[self.key, self.grandpa.id, story.id])
+        delete = reverse("story_delete", args=[self.key, self.grandpa.id, story.id])
+        # only the author edits; the owner may delete
+        self.client.force_login(self.owner)
+        self.assertEqual(self.client.post(edit, {"text": "Buzildi"}).status_code, 403)
+        self.client.force_login(self.relative)
+        self.client.post(edit, {"title": "Bobomning bog'i", "when": "1975", "text": "Yangi matn"})
+        story.refresh_from_db()
+        self.assertEqual((story.title, story.text), ("Bobomning bog'i", "Yangi matn"))
+        self.client.force_login(self.stranger)
+        self.assertEqual(self.client.post(delete).status_code, 403)
+        self.client.force_login(self.owner)
+        self.client.post(delete)
+        self.assertFalse(PersonStory.objects.exists())
+
+    def test_archive_import_trusts_nothing_in_the_file(self):
+        from io import BytesIO
+        from .models import Person, PersonStory
+        self.client.force_login(self.relative)
+        evil = {
+            "root_key": "p1",
+            "people": [
+                {"key": "p1", "first_name": "A" * 500, "gender": "boshqa", "birth_date": "emas",
+                 "birth_region": "Mars", "bio": {"x": 1},
+                 "stories": [{"author": "sh_owner", "text": "Soxta"}, {"author": "sh_relative", "text": "Meniki"}]},
+                "buzuq", {"key": 5},
+            ],
+            "families": [{"key": "f1", "father_key": "p1"}, "buzuq"],
+        }
+        upload = BytesIO(json.dumps(evil).encode())
+        upload.name = "arxiv.json"
+        r = self.client.post(reverse("tree_import_create"), {"tree_name": "Tiklangan", "kind": "oilaviy",
+                                                             "visibility": "private", "backup_file": upload})
+        self.assertEqual(r.status_code, 302)
+        p = Person.objects.get(added_by=self.relative)
+        self.assertEqual((len(p.first_name), p.gender, p.birth_date, p.birth_region, p.bio), (100, "erkak", None, "", ""))
+        authors = dict(PersonStory.objects.filter(person=p).values_list("text", "author__username"))
+        self.assertEqual(authors, {"Soxta": None, "Meniki": "sh_relative"})   # never credited to someone else
+        # the archive download is the owner's only, and named as an archive
+        self.client.force_login(self.owner)
+        r = self.client.get(reverse("tree_export", args=[self.key]))
+        self.assertIn("-arxiv-", r["Content-Disposition"])
+        self.client.force_login(self.relative)
+        self.assertEqual(self.client.get(reverse("tree_export", args=[self.key])).status_code, 403)
 
     def test_owner_locks_whole_tree_at_once(self):
         from .models import Person

@@ -30,44 +30,47 @@
       </ul>
     </div>
 
-    {% comment %}A picture of the product: seven generations of one (made-up)
-    family, a relative joining, a finished book and a family quiz.{% endcomment %}
+    {% comment %}The product as it really looks: the map of a (made-up) family —
+    green cards with gold rims, the person you started from crowned, a dashed
+    «add» card — plus a relative joining, a memory and the finished book.{% endcomment %}
     <div class="hero-visual" aria-hidden="true">
-      <div class="mock">
-        <div class="mock-head">
-          <div>
-            <span class="mock-kicker">Oila shajarasi</span>
-            <span class="mock-title">Yusupovlar oilasi</span>
-          </div>
-          <span class="mock-badge">
-            <span class="mock-dots">{% for i in "1234567" %}<i class="on"></i>{% endfor %}</span>
-            7/7 avlod
-          </span>
+      <div class="app-mock">
+        <div class="am-chrome"><i></i><i></i><i></i><span>e-shajara.uz/shajara/…</span></div>
+        <div class="am-bar">
+          <span class="am-logo"></span><b>Yusupovlar oilasi</b>
+          <span class="am-tabs"><em class="is-on">Xarita</em><em>Haqida</em><em>A'zolar</em><em>Kitob</em></span>
         </div>
-        <ol class="mock-gens">
-          <li><span class="mock-num">I</span><span class="mock-person is-m">Rahmonqul<small>1900</small></span><span class="mock-person is-f">Oysha bibi<small>1903</small></span></li>
-          <li><span class="mock-num">II</span><span class="mock-person is-m">Sobir<small>1920</small></span><span class="mock-person is-f">Hanifa<small>1922</small></span><span class="mock-more">+2</span></li>
-          <li><span class="mock-num">III</span><span class="mock-person is-m">Abdulla<small>1940</small></span><span class="mock-person is-f">Nodira<small>1942</small></span><span class="mock-more">+2</span></li>
-          <li><span class="mock-num">IV</span><span class="mock-person is-m">Botir<small>1961</small></span><span class="mock-person is-f">Gulnora<small>1962</small></span><span class="mock-more">+2</span></li>
-          <li><span class="mock-num">V</span><span class="mock-person is-f">Dilfuza<small>1981</small></span><span class="mock-person is-m">Farhod<small>1978</small></span><span class="mock-more">+3</span></li>
-          <li><span class="mock-num">VI</span><span class="mock-person is-f is-you">Madina<small>2000 · siz</small></span><span class="mock-person is-m">Javlon<small>1996</small></span></li>
-          <li><span class="mock-num">VII</span><span class="mock-person is-f">Oyshaxon<small>2020</small></span></li>
-        </ol>
+        <div class="am-map">
+          <svg class="am-lines" viewBox="0 0 520 360" preserveAspectRatio="none">
+            <path d="M260 47h10M265 47v48M115 95h270M115 95v25M385 95v25"/>
+            <path d="M170 143h10M175 143v52M175 195h130M175 195v25M305 195v25"/>
+            <path class="am-dash" d="M175 270v30"/>
+            <circle cx="265" cy="47" r="5"/><circle cx="175" cy="143" r="5"/>
+          </svg>
+          <span class="am-card" style="left:28.8%;top:6.7%">Rahmonqul<small>1900 – 1971</small></span>
+          <span class="am-card is-f" style="left:51.9%;top:6.7%">Oysha bibi<small>1903 – 1988</small></span>
+          <span class="am-card" style="left:11.5%;top:33.3%">Sobir<small>1925</small></span>
+          <span class="am-card is-f" style="left:34.6%;top:33.3%">Hanifa<small>1928</small></span>
+          <span class="am-card" style="left:63.5%;top:33.3%">Karim<small>1931</small></span>
+          <span class="am-card is-root" style="left:21.2%;top:61.1%"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16"/><path d="m3 8 4.5 3.5L12 5l4.5 6.5L21 8l-1.6 7.5H4.6z"/></svg>Madina<small>2000 · siz</small></span>
+          <span class="am-card" style="left:48.1%;top:61.1%">Javlon<small>1996</small></span>
+          <span class="am-card is-add" style="left:23.1%;top:83.3%">+ Farzand qo'shish</span>
+          <span class="am-zoom"><i>+</i><i>−</i></span>
+        </div>
       </div>
 
       <div class="float float-join">
         <span class="float-av">D</span>
         <span><b>Dilbar xola qo'shildi</b><small>3 ta farzandini kiritdi · hozirgina</small></span>
       </div>
+      <div class="float float-story">
+        <span class="float-kicker">Hikoya · 1975</span>
+        <b>“Bobom har bahor hovliga o'rik ekardi…”</b>
+        <small>Madina yozdi · Rahmonqul haqida</small>
+      </div>
       <div class="float float-book">
         <span class="float-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 11h6"/></svg></span>
-        <span><b>Oila kitobi tayyor</b><small>PDF · 21 bet · QR bilan</small></span>
-      </div>
-      <div class="float float-quiz">
-        <span class="float-kicker">Oilangizni qanchalik bilasiz?</span>
-        <b>Botir akaning bobosi kim?</b>
-        <span class="quiz-opt is-right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Sobir</span>
-        <span class="quiz-opt">Rustam</span>
+        <span><b>Oila kitobi tayyor</b><small>PDF · 5 uslub · QR bilan</small></span>
       </div>
     </div>
   </div>
@@ -139,7 +142,7 @@
       <li class="step" data-reveal>
         <span class="step-num">03</span>
         <h3>Saqlang va ulashing</h3>
-        <p>Tayyor shajarani PDF kitob yoki tiniq rasm qilib oling, bobo-buvilarga sovg'a qiling va #YettiOtam kartangizni do'stlar bilan ulashing.</p>
+        <p>Tayyor shajarani PDF kitob yoki ramkaga solinadigan rasm qilib oling, bobo-buvilarga sovg'a qiling va #YettiOtam kartangizni do'stlar bilan ulashing.</p>
         <div class="step-ui">
           <span class="ui-row"><i class="ui-doc"></i>Oila kitobi · PDF</span>
           <span class="ui-row"><i class="ui-img"></i>#YettiOtam kartasi</span>
@@ -176,18 +179,18 @@
       </article>
       <article class="card" data-reveal>
         <span class="card-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 11h6"/></svg></span>
-        <h3>Oila kitobi (PDF)</h3>
-        <p>Muqova, mundarija, har bir avlod bo'yicha boblar, har bir inson haqida maqola. Har nusxada haqiqiyligini tekshiradigan QR kod bor.</p>
+        <h3>Oila kitobi va ramkali rasm</h3>
+        <p>Besh uslubdagi PDF kitob: muqova, butun oila chizmasi, har bir avlod bo'yicha boblar. Yoki A3 rasm — chop etib, ramkaga solib devorga iling. Har nusxada QR kod bor.</p>
       </article>
       <article class="card" data-reveal>
         <span class="card-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg></span>
         <h3>Hikoyalar va xotiralar</h3>
-        <p>Bobongizning frontdan yozgan xati, buvingizning to'yi haqidagi hikoya — har bir inson sahifasiga yoziladi va yo'qolmaydi.</p>
+        <p>Bobongizning frontdan yozgan xati, buvingizning to'yi haqidagi hikoya — sarlavha va yili bilan har bir inson sahifasiga yoziladi va kitobga kiradi.</p>
       </article>
       <article class="card" data-reveal>
-        <span class="card-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.3 9.2a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2.9-1.2 1.8"/><path d="M12 17h.01"/></svg></span>
-        <h3>«Oilangizni qanchalik bilasiz?»</h3>
-        <p>Shajaradan avtomatik test tuziladi: kim kimning otasi, qachon tug'ilgan. Natijani do'stlaringiz bilan bellashib ulashing.</p>
+        <span class="card-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+        <h3>Yozganingiz o'zgarmaydi</h3>
+        <p>Siz kiritgan avlodlarni qulflab qo'ying — qo'shilgan qarindoshlar ularni tahrirlay olmaydi, faqat o'z shoxini davom ettiradi.</p>
       </article>
       <article class="card" data-reveal>
         <span class="card-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg></span>
@@ -255,7 +258,8 @@
       <li><b>Shaxsiy standart holatda.</b> Oila shajarasini faqat siz va o'zingiz taklif qilgan qarindoshlar ko'radi.</li>
       <li><b>Qidiruv tizimlariga chiqmaydi.</b> Google'da faqat tarixiy, ta'limiy shajaralar ko'rinadi — oila shajaralari hech qachon.</li>
       <li><b>Huquqlarni siz boshqarasiz.</b> Muharrir yoki kuzatuvchi; taklif havolasini istalgan payt bekor qilasiz.</li>
-      <li><b>Ma'lumot sizniki.</b> Shajarani istalgan payt zaxira fayl qilib yuklab olasiz.</li>
+      <li><b>Qulf.</b> O'zingiz yozgan kishilarni qulflaysiz — ularni faqat siz o'zgartira olasiz.</li>
+      <li><b>Ma'lumot sizniki.</b> Shajarani istalgan payt arxivlab, faylini yuklab olasiz.</li>
     </ul>
   </div>
 </section>

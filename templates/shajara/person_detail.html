@@ -1,160 +1,235 @@
-{% extends "shajara/page_base.html" %}
+{% extends "shajara/base.html" %}
+{% load assets trees %}
 {% block title %}{{ person.full_name }} — e-Shajara{% endblock %}
-{% block back_link %}<a class="back-link" href="{% url 'index' tree.url_key %}">← {{ tree.name }}</a>{% endblock %}
-{% block card_content %}
-<div class="workspace-trail">
-  <span class="workspace-trail-icon"><svg class="ui-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-6"/><path d="M12 16c-3.5 0-6-2.4-6-6 0 0 3.4 0 6 2.4C12 8 12 5 12 5s0 3 0 7.4C14.6 10 18 10 18 10c0 3.6-2.5 6-6 6z"/></svg></span>
-  <span>{{ tree.name }}</span>
-  <span class="workspace-trail-sep"></span>
-  <span>{{ person_level }}</span>
-</div>
+{% block body %}
+{% include "shajara/_header.html" %}
+<main class="pf-shell pd-shell">
+  <a class="back-link" href="{% url 'index' tree.url_key %}">← {{ tree.name }} xaritasi</a>
 
-<div class="person-header">
-  {% if person.photo %}
-    <img class="person-avatar" src="{{ person.photo.url }}" alt="">
-  {% else %}
-    <div class="person-avatar-fallback {% if person.gender == 'ayol' %}av-female{% else %}av-male{% endif %}">{{ person.first_name|first|upper }}</div>
-  {% endif %}
-  <div class="person-header-info">
-    <h2 class="card-name" style="margin:0;">{{ person.full_name }}{% if person.locked %} <span class="lock-badge" title="Faqat shajara egasi o'zgartira oladi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Qulflangan</span>{% endif %}</h2>
-    {% if person.patronymic %}<div class="card-years" style="margin:2px 0 0;">{{ person.patronymic }}</div>{% endif %}
-    {% if person.display_year or person.death_year %}
-    <div class="card-years" style="margin:3px 0 0;">
-      {% if person.display_year %}{{ person.display_year }}{% endif %}
-      {% if person.death_year %} — {{ person.death_year }}{% endif %}
-    </div>
-    {% endif %}
-  </div>
-  {% if can_edit or can_lock %}
-  <div class="header-actions">
-    {% if can_lock %}
-    <form method="post" action="{% url 'person_lock' tree.url_key person.id %}">
-      {% csrf_token %}
-      <input type="hidden" name="lock" value="{% if person.locked %}0{% else %}1{% endif %}">
-      <button class="icon-btn{% if person.locked %} icon-btn-on{% endif %}" type="submit"
-              title="{% if person.locked %}Qulfni ochish — muharrirlar yana tahrirlay oladi{% else %}Qulflash — boshqalar o'zgartira olmaydi{% endif %}"
-              aria-label="{% if person.locked %}Qulfni ochish{% else %}Qulflash{% endif %}">
-        {% if person.locked %}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-        {% else %}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/></svg>
-        {% endif %}
-      </button>
-    </form>
-    {% endif %}
-    {% if can_change %}
-    <a class="icon-btn" href="{% url 'person_edit' tree.url_key person.id %}" title="Tahrirlash">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-    </a>
-    {% endif %}
-    {% if can_delete %}
-    <form method="post" action="{% url 'person_delete' tree.url_key person.id %}" onsubmit="return confirm('Rostdan ham {{ person.full_name }}ni o\'chirmoqchimisiz?');">
-      {% csrf_token %}
-      <button class="icon-btn icon-btn-danger" type="submit" title="O'chirish">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>
-      </button>
-    </form>
-    {% endif %}
-  </div>
-  {% endif %}
-</div>
-
-{% if person.occupation or person.location or person.birth_place %}
-<div class="fact-grid">
-  {% if person.birth_place %}<div class="fact"><span class="fact-label">Tug'ilgan joyi</span><span class="fact-value">{{ person.birth_place }}</span></div>{% endif %}
-  {% if person.occupation %}<div class="fact"><span class="fact-label">Kasbi</span><span class="fact-value">{{ person.occupation }}</span></div>{% endif %}
-  {% if person.location %}<div class="fact"><span class="fact-label">Yashash joyi</span><span class="fact-value">{{ person.location }}</span></div>{% endif %}
-</div>
-{% endif %}
-{% if person.bio %}<div class="card-bio">{{ person.bio }}</div>{% endif %}
-{% if person.locked and can_edit and not can_change %}
-<p class="lock-note">Bu kartochka shajara egasi tomonidan qulflangan: uni o'zgartirib bo'lmaydi, lekin farzand qo'shish va xotira yozish mumkin.</p>
-{% endif %}
-
-<div class="relation-section">
-  <h3><svg class="sec-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M3 20a5 5 0 0 1 10 0M11 20a5 5 0 0 1 10 0"/></svg> Ota-ona</h3>
-  {% if father %}
-    {% include "shajara/_relation_card.html" with rel=father tree=tree badge="Otasi" %}
-  {% elif can_change %}
-    {% include "shajara/_add_button.html" with tree=tree anchor=person.id relation="ota" label="Otasini qo'shish" %}
-  {% endif %}
-  {% if mother %}
-    {% include "shajara/_relation_card.html" with rel=mother tree=tree badge="Onasi" %}
-  {% elif can_change %}
-    {% include "shajara/_add_button.html" with tree=tree anchor=person.id relation="ona" label="Onasini qo'shish" %}
-  {% endif %}
-  {% if not father and not mother and not can_edit %}<div class="empty-hint">Kiritilmagan</div>{% endif %}
-</div>
-
-<div class="relation-section">
-  <h3><svg class="sec-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M3 20a6 6 0 0 1 12 0M15 20a5 5 0 0 1 6-4.5"/></svg> Aka/uka, opa/singil</h3>
-  {% for s in siblings %}
-    {% include "shajara/_relation_card.html" with rel=s tree=tree badge="" %}
-  {% empty %}
-    <div class="empty-hint">Kiritilmagan</div>
+  {% for message in messages %}
+  <p class="pf-alert {% if message.tags == 'error' %}pf-alert-bad{% else %}pf-alert-good{% endif %}" style="margin:14px 0 0;" role="status">{{ message }}</p>
   {% endfor %}
-  {% if can_edit %}
-    {% include "shajara/_add_button.html" with tree=tree anchor=person.id relation="akauka" label="Aka/uka, opa/singil qo'shish" %}
-  {% endif %}
-</div>
 
-<div class="relation-section">
-  <h3><svg class="sec-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3"/><path d="M8.5 10 12 14l3.5-4M12 14v0"/><path d="M5 21a7 7 0 0 1 14 0"/></svg> Turmush o'rtog'i va farzandlar</h3>
-  {% for m in marriages %}
-  <div class="marriage-block">
-    <div class="marriage-head">
-      <svg class="marriage-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="14" r="4"/><circle cx="16" cy="14" r="4"/><path d="M8 6l2 3M16 6l-2 3M9 4h6"/></svg>
-      Turmush o'rtog'i:
-      {% if m.spouse %}
-        <a class="spouse-name" href="{% url 'person_detail' tree.url_key m.spouse.id %}">{{ m.spouse.full_name }}</a>
-      {% else %}<em>noma'lum</em>{% endif %}
+  {# --------------------------------------------------------------- who #}
+  <section class="pf-card pd-hero{% if person.gender == 'ayol' %} is-f{% endif %}">
+    {% if person.photo %}
+      <img class="pd-avatar" src="{{ person.photo.url }}" alt="{{ person.full_name }} surati">
+    {% else %}
+      <span class="pd-avatar" aria-hidden="true">{{ person.first_name|first|upper }}</span>
+    {% endif %}
+    <div class="pd-who">
+      <p class="pf-kicker">{{ person_level }} · {{ tree.name }}</p>
+      <h1 class="pd-name">{{ person.full_name }}</h1>
+      {% if person.patronymic %}<p class="pd-patronymic">{{ person.patronymic }}</p>{% endif %}
+      <p class="pd-years">
+        {% if person.display_year or person.death_year %}
+          {% if person.display_year %}{{ person.display_year }}{% else %}?{% endif %}{% if person.death_year %} – {{ person.death_year }}{% endif %}
+        {% else %}Yillari kiritilmagan{% endif %}
+        {% if person.locked %}<span class="lock-badge" title="Faqat shajara egasi o'zgartira oladi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Qulflangan</span>{% endif %}
+      </p>
     </div>
-    {% for child in m.children %}
-      {% include "shajara/_relation_card.html" with rel=child tree=tree badge="Farzand" %}
+
+    {% if can_change or can_lock or can_delete or can_write %}
+    <div class="pd-actions">
+      {% if can_change %}
+      <a class="pf-btn pf-btn-primary pf-btn-sm" href="{% url 'person_edit' tree.url_key person.id %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+        Ma'lumotni tahrirlash
+      </a>
+      {% endif %}
+      {% if can_write %}
+      <a class="pf-btn pf-btn-sm" href="#yozish">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h8l6 6v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+        Hikoya yozish
+      </a>
+      {% endif %}
+      {% if can_lock %}
+      <form method="post" action="{% url 'person_lock' tree.url_key person.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="lock" value="{% if person.locked %}0{% else %}1{% endif %}">
+        <button class="pf-btn pf-btn-sm{% if person.locked %} pd-on{% endif %}" type="submit"
+                title="{% if person.locked %}Muharrirlar yana tahrirlay oladi{% else %}Boshqalar bu kishini o'zgartira olmaydi{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="{% if person.locked %}M8 11V7a4 4 0 0 1 8 0v4{% else %}M8 11V7a4 4 0 0 1 7.5-2{% endif %}"/></svg>
+          {% if person.locked %}Qulfni ochish{% else %}Qulflash{% endif %}
+        </button>
+      </form>
+      {% endif %}
+      {% if can_delete %}
+      <form method="post" action="{% url 'person_delete' tree.url_key person.id %}" onsubmit="return confirm('Rostdan ham {{ person.full_name|escapejs }}ni o\'chirmoqchimisiz?');">
+        {% csrf_token %}
+        <button class="pf-btn pf-btn-sm pd-danger" type="submit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+          O'chirish
+        </button>
+      </form>
+      {% endif %}
+    </div>
+    {% endif %}
+  </section>
+
+  {% if person.locked and can_edit and not can_change %}
+  <p class="lock-note">Bu kishini shajara egasi qulflagan: ma'lumotini o'zgartirib bo'lmaydi, lekin farzand qo'shish va hikoya yozish mumkin.</p>
+  {% endif %}
+
+  {# ------------------------------------------------------------- facts #}
+  {% if person.birth_place or person.birth_date or person.occupation or person.location or person.bio %}
+  <section class="pf-card pd-section">
+    <h2 class="pd-h2">Hayoti haqida</h2>
+    {% if person.birth_place or person.birth_date or person.occupation or person.location %}
+    <dl class="pd-facts">
+      {% if person.birth_date %}<div><dt>Tug'ilgan sanasi</dt><dd>{{ person.birth_date|uz_date }}</dd></div>{% endif %}
+      {% if person.birth_place %}<div><dt>Tug'ilgan joyi</dt><dd>{{ person.birth_place }}</dd></div>{% endif %}
+      {% if person.occupation %}<div><dt>Kasbi</dt><dd>{{ person.occupation }}</dd></div>{% endif %}
+      {% if person.location %}<div><dt>Yashash joyi</dt><dd>{{ person.location }}</dd></div>{% endif %}
+    </dl>
+    {% endif %}
+    {% if person.bio %}<div class="pd-bio">{{ person.bio|linebreaks }}</div>{% endif %}
+  </section>
+  {% elif can_change %}
+  <a class="pd-empty-cta" href="{% url 'person_edit' tree.url_key person.id %}">
+    <b>Ma'lumot hali yo'q.</b> Tug'ilgan joyi, kasbi, surati yoki qisqacha hayoti — bilganingizni qo'shing.
+  </a>
+  {% endif %}
+
+  {# ------------------------------------------------------------ family #}
+  <section class="pf-card pd-section">
+    <h2 class="pd-h2">Oilasi</h2>
+
+    <h3 class="pd-h3">Ota-onasi</h3>
+    <div class="pd-kins">
+      {% if father %}{% include "shajara/_kin_tile.html" with rel=father badge="Otasi" %}
+      {% elif can_change %}{% include "shajara/_kin_add.html" with anchor=person.id relation="ota" label="Otasini qo'shish" hint="Faqat ismi yetarli" %}{% endif %}
+      {% if mother %}{% include "shajara/_kin_tile.html" with rel=mother badge="Onasi" %}
+      {% elif can_change %}{% include "shajara/_kin_add.html" with anchor=person.id relation="ona" label="Onasini qo'shish" hint="Faqat ismi yetarli" %}{% endif %}
+      {% if not father and not mother and not can_change %}<p class="pd-none">Kiritilmagan</p>{% endif %}
+    </div>
+
+    <h3 class="pd-h3">Aka-uka, opa-singillari</h3>
+    <div class="pd-kins">
+      {% for s in siblings %}{% include "shajara/_kin_tile.html" with rel=s badge="" %}{% endfor %}
+      {% if can_edit %}{% include "shajara/_kin_add.html" with anchor=person.id relation="akauka" label="Aka-uka yoki opa-singil" hint="Bir ota-onadan" %}
+      {% elif not siblings %}<p class="pd-none">Kiritilmagan</p>{% endif %}
+    </div>
+
+    {% for m in marriages %}
+    <h3 class="pd-h3">{% if marriages|length > 1 %}{{ forloop.counter }}-oilasi{% else %}Turmush o'rtog'i va farzandlari{% endif %}</h3>
+    <div class="pd-kins">
+      {% if m.spouse %}{% include "shajara/_kin_tile.html" with rel=m.spouse badge="Turmush o'rtog'i" %}{% endif %}
+      {% for child in m.children %}{% include "shajara/_kin_tile.html" with rel=child badge="Farzandi" %}{% endfor %}
+      {% if can_edit %}{% include "shajara/_kin_add.html" with anchor=person.id relation="farzand" family=m.family.id label="Farzand qo'shish" hint="" %}{% endif %}
+    </div>
     {% empty %}
-      <div class="empty-hint" style="padding:6px 0;">Farzand kiritilmagan</div>
+    <h3 class="pd-h3">Turmush o'rtog'i va farzandlari</h3>
+    <div class="pd-kins">
+      {% if can_change %}{% include "shajara/_kin_add.html" with anchor=person.id relation="turmush" label="Turmush o'rtog'ini qo'shish" hint="" %}{% endif %}
+      {% if can_edit %}{% include "shajara/_kin_add.html" with anchor=person.id relation="farzand" label="Farzand qo'shish" hint="" %}{% endif %}
+      {% if not can_edit %}<p class="pd-none">Kiritilmagan</p>{% endif %}
+    </div>
     {% endfor %}
-    {% if can_edit %}
-      {% include "shajara/_add_button.html" with tree=tree anchor=person.id relation="farzand" family=m.family.id label="Farzand qo'shish" %}
+    {% if marriages and can_change %}
+    <div class="pd-kins pd-kins-more">{% include "shajara/_kin_add.html" with anchor=person.id relation="turmush" label="Yana turmush o'rtog'i" hint="" %}</div>
     {% endif %}
-  </div>
-  {% endfor %}
-  {% if can_edit %}
-  <div class="add-row">
-    {% if can_change %}{% include "shajara/_add_button.html" with tree=tree anchor=person.id relation="turmush" label="Turmush o'rtog'ini qo'shish" %}{% endif %}
-    {% if not marriages %}
-      {% include "shajara/_add_button.html" with tree=tree anchor=person.id relation="farzand" label="Farzand qo'shish" %}
-    {% endif %}
-  </div>
-  {% endif %}
-  {% if not marriages and not can_edit %}<div class="empty-hint">Kiritilmagan</div>{% endif %}
-</div>
+  </section>
 
-<div class="relation-section">
-  <h3><svg class="sec-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h8l6 6v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg> Hikoyalar</h3>
-  <div class="story-list">
+  {# ----------------------------------------------------------- stories #}
+  <section class="pf-card pd-section" id="hikoyalar">
+    <div class="pd-h2-row">
+      <h2 class="pd-h2">Hikoya va xotiralar</h2>
+      {% if stories %}<span class="pd-count">{{ stories|length }}</span>{% endif %}
+    </div>
+    <p class="pd-sub">{{ person.first_name }} haqida oila a'zolari eslagan voqealar. Har bir hikoya PDF kitobga ham kiradi.</p>
+
     {% for story in stories %}
-    <div class="story-card">
-      <div class="story-av">{{ story.author.username|first|upper|default:"?" }}</div>
-      <div class="story-body">
-        <div class="story-head">
-          <span class="story-name">{{ story.author.username|default:"Noma'lum" }}</span>
-          <span class="story-date">{{ story.created_at|date:"d.m.Y" }}</span>
+    <article class="pd-story" id="hikoya-{{ story.id }}">
+      <header class="pd-story-head">
+        <h3 class="pd-story-title">{% firstof story.title "Xotira" %}</h3>
+        {% if story.when %}<span class="pd-when">{{ story.when }}</span>{% endif %}
+      </header>
+      <div class="pd-story-text">{{ story.text|linebreaks }}</div>
+      <footer class="pd-story-foot">
+        <span class="pd-story-av">{% if story.author %}{{ story.author.first_name|default:story.author.username|first|upper }}{% else %}?{% endif %}</span>
+        <span>
+          <b>{% if story.author %}{% firstof story.author.get_full_name story.author.username %}{% else %}Noma'lum{% endif %}</b>
+          <small>{{ story.created_at|uz_date }}{% if story.updated_at and story.updated_at|date:"YmdHi" != story.created_at|date:"YmdHi" %} · tahrirlangan{% endif %}</small>
+        </span>
+        {% if story.can_edit or story.can_delete %}
+        <span class="pd-story-tools">
+          {% if story.can_edit %}<button type="button" class="pd-link" data-edit-story="{{ story.id }}">Tahrirlash</button>{% endif %}
+          {% if story.can_delete %}
+          <form method="post" action="{% url 'story_delete' tree.url_key person.id story.id %}" onsubmit="return confirm('Bu hikoyani o\'chirasizmi?');">
+            {% csrf_token %}<button type="submit" class="pd-link pd-link-danger">O'chirish</button>
+          </form>
+          {% endif %}
+        </span>
+        {% endif %}
+      </footer>
+      {% if story.can_edit %}
+      <form method="post" action="{% url 'story_edit' tree.url_key person.id story.id %}" class="pd-story-form" data-story-form="{{ story.id }}" hidden>
+        {% csrf_token %}
+        <div class="pf-row">
+          <div><label class="pf-label">Sarlavha</label><input class="pf-input" name="title" maxlength="120" value="{{ story.title }}" placeholder="Masalan: Bobomning bog'i"></div>
+          <div><label class="pf-label">Qachon bo'lgan</label><input class="pf-input" name="when" maxlength="60" value="{{ story.when }}" placeholder="Masalan: 1975 yoki urush yillari"></div>
         </div>
-        <div class="story-text">{{ story.text }}</div>
-      </div>
-    </div>
+        <label class="pf-label">Hikoya</label>
+        <textarea class="pf-input" name="text" rows="6" required>{{ story.text }}</textarea>
+        <div class="pf-actions">
+          <button type="submit" class="pf-btn pf-btn-primary pf-btn-sm">Saqlash</button>
+          <button type="button" class="pf-btn pf-btn-sm" data-edit-story="{{ story.id }}">Bekor qilish</button>
+        </div>
+      </form>
+      {% endif %}
+    </article>
     {% empty %}
-      <div class="empty-hint">Hozircha hikoyalar yo'q. Bu inson haqidagi bir voqeani birinchi bo'lib yozing.</div>
+    <div class="pd-story-empty">
+      <b>Hozircha hikoya yo'q.</b>
+      <span>{{ person.first_name }} haqida bilgan bir voqeangizni yozing — kichik xotira ham avlodlar uchun qimmatli.</span>
+    </div>
     {% endfor %}
-  </div>
 
-  {% if can_edit %}
-  <form method="post" action="{% url 'add_story' tree.url_key person.id %}" class="story-compose">
-    {% csrf_token %}
-    <textarea class="field" name="text" placeholder="Bu odam haqida bir voqea yoki xotira yozing..." rows="3" required></textarea>
-    <button class="btn-small filled" type="submit">Hikoya qo'shish</button>
-  </form>
-  {% endif %}
-</div>
+    {% if can_write %}
+    <form method="post" action="{% url 'add_story' tree.url_key person.id %}" class="pd-compose" id="yozish">
+      {% csrf_token %}
+      <h3 class="pd-h3" style="margin-top:0;">Yangi hikoya</h3>
+      <p class="pd-sub" style="margin-bottom:8px;">Nimadan boshlashni bilmasangiz, mavzu tanlang:</p>
+      <div class="pd-prompts">
+        {% for label, question in story_prompts %}<button type="button" class="pd-prompt" data-title="{{ label }}" data-question="{{ question }}">{{ label }}</button>{% endfor %}
+      </div>
+      <div class="pf-row">
+        <div><label class="pf-label" for="st-title">Sarlavha <small>ixtiyoriy</small></label><input class="pf-input" id="st-title" name="title" maxlength="120" placeholder="Masalan: Bobomning bog'i"></div>
+        <div><label class="pf-label" for="st-when">Qachon bo'lgan <small>ixtiyoriy</small></label><input class="pf-input" id="st-when" name="when" maxlength="60" placeholder="Masalan: 1975 yoki urush yillari"></div>
+      </div>
+      <label class="pf-label" for="st-text">Hikoya</label>
+      <textarea class="pf-input" id="st-text" name="text" rows="5" required placeholder="{{ person.first_name }} haqida bir voqea, odati yoki aytgan so'zini yozing…"></textarea>
+      <div class="pf-actions"><button class="pf-btn pf-btn-primary" type="submit">Hikoyani saqlash</button></div>
+    </form>
+    {% endif %}
+  </section>
+</main>
+<script>
+(function () {
+  "use strict";
+  // edit a story in place
+  document.querySelectorAll("[data-edit-story]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var id = b.getAttribute("data-edit-story");
+      var form = document.querySelector('[data-story-form="' + id + '"]');
+      var art = document.getElementById("hikoya-" + id);
+      if (!form || !art) return;
+      var open = form.hidden;
+      form.hidden = !open;
+      art.classList.toggle("is-editing", open);
+      if (open) form.querySelector("textarea").focus();
+    });
+  });
+  // a topic fills the title and asks the question
+  var title = document.getElementById("st-title"), text = document.getElementById("st-text");
+  document.querySelectorAll(".pd-prompt").forEach(function (b) {
+    b.addEventListener("click", function () {
+      if (title && !title.value) title.value = b.getAttribute("data-title");
+      if (text) { text.placeholder = b.getAttribute("data-question"); text.focus(); }
+      document.querySelectorAll(".pd-prompt").forEach(function (o) { o.classList.toggle("is-on", o === b); });
+    });
+  });
+})();
+</script>
 {% endblock %}

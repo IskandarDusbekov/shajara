@@ -38,7 +38,7 @@
         </a>
         {% elif my_role %}
         {% comment %}A family keeps its tree as a book: the PDF sits in the bar, not hidden in a menu.{% endcomment %}
-        <a class="topbar-link{% if page == 'tree_pdf' %} is-current{% endif %}" href="{% url 'tree_pdf' tree.url_key %}">
+        <a class="topbar-link{% if page == 'tree_pdf' %} is-current{% endif %}" href="{% url 'index' tree.url_key %}?eksport=1">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 11h6"/></svg>
           <span>Kitob</span>
         </a>
@@ -118,34 +118,47 @@
 
     {% if my_role or tree.is_public or request.user.is_staff %}
     <div class="menu-group">
-      <p class="menu-group-title">Hujjat va sozlama</p>
-      <a class="menu-item" href="{% url 'tree_pdf' tree.url_key %}">
-        <svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>
-        <span>PDF kitob</span>
+      <p class="menu-group-title">Yuklab olish</p>
+      <a class="menu-item" href="{% url 'index' tree.url_key %}?eksport=1">
+        <svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 11h6"/></svg>
+        <span class="menu-text">Oila kitobi (PDF)<small>5 uslubda, chop etish uchun</small></span>
       </a>
       <a class="menu-item" href="{% url 'index' tree.url_key %}?eksport=1">
         <svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>
-        <span>Rasm sifatida yuklab olish</span>
+        <span class="menu-text">Rasm<small>Ramkaga solish yoki Telegram uchun</small></span>
       </a>
       {% if my_role == "owner" %}
       <a class="menu-item" href="{% url 'tree_export' tree.url_key %}">
         <svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>
-        <span>JSON zaxira</span>
-      </a>
-      <a class="menu-item{% if page == 'tree_settings' %} is-current{% endif %}" href="{% url 'tree_settings' tree.url_key %}">
-        <svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.1 14.5a1.6 1.6 0 0 0 .32 1.77l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.6 1.6 0 0 0-2.72 1.14V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-2.78-1.09l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.6 1.6 0 0 0 3.1 14.5H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.24 7.7l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.6 1.6 0 0 0 9.6 3.9V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.72 1.14l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.6 1.6 0 0 0-.32 1.77v.06a1.6 1.6 0 0 0 1.47.97H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.47.97z"/></svg>
-        <span>Shajara sozlamalari</span>
+        <span class="menu-text">Arxivlash<small>Zaxira nusxa — kompyuteringizda saqlanadi</small></span>
       </a>
       {% endif %}
     </div>
+    {% if my_role == "owner" %}
+    <div class="menu-group">
+      <p class="menu-group-title">Boshqaruv</p>
+      <a class="menu-item{% if page == 'tree_settings' %} is-current{% endif %}" href="{% url 'tree_settings' tree.url_key %}">
+        <svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.1 14.5a1.6 1.6 0 0 0 .32 1.77l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.6 1.6 0 0 0-2.72 1.14V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-2.78-1.09l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.6 1.6 0 0 0 3.1 14.5H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.24 7.7l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.6 1.6 0 0 0 9.6 3.9V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.72 1.14l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.6 1.6 0 0 0-.32 1.77v.06a1.6 1.6 0 0 0 1.47.97H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.47.97z"/></svg>
+        <span class="menu-text">Shajara sozlamalari<small>Nomi, kimga ko'rinishi</small></span>
+      </a>
+      <a class="menu-item" href="{% url 'tree_settings' tree.url_key %}#qulf">
+        <svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        <span class="menu-text">Qulflash<small>Yozganlaringizni boshqalar o'zgartirmasin</small></span>
+      </a>
+    </div>
+    {% endif %}
     {% endif %}
     {% endif %}
 
     <div class="menu-group">
-      <p class="menu-group-title">Shajaralar</p>
+      <p class="menu-group-title">Shajaralarim</p>
       <a class="menu-item{% if page == 'my_trees' %} is-current{% endif %}" href="{% url 'my_trees' %}">
         <svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-6"/><path d="M12 16c-3.5 0-6-2.4-6-6 0 0 3.4 0 6 2.4C12 8 12 5 12 5s0 3 0 7.4C14.6 10 18 10 18 10c0 3.6-2.5 6-6 6z"/></svg>
         <span>Mening shajaralarim</span>
+      </a>
+      <a class="menu-item{% if page == 'tree_create' %} is-current{% endif %}" href="{% url 'tree_create' %}">
+        <svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        <span>Yangi shajara boshlash</span>
       </a>
       <a class="menu-item{% if page == 'public_trees' %} is-current{% endif %}" href="{% url 'public_trees' %}">
         <svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 11h6"/></svg>
@@ -157,7 +170,7 @@
       </a>
       <a class="menu-item" href="{% url 'tree_import_create' %}">
         <svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>
-        <span>JSON zaxiradan tiklash</span>
+        <span>Arxivdan tiklash</span>
       </a>
     </div>
 
