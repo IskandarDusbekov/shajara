@@ -22,7 +22,7 @@ because a caption would stay behind when a card is dragged away from it.
               <div class="sibling-set">
                 {% for p in group.persons %}
                 <div id="node-{{ p.id }}"
-                     class="leaf-node preview-node{% if p.id == root.id %} leaf-node-root{% elif p.gender == 'ayol' %} leaf-node-ayol{% endif %}"
+                     class="leaf-node preview-node leaf-g-{{ p.gender }}{% if p.id == root.id %} leaf-node-root{% elif p.gender == 'ayol' %} leaf-node-ayol{% endif %}"
                      data-person="{{ p.id }}"{% if p.locked and not is_owner %} data-locked="1"{% endif %}
                      data-name="{{ p.full_name }}"
                      data-year="{{ p.display_year }}"
@@ -48,8 +48,8 @@ because a caption would stay behind when a card is dragged away from it.
                     {% endif %}
                   </span>
                   {% if me_id and p.id == me_id %}<span class="leaf-me">Siz</span>{% endif %}
-                  <span class="leaf-name">{{ p.full_name }}</span>
-                  {% if p.display_year %}<span class="leaf-year">{{ p.display_year }}</span>{% endif %}
+                  <span class="leaf-name" title="{{ p.full_name }}">{{ p.full_name }}</span>
+                  <span class="leaf-year">{% if p.display_year %}{{ p.display_year }}{% else %}?{% endif %}{% if p.death_year %} – {{ p.death_year }}{% endif %}</span>
                 </div>
                 {% endfor %}
               </div>
@@ -67,6 +67,15 @@ because a caption would stay behind when a card is dragged away from it.
     {% for message in messages %}
     <div class="toast-msg{% if message.tags == 'success' %} toast-success{% endif %}" role="status" title="Yopish uchun bosing">{{ message }}</div>
     {% endfor %}
+  </div>
+  {% endif %}
+
+  {% comment %}Offered when people were added after a hand-made arrangement was saved.{% endcomment %}
+  {% if can_edit %}
+  <div class="layout-bar layout-hint" id="layout-hint" role="status" hidden>
+    <span class="layout-bar-text">Yangi qo'shilganlar eski tartibga sig'dirildi. Hammasini chiroyli qayta joylaymi?</span>
+    <button type="button" class="layout-bar-btn layout-bar-save" id="layout-hint-go">Avtomatik tartiblash</button>
+    <button type="button" class="layout-bar-btn" id="layout-hint-x" aria-label="Kerak emas">Yo'q</button>
   </div>
   {% endif %}
 
@@ -135,10 +144,15 @@ because a caption would stay behind when a card is dragged away from it.
     <p class="nc-lead">{{ next_intro.lead }}</p>
     <div class="nc-steps">
       {% for s in next_steps %}
-      <a class="nc-step{% if forloop.first %} is-primary{% endif %}" href="{{ s.url }}"{% if forloop.first %} data-tour="start-next"{% endif %}>
-        <span class="nc-plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
-        <span class="nc-txt"><b>{{ s.title }}</b><small>{{ s.hint }}</small></span>
-      </a>
+      <div class="nc-row" data-step="{{ s.anchor }}-{{ s.relation }}"{% if forloop.counter > 3 %} hidden{% endif %}>
+        <a class="nc-step{% if forloop.first %} is-primary{% endif %}" href="{{ s.url }}"{% if forloop.first %} data-tour="start-next"{% endif %}>
+          <span class="nc-plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+          <span class="nc-txt"><b>{{ s.title }}</b><small>{{ s.hint }}</small></span>
+        </a>
+        <button type="button" class="nc-skip" title="Kerak emas — bu maslahatni boshqa ko'rsatmaslik" aria-label="Kerak emas: {{ s.title }}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
       {% endfor %}
     </div>
     <p class="nc-progress" title="#YettiOtam — yetti avlod">

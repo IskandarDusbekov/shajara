@@ -136,15 +136,17 @@
   <section class="pf-card pd-section" id="suratlar">
     <div class="pd-h2-row">
       <h2 class="pd-h2">Suratlar</h2>
-      {% if gallery %}<span class="pd-count">{{ gallery|length }}</span>{% endif %}
+      {% if photo_count %}<span class="pd-count" title="Bir kishiga ko'pi bilan {{ photo_max }} ta surat (hikoyalardagilar bilan birga)">{{ photo_count }} / {{ photo_max }}</span>{% endif %}
     </div>
-    <p class="pd-sub">Eski oilaviy suratlar — kim, qayerda, qachon tushganini yozib qo'ying. Ular PDF kitobga ham kiradi.</p>
+    <p class="pd-sub">Eski oilaviy suratlar — kim, qayerda, qachon tushganini yozib qo'ying. Ular PDF kitobga ham kiradi. Bir kishiga {{ photo_max }} tagacha eng qimmatli suratlarni tanlang.</p>
     {% if gallery %}
     <div class="pd-gallery">
       {% for ph in gallery %}{% include "shajara/_photo.html" %}{% endfor %}
     </div>
     {% endif %}
-    {% if can_write %}
+    {% if can_write and not photo_room %}
+    <p class="pd-full">Bu kishida {{ photo_max }} ta surat bor — chegaraga yetdi. Yangisini qo'shish uchun keraksizini o'chiring.</p>
+    {% elif can_write %}
     <details class="pd-upload"{% if not gallery %} open{% endif %}>
       <summary><span class="pd-upload-plus">+</span>Surat qo'shish</summary>
       <form method="post" action="{% url 'photo_add' tree.url_key person.id %}" enctype="multipart/form-data">
@@ -196,6 +198,15 @@
         </span>
         {% if story.can_edit or story.can_delete %}
         <span class="pd-story-tools">
+          {% if photo_room %}
+          <form method="post" action="{% url 'photo_add' tree.url_key person.id %}" enctype="multipart/form-data" class="pd-story-pic">
+            {% csrf_token %}<input type="hidden" name="story" value="{{ story.id }}">
+            <label class="pd-link" title="Shu hikoyaga surat biriktirish">
+              <input type="file" name="images" accept="image/*" multiple data-autosubmit>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>Surat biriktirish
+            </label>
+          </form>
+          {% endif %}
           {% if story.can_edit %}<button type="button" class="pd-link" data-edit-story="{{ story.id }}">Tahrirlash</button>{% endif %}
           {% if story.can_delete %}
           <form method="post" action="{% url 'story_delete' tree.url_key person.id story.id %}" onsubmit="return confirm('Bu hikoyani o\'chirasizmi?');">
@@ -291,6 +302,15 @@
       if (!form) return;
       form.hidden = !form.hidden;
       if (!form.hidden) form.querySelector("input[name=caption]").focus();
+    });
+  });
+  // «Surat biriktirish» on a story sends the picture as soon as it is chosen
+  document.querySelectorAll("input[data-autosubmit]").forEach(function (input) {
+    input.addEventListener("change", function () {
+      if (!input.files.length) return;
+      var label = input.closest("label");
+      if (label) label.lastChild.textContent = "Yuklanmoqda…";
+      input.form.submit();
     });
   });
   // removing anything asks first

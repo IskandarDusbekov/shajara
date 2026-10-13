@@ -1,0 +1,28 @@
+{% comment %}One tree on «Shajaralarim»: name, how big it has grown, who builds it, and one obvious way in.{% endcomment %}
+<a class="mt-tree is-{{ tree.kind }}" href="{% url 'index' tree.url_key %}">
+  <span class="mt-tree-top">
+    <span class="mt-tree-ic">{% if tree.is_learning %}{% include "shajara/_icon.html" with name="edu" %}{% else %}{% include "shajara/_icon.html" with name="fam" %}{% endif %}</span>
+    <span class="mt-tree-title">
+      <b>{{ tree.name }}</b>
+      <small>{% if tree.subject or tree.era %}{{ tree.subject }}{% if tree.subject and tree.era %} · {% endif %}{{ tree.era }}{% else %}{% if tree.is_learning %}Ta'limiy{% else %}Oilaviy{% endif %} · {{ tree.root_person.full_name }}{% endif %}</small>
+    </span>
+  </span>
+  {% if tree.people %}
+  <span class="mt-tree-stats">
+    <span class="mt-num"><span><b>{{ tree.people }}</b> kishi</span></span>
+    {% if tree.generations %}
+    <span class="mt-num"><span class="pf-gen-dots">{% for n in "1234567" %}<i{% if forloop.counter <= tree.generations %} class="on"{% endif %}></i>{% endfor %}</span><span><b>{{ tree.generations }}</b>{% if tree.generations < 7 %}/7{% endif %} avlod</span></span>
+    {% endif %}
+  </span>
+  {% endif %}
+  <span class="mt-tree-foot">
+    {% if mine %}
+    <span class="pf-pill">{% include "shajara/_icon.html" with name="users" %}{% if tree.num_members %}{{ tree.num_members|add:1 }} kishi quryapti{% else %}Faqat siz{% endif %}</span>
+    <span class="pf-pill">{% if tree.is_public %}{% include "shajara/_icon.html" with name="globe" %}Ommaviy{% else %}{% include "shajara/_icon.html" with name="lock" %}Shaxsiy{% endif %}</span>
+    {% else %}
+    <span class="pf-pill">{% include "shajara/_icon.html" with name="shield" %}@{{ tree.owner.username }}</span>
+    <span class="pf-role pf-role-{{ tree.my_role }}">{% if tree.my_role == "muharrir" %}Siz: muharrir{% else %}Siz: kuzatuvchi{% endif %}</span>
+    {% endif %}
+    <span class="mt-open">Ochish {% include "shajara/_icon.html" with name="arrow" %}</span>
+  </span>
+</a>

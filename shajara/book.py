@@ -229,6 +229,9 @@ def make_styles():
     # «at a glance» numbers and the reading guide
     s["stat_num"] = ParagraphStyle("stat_num", fontName=b, fontSize=22, leading=26, textColor=WINE, alignment=TA_CENTER)
     s["stat_label"] = ParagraphStyle("stat_label", fontName=r, fontSize=8.6, leading=11, textColor=MUTED, alignment=TA_CENTER)
+    s["mem_h"] = ParagraphStyle("mem_h", fontName=bi, fontSize=11.5, leading=15, textColor=WINE, spaceBefore=2, spaceAfter=2)
+    s["fact_t"] = ParagraphStyle("fact_t", fontName=b, fontSize=9, leading=12, textColor=GOLD)
+    s["fact_v"] = ParagraphStyle("fact_v", fontName=r, fontSize=10.3, leading=14.5, textColor=INK)
     s["guide"] = ParagraphStyle("guide", parent=s["body_left"], fontSize=10, leading=14.5, leftIndent=12, bulletIndent=0,
                                 spaceAfter=4)
     return s
@@ -1023,8 +1026,8 @@ def _build_book(tree, *, code, verify_url, tree_url, contributors, sources):
     )
     if years:
         intro += f" Kiritilgan eng qadimgi yil — {min(years)}, eng so‘nggisi — {max(years)}."
-    if places:
-        intro += f" Shaxslar {len(places)} ta turli joyda tug‘ilgan."
+    if len(places) > 1:
+        intro += f" Ular {len(places)} xil joyda tug‘ilgan."
     families_total = sum(1 for pid in people if fam.children.get(pid) and pid in fam.number)
     tiles = [(len(people), "shaxs"), (len(gens), "avlod"), (families_total, "oila"),
              (min(years) if years else "—", "eng qadimgi yil")]
@@ -1040,21 +1043,40 @@ def _build_book(tree, *, code, verify_url, tree_url, contributors, sources):
     if tree.description:
         story += [Spacer(1, 6), P(clean(tree.description), st["body"])]
 
+    # curious things about this family, in a grid of small boxes
+    facts = family_facts(fam)
+    if facts:
+        cells = [[P(clean(t), st["fact_t"]), P(v, st["fact_v"])] for t, v in facts]
+        rows = [cells[i:i + 2] for i in range(0, len(cells), 2)]
+        if len(rows[-1]) == 1:
+            rows[-1].append("")
+        grid = Table(rows, colWidths=[None, None])
+        grid.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("BACKGROUND", (0, 0), (-1, -1), ROW_ALT),
+            ("LINEAFTER", (0, 0), (0, -1), 3, PAPER), ("LINEBELOW", (0, 0), (-1, -2), 3, PAPER),
+            ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+            ("TOPPADDING", (0, 0), (-1, -1), 8), ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+        ]))
+        story += [Spacer(1, 12), P("Oilangiz haqida qiziqarli", st["h2"]), grid]
+
     def guide_line(text):
         return P(text, st["guide"], bulletText="•")
 
     guide = [
-        P("Kitobdan qanday foydalanish kerak", st["h2"]),
-        guide_line("<b>Shajara chizmasi</b> — keyingi sahifalarda butun oila bir qarashda: har bir avlod alohida "
-                   "qatorda, turmush o‘rtoqlar yonma-yon, farzandlar pastda."),
-        guide_line("<b>Boblar</b> — har bir bob bitta avlod. Har bir oila uchun kichik chizma, ota-onaning "
-                   "ma’lumoti va farzandlar jadvali bor."),
-        guide_line(f"<b>Raqamlar</b> — har bir kishining o‘z raqami bor: <b>1</b> — nasl boshi, <b>1.2</b> — uning "
-                   f"ikkinchi farzandi, <b>1.2.1</b> — o‘sha farzandning birinchi farzandi. Nuqta qancha ko‘p bo‘lsa, "
-                   f"avlod shuncha keyin. Turmush o‘rtoqlar juftining raqami bilan ko‘rsatiladi."),
-        guide_line("<b>Kimnidir topish</b> — «Nasl ro‘yxati»dan ismni toping, raqami bo‘yicha boblardan uning oilasiga "
-                   "o‘ting. Elektron nusxada raqamlar bosiladigan havola."),
-        guide_line("<b>Qisqartmalar:</b> t. — tug‘ilgan; v. — vafot etgan; taxm. — taxminiy yil."),
+        P("Bu kitobni qanday o‘qish kerak", st["h2"]),
+        P("Kitob oilangiz tarixini avloddan-avlodga hikoya qiladi — eng qadimgi ajdodlardan boshlab bugungi "
+          "farzandlargacha. Uni boshidan oxirigacha roman kabi o‘qish ham, kerakli odamni topib o‘qish ham mumkin.",
+          st["body_left"]),
+        Spacer(1, 4),
+        guide_line("<b>Avval — butun oila bir sahifada.</b> «Shajara chizmasi»da kim kimning farzandi ekanini "
+                   "bir qarashda ko‘rasiz."),
+        guide_line("<b>Keyin — har bir avlod alohida bobda.</b> Har bir oila haqida: kim bilan oila qurgan, "
+                   "farzandlari kimlar, qayerda tug‘ilgan, nima ish qilgan va qarindoshlari eslagan xotiralar."),
+        guide_line("<b>Ismlar yonidagi raqamlar</b> — kitob ichidagi «manzil»: <b>1</b> — nasl boshi, <b>1.2</b> — "
+                   "uning ikkinchi farzandi, <b>1.2.1</b> — o‘sha farzandning birinchi farzandi. Raqam bo‘yicha "
+                   "kerakli oilani tez topasiz; elektron nusxada uni bossangiz o‘sha sahifa ochiladi."),
+        guide_line("<b>Qisqartmalar:</b> t. — tug‘ilgan, v. — vafot etgan, taxm. — taxminiy yil."),
     ]
     box = Table([[guide]], colWidths=[None])
     box.setStyle(TableStyle([
@@ -1122,8 +1144,14 @@ def _build_book(tree, *, code, verify_url, tree_url, contributors, sources):
             P((f"{clean(root.full_name)}ga nisbatan: {clean(relative)} · " if lvl != 0 else
                (f"{clean(root.full_name)} avlodi · " if not learning else ""))
               + f"{people_here} kishi" + (f", {families_here} ta oila" if families_here else ""), st["chapter_intro"]),
-            Spacer(1, 14),
         ]
+        # who the chapter is about, in one sentence a reader can take in before turning the page
+        named = [clean(people[pid].first_name) for pid in people if levels[pid] == lvl]
+        if named:
+            shown = named[:10]
+            story.append(P(f"Bu bobda: {join_and(shown)}" + (f" va yana {len(named) - 10} kishi" if len(named) > 10 else "")
+                           + ".", st["chapter_intro"]))
+        story.append(Spacer(1, 14))
         # A person with neither spouse nor children is already a row in their
         # parents' table; only those with more to tell get a short entry,
         # gathered at the end of the chapter instead of a family section each.
@@ -1132,9 +1160,15 @@ def _build_book(tree, *, code, verify_url, tree_url, contributors, sources):
             if pid not in singles:
                 story += family_section(fam, pid, st, tree)
         described = [pid for pid in singles if has_story(people[pid]) or not (fam.father.get(pid) or fam.mother.get(pid))]
+        youngest = not described and singles and len(singles) == len(heads)
+        if youngest:
+            # the youngest generation is often all singles: still say who they are, not an empty chapter
+            described = singles
         if described:
-            story += [CondPageBreak(6 * cm), Paragraph("Oilasi kiritilmagan shaxslar", st["h2"]),
-                      Paragraph("Bu avlodning turmush o‘rtog‘i va farzandlari hali kiritilmagan vakillari.", st["small"]),
+            story += [CondPageBreak(6 * cm),
+                      Paragraph("Bu avlod vakillari" if youngest else "Oilasi kiritilmagan shaxslar", st["h2"]),
+                      Paragraph("Ularning oilasi haqida ma’lumot hali kiritilmagan." if youngest else
+                                "Bu avlodning turmush o‘rtog‘i va farzandlari hali kiritilmagan vakillari.", st["small"]),
                       Spacer(1, 6)]
             for idx, pid in enumerate(described):
                 story += [Paragraph(f'<a name="shaxs-{pid}"/>', st["small"])] + person_entry(fam, pid, st, tree)
@@ -1336,27 +1370,129 @@ def family_section(fam, pid, st, tree):
     return out
 
 
+def family_facts(fam):
+    """A handful of curious things about the family, worked out from the tree:
+    the oldest ancestor, the longest life, the biggest family, the names and
+    trades that run in it. Each as (title, sentence); only what the data supports."""
+    from collections import Counter
+
+    people = fam.people
+    facts = []
+    born = {pid: _year(p.display_year) for pid, p in people.items() if _year(p.display_year)}
+    if born:
+        oldest = min(born, key=born.get)
+        facts.append(("Eng qadimgi ajdod", f"{clean(people[oldest].full_name)} — {born[oldest]}-yilda tug‘ilgan. "
+                                           f"Shajaradagi eng qadimgi sana shu."))
+        youngest = max(born, key=born.get)
+        if youngest != oldest:
+            facts.append(("Eng yosh avlod", f"{clean(people[youngest].full_name)} — {born[youngest]}-yilda tug‘ilgan. "
+                                            f"Ikki sana orasida {born[youngest] - born[oldest]} yil bor."))
+    lives = {}
+    for pid, p in people.items():
+        b, d = _year(p.display_year), _year(p.death_year)
+        if b and d and 0 < d - b < 125:
+            lives[pid] = d - b
+    if lives:
+        longest = max(lives, key=lives.get)
+        facts.append(("Eng uzoq umr", f"{clean(people[longest].full_name)} {lives[longest]} yil umr ko‘rgan."))
+    if fam.children:
+        big = max(fam.children, key=lambda pid: len(fam.children[pid]))
+        n = len(fam.children[big])
+        if n >= 2:
+            couple = [big] + [s for s in fam.spouses[big]][:1]
+            facts.append(("Eng katta oila", f"{join_and([clean(people[x].first_name) for x in couple])}ning "
+                                            f"{n} nafar farzandi bor."))
+    names = Counter(p.first_name.strip() for p in people.values() if p.first_name.strip())
+    repeated = [(nm, c) for nm, c in names.most_common(3) if c > 1]
+    if repeated:
+        facts.append(("Oilada qayta qo‘yilgan ismlar",
+                      join_and([f"{clean(nm)} ({c} marta)" for nm, c in repeated]) +
+                      " — ismlar ko‘pincha bobo-buvilar sharafiga qo‘yiladi."))
+    trades = Counter(p.occupation.strip().lower() for p in people.values() if p.occupation.strip())
+    if trades:
+        top = [t for t, _ in trades.most_common(4)]
+        facts.append(("Oiladagi kasblar", f"{len(trades)} xil kasb egalari bor: {clean(join_and(top))}."))
+    places = Counter(place_text(p).split(",")[-1].strip() for p in people.values() if place_text(p))
+    if places:
+        place, c = places.most_common(1)[0]
+        if c >= 2:
+            facts.append(("Ona yurt", f"{c} kishi {clean(place)}da tug‘ilgan"
+                                      + (f"; jami {len(places)} xil joy tilga olingan." if len(places) > 1 else ".")))
+    stories = sum(p.stories.count() for p in people.values())
+    pictures = sum(p.photos.count() for p in people.values())
+    if stories or pictures:
+        held = join_and([f"{stories} ta hikoya" if stories else "", f"{pictures} ta surat" if pictures else ""])
+        facts.append(("Xotiralar", f"Kitobda {held} bor — ular har bir kishining sahifasida, uning hayoti "
+                                   f"bilan yonma-yon."))
+    return facts
+
+
+def join_and(items):
+    """['A', 'B', 'C'] -> 'A, B va C'."""
+    items = [i for i in items if i]
+    if len(items) <= 1:
+        return "".join(items)
+    return ", ".join(items[:-1]) + " va " + items[-1]
+
+
+def narrative(fam, pid, show_children=True):
+    """What is known about a person, told in a few plain sentences — so the book
+    reads like a family chronicle rather than a form."""
+    p = fam.people[pid]
+    name = clean(p.first_name)
+    out = []
+    born = year_text(p.display_year)
+    if p.birth_date:
+        when = f"{long_date(p.birth_date)}da"
+    elif born.startswith("taxm."):
+        when = f"taxminan {born[6:]}-yilda"
+    elif born:
+        when = f"{born}-yilda"
+    else:
+        when = ""
+    place = clean(place_text(p))
+    if when and place:
+        out.append(f"{name} {when} tug‘ilgan, tug‘ilgan joyi — {place}.")
+    elif when:
+        out.append(f"{name} {when} tug‘ilgan.")
+    elif place:
+        out.append(f"{name}ning tug‘ilgan joyi — {place}.")
+    if p.patronymic:
+        out.append(f"Otasining ismi bilan — {clean(p.patronymic)}.")
+    father, mother = fam.father.get(pid), fam.mother.get(pid)
+    if father and mother:
+        out.append(f"Otasi — {fam.ref(father)}, onasi — {fam.ref(mother)}.")
+    elif father:
+        out.append(f"Otasi — {fam.ref(father)}.")
+    elif mother:
+        out.append(f"Onasi — {fam.ref(mother)}.")
+    if p.occupation:
+        job = p.occupation.strip().rstrip(".")
+        if len(job) > 1 and not job[1].isupper():      # «Dehqon» -> «dehqon» mid-sentence, keep «IT»
+            job = job[0].lower() + job[1:]
+        out.append(f"Kasbi — {clean(job)}.")
+    if p.location:
+        out.append(f"Yashash joyi — {clean(p.location)}.")
+    spouses = fam.spouses[pid]
+    if spouses:
+        word = "Turmush o‘rtog‘i" if len(spouses) == 1 else "Turmush o‘rtoqlari"
+        out.append(f"{word} — {join_and([fam.ref(s) for s in spouses])}.")
+    kids = fam.children.get(pid, [])
+    if kids and show_children:
+        out.append(f"Farzandlari ({len(kids)} nafar): {join_and([fam.ref(k) for k in kids])}.")
+    elif kids:
+        out.append(f"{len(kids)} nafar farzandi bor: {join_and([clean(fam.people[k].first_name) for k in kids])}.")
+    died = year_text(p.death_year)
+    if died:
+        b, d = _year(p.display_year), _year(p.death_year)
+        age = f", {d - b} yil umr ko‘rgan" if b and d and 0 < d - b < 125 else ""
+        out.append(f"{died.replace('taxm. ', 'Taxminan ')}-yilda vafot etgan{age}.")
+    return " ".join(out)
+
+
 def person_entry(fam, pid, st, tree, show_children=True):
     p = fam.people[pid]
-    rows = []
-
-    def fact(label, value):
-        if value:
-            rows.append([Paragraph(label, st["label"]), Paragraph(value, st["value"])])
-
-    if p.patronymic:
-        fact("Otasining ismi", clean(p.patronymic))
-    fact("Tug‘ilgan joyi", clean(place_text(p)))
-    if p.birth_date:
-        fact("Tug‘ilgan sanasi", long_date(p.birth_date))
-    fact("Kasbi", clean(p.occupation))
-    fact("Yashash joyi", clean(p.location))
-    parents = [x for x in (fam.father.get(pid), fam.mother.get(pid)) if x]
-    fact("Ota-onasi", " va ".join(fam.ref(x) for x in parents))
-    fact("Turmush o‘rtog‘i", ", ".join(fam.ref(x) for x in fam.spouses[pid]))
-    kids = fam.children.get(pid, [])
-    if show_children:
-        fact("Farzandlari", ", ".join(fam.ref(x) for x in kids))
+    told = narrative(fam, pid, show_children)
 
     head = [
         Paragraph(fam.label_for(pid), st["num"]),
@@ -1367,14 +1503,7 @@ def person_entry(fam, pid, st, tree, show_children=True):
         head.append(Paragraph(clean(life_span(p)), st["years"]))
     head.append(Spacer(1, 4))
 
-    facts = None
-    if rows:
-        facts = Table(rows, colWidths=[3.3 * cm, None])
-        facts.setStyle(TableStyle([
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-            ("TOPPADDING", (0, 0), (-1, -1), 1.5), ("BOTTOMPADDING", (0, 0), (-1, -1), 1.5),
-        ]))
+    facts = Paragraph(told, st["body"]) if told else None
 
     photo = None
     if p.photo:
@@ -1406,8 +1535,8 @@ def person_entry(fam, pid, st, tree, show_children=True):
     stories = list(p.stories.select_related("author").order_by("created_at"))
     pictures = list(p.photos.all())
     if stories:
-        out.append(Spacer(1, 6))
-        out.append(Paragraph("Xotiralar", st["label"]))
+        out.append(Spacer(1, 8))
+        out.append(Paragraph(f"{clean(p.first_name)} haqida xotiralar", st["mem_h"]))
         for s in stories:
             author = s.author.get_full_name() or s.author.username if s.author else "Noma’lum"
             # Paragraphs, not a table cell: a long memory must be able to run

@@ -316,6 +316,7 @@
   var CLEAR_GAP = 14;
   function positionsFrom(saved) {
     var out = {}, shift = {}, placed = [];
+    newcomers = 0;
     var manual = Object.keys(saved).length > 0;
 
     function box(id) {
@@ -351,22 +352,37 @@
         fresh.push(id);
       });
       if (manual && fresh.length) {
-        for (var guard = 0; guard < 400; guard++) {
-          var push = 0;
-          fresh.forEach(function (id) {
-            var r = box(id), q = overlap(r);
-            if (q) push = Math.max(push, q.x + q.w + CLEAR_GAP - r.x);
-          });
-          if (!push) break;
-          fresh.forEach(function (id) { out[id].x += push; });
-          d.x += push;
+        newcomers += fresh.length;
+        // slide to the nearest free spot, left or right, whichever is closer
+        var start = {};
+        fresh.forEach(function (id) { start[id] = out[id].x; });
+        function search(dir) {
+          var dx = 0;
+          for (var guard = 0; guard < 400; guard++) {
+            var step = 0;
+            fresh.forEach(function (id) {
+              var r = box(id);
+              r.x = start[id] + dx;
+              var q = overlap(r);
+              if (!q) return;
+              var need = dir > 0 ? q.x + q.w + CLEAR_GAP - r.x : q.x - CLEAR_GAP - (r.x + r.w);
+              if (Math.abs(need) > Math.abs(step)) step = need;
+            });
+            if (!step) return dx;
+            dx += step;
+          }
+          return dx;
         }
-        fresh.forEach(function (id) { placed.push(box(id)); });
+        var right = search(1), left = search(-1);
+        var move = Math.abs(left) < Math.abs(right) ? left : right;
+        fresh.forEach(function (id) { out[id].x = start[id] + move; placed.push(box(id)); });
+        d.x += move;
       }
       shift[u] = d;
     });
     return out;
   }
+  var newcomers = 0;   // people added after a hand-made arrangement was saved
 
   function isAutomatic(p) {
     return Object.keys(autoPos).every(function (id) {
@@ -501,6 +517,29 @@
     pos = keep || positionsFrom(savedPos);
     nodes.forEach(placeNode);
     syncLayoutControls();
+    offerTidy();
+  }
+
+  /* People added after a hand-made arrangement have been fitted in, but a
+     grown family usually reads better re-laid: offer it once per count. */
+  var hintBar = document.getElementById("layout-hint");
+  function offerTidy() {
+    if (!hintBar) return;
+    var seenKey = STORE_KEY + "_tidy";
+    var seen = null;
+    try { seen = localStorage.getItem(seenKey); } catch (e) { /* ignore */ }
+    hintBar.hidden = !(newcomers > 0 && !dirty && seen !== String(nodes.length));
+    if (hintBar.dataset.ready) return;
+    hintBar.dataset.ready = "1";
+    function dismiss() {
+      try { localStorage.setItem(seenKey, String(nodes.length)); } catch (e) { /* ignore */ }
+      hintBar.hidden = true;
+    }
+    document.getElementById("layout-hint-x").addEventListener("click", dismiss);
+    document.getElementById("layout-hint-go").addEventListener("click", function () {
+      dismiss();
+      autoArrange();   // then «Tartibni saqlash» keeps it
+    });
   }
 
   // -------------------------------------------------------- the connectors --
@@ -1184,17 +1223,47 @@
 })();
 
 
-/* "Keyingi qadam" guide: can be minimised to a pill; comes back when the tree grows. */
+/* "Keyingi qadam" guide. Minimised to a pill it stays that way until the pill
+   is pressed (it no longer pops back every time someone is added), and any
+   suggestion can be marked «kerak emas» — e.g. no spouse to add — so it never
+   comes back; the next one takes its place. */
 (function () {
   "use strict";
   var card = document.getElementById("next-card"), pill = document.getElementById("nc-pill"), min = document.getElementById("nc-min");
   if (!card || !pill || !min) return;
-  var key = "eshajara_nc_" + card.getAttribute("data-key"), people = card.getAttribute("data-people");
-  function read() { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  function write(v) { try { localStorage.setItem(key, v); } catch (e) { /* ignore */ } }
+  var key = "eshajara_nc_" + card.getAttribute("data-key");
+  var skipKey = key + "_skip";
+  function read(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function write(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } }
   function show(open) { card.hidden = !open; pill.hidden = open; }
-  show(read() !== people);
-  min.addEventListener("click", function () { write(people); show(false); });
+
+  var rows = Array.prototype.slice.call(card.querySelectorAll(".nc-row"));
+  var skipped = (read(skipKey) || "").split(",").filter(Boolean);
+  function relayout() {
+    var shown = 0;
+    rows.forEach(function (row) {
+      var off = skipped.indexOf(row.getAttribute("data-step")) !== -1;
+      row.hidden = off || shown >= 3;
+      if (!row.hidden) {
+        var link = row.querySelector(".nc-step");
+        link.classList.toggle("is-primary", shown === 0);
+        shown++;
+      }
+    });
+    return shown;
+  }
+  rows.forEach(function (row) {
+    row.querySelector(".nc-skip").addEventListener("click", function () {
+      skipped.push(row.getAttribute("data-step"));
+      write(skipKey, skipped.join(","));
+      if (!relayout()) { card.hidden = true; pill.hidden = true; }
+    });
+  });
+
+  var left = rows.length ? relayout() : 1;
+  if (!left) { card.hidden = true; pill.hidden = true; }
+  else show(read(key) !== "min");
+  min.addEventListener("click", function () { write(key, "min"); show(false); });
   pill.addEventListener("click", function () { try { localStorage.removeItem(key); } catch (e) { /* ignore */ } show(true); });
 
   // «Shajarada siz kimsiz?»: two answers, one panel each.

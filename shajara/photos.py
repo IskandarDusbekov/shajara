@@ -25,11 +25,13 @@ from django.views.decorators.http import require_POST
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from .activity import log_activity
-from .models import Person, PersonPhoto, Tree
+from .models import Person, PersonPhoto, PersonStory, Tree
 from .tree import can_view_tree, person_ids_in_tree, tree_role
 
 MAX_PHOTO_BYTES = 15 * 1024 * 1024
 MAX_PHOTOS_PER_UPLOAD = 10
+MAX_PHOTOS_PER_PERSON = 20      # a person's page is a family album, not a photo dump
+MAX_PHOTOS_PER_DAY = 60         # one account, all trees, last 24 hours
 MAX_SIDE = 2000
 Image.MAX_IMAGE_PIXELS = 60_000_000     # refuse decompression bombs
 
@@ -59,10 +61,27 @@ def clean_image(upload):
         return None
 
 
+def room_for(request, person):
+    """How many more pictures may be added to `person` by this user right now."""
+    from datetime import timedelta
+    from django.utils import timezone
+    left_here = MAX_PHOTOS_PER_PERSON - PersonPhoto.objects.filter(person=person).count()
+    today = PersonPhoto.objects.filter(uploaded_by=request.user,
+                                       created_at__gte=timezone.now() - timedelta(days=1)).count()
+    return max(0, min(MAX_PHOTOS_PER_UPLOAD, left_here, MAX_PHOTOS_PER_DAY - today))
+
+
 def attach_photos(request, person, files, caption="", when="", story=None):
-    """Save the uploaded pictures; returns (saved, rejected) counts."""
+    """Save the uploaded pictures within the limits; returns (saved, rejected) counts.
+    Files past the limit count as rejected and request.photo_limit_hit is set."""
     saved = rejected = 0
-    for upload in list(files)[:MAX_PHOTOS_PER_UPLOAD]:
+    files = list(files)
+    room = room_for(request, person)
+    if len(files) > room:
+        request.photo_limit_hit = True
+        rejected += len(files) - room
+        files = files[:room]
+    for upload in files:
         content = clean_image(upload)
         if not content:
             rejected += 1
@@ -89,8 +108,13 @@ def _back(tree, pk, anchor="suratlar"):
 def report(request, saved, rejected):
     if saved:
         messages.success(request, f"{saved} ta surat qo'shildi." if saved > 1 else "Surat qo'shildi.")
-    if rejected:
-        messages.error(request, f"{rejected} ta fayl qo'shilmadi: u rasm emas yoki 15 MB dan katta.")
+    if getattr(request, "photo_limit_hit", False):
+        messages.error(request, f"Cheklov: bir kishiga ko'pi bilan {MAX_PHOTOS_PER_PERSON} ta surat, bir yuklashda "
+                                f"{MAX_PHOTOS_PER_UPLOAD} ta, bir kunda {MAX_PHOTOS_PER_DAY} ta. Ortiqchasi qo'shilmadi — "
+                                "eng yaxshilarini tanlang yoki keraksizini o'chiring.")
+    elif rejected:
+        messages.error(request, f"{rejected} ta fayl qo'shilmadi: u rasm emas yoki 15 MB dan katta "
+                                "(iPhone'da «Eng mos» formatni tanlang yoki suratni JPG qilib yuboring).")
 
 
 @require_POST
@@ -99,16 +123,23 @@ def photo_add_view(request, tree_key, pk):
     tree, person, denied = _target(request, tree_key, pk)
     if denied:
         return denied
+    # a picture for one of the person's stories: its author or the tree's owner adds it
+    story = None
+    if request.POST.get("story"):
+        story = get_object_or_404(PersonStory, pk=request.POST.get("story"), person=person)
+        if story.author_id != request.user.id and tree_role(request.user, tree) != "owner":
+            return HttpResponseForbidden("Hikoyaga suratni uning muallifi yoki shajara egasi biriktiradi.")
+    back = f"hikoya-{story.pk}" if story else "suratlar"
     files = request.FILES.getlist("images")
     if not files:
         messages.error(request, "Avval suratni tanlang.")
-        return _back(tree, pk)
+        return _back(tree, pk, back)
     saved, rejected = attach_photos(request, person, files, (request.POST.get("caption") or "").strip(),
-                                    (request.POST.get("when") or "").strip())
+                                    (request.POST.get("when") or (story.when if story else "")).strip(), story=story)
     if saved:
         log_activity(request, "photo_add", tree=tree, person=person, detail=f"{person.full_name}: {saved} ta")
     report(request, saved, rejected)
-    return _back(tree, pk)
+    return _back(tree, pk, back)
 
 
 def _photo_for_change(request, tree_key, pk, photo_id):
@@ -180,9 +211,15 @@ def person_avatar_view(request, tree_key, pk):
 
 
 def photo_file_view(request, tree_key, photo_id):
-    photo = get_object_or_404(PersonPhoto, pk=photo_id)
+    """The picture itself; with ?yuklash=1 it is saved as a file named after the person."""
+    photo = get_object_or_404(PersonPhoto.objects.select_related("person"), pk=photo_id)
     _viewable_person(request, tree_key, photo.person_id)
-    return _private_file(photo.image)
+    response = _private_file(photo.image)
+    if request.GET.get("yuklash"):
+        from django.utils.text import slugify
+        name = slugify(photo.person.full_name) or "surat"
+        response["Content-Disposition"] = f'attachment; filename="{name}-{slugify(photo.when) or photo.pk}.jpg"'
+    return response
 
 
 def story_photos(story_id_list):

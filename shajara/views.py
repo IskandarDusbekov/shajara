@@ -378,7 +378,8 @@ def my_trees_view(request):
     for t in shared:
         t.my_role = roles.get(t.id)
     for t in (owned + shared)[:24]:
-        t.generations = tree_stats(t)["generations"]
+        stats = tree_stats(t)
+        t.generations, t.people = stats["generations"], stats["people"]
     profile = _get_profile(request.user)
     return render(request, "shajara/my_trees.html", {
         "trees": owned, "shared_trees": shared, "kind": kind, "profile": profile,
@@ -620,7 +621,8 @@ def index_view(request, tree_key):
             for p in sorted(people.values(), key=lambda p: (levels[p.id], p.first_name.lower()))
         ]}
     elif can_edit:
-        steps, progress = next_steps(tree, people, families, levels, me_id=me_id)
+        # a few spare suggestions: the card hides the ones a person marked «kerak emas»
+        steps, progress = next_steps(tree, people, families, levels, limit=7, me_id=me_id)
         if steps:
             member_name = people[me_id].first_name if me_id and me_id != root.id else None
             guide = {"next_steps": steps, "next_progress": progress,
@@ -823,6 +825,8 @@ def person_detail_view(request, tree_key, pk):
         "siblings": person.siblings(),
         "stories": stories,
         "gallery": [ph for ph in pictures if not ph.story_id],
+        "photo_count": len(pictures), "photo_max": photos.MAX_PHOTOS_PER_PERSON,
+        "photo_room": len(pictures) < photos.MAX_PHOTOS_PER_PERSON,
         "story_prompts": STORY_PROMPTS,
     }))
 

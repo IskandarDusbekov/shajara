@@ -340,11 +340,21 @@
           '" fill="none" stroke="' + s.inner + '" stroke-width="0.8"/>');
       }
       var mid = c.x + c.w / 2, midY = c.y + c.h / 2;
-      var size = c.root ? 17 : 14.5;
-      o.push('<text x="' + n(mid) + '" y="' + n(midY + (y ? -1 : 5)) + '" text-anchor="middle" font-family="' + F +
-        '" font-size="' + size + '" font-weight="700" fill="' + s.name + '">' + esc(c.name) + "</text>");
+      var size = c.root ? 15 : 13.5;
+      // a name too long for the card goes on two lines, as on the map
+      var lines = [c.name];
+      if (c.name.length * size * 0.55 > c.w - 12 && c.name.indexOf(" ") > 0) {
+        var cut = c.name.lastIndexOf(" ", Math.ceil(c.name.length / 2) + 2);
+        if (cut <= 0) cut = c.name.indexOf(" ");
+        lines = [c.name.slice(0, cut), c.name.slice(cut + 1)];
+      }
+      var lh = size * 1.15, top = midY - (lines.length * lh + (y ? 13 : 0)) / 2 + size * 0.85;
+      lines.forEach(function (line, i) {
+        o.push('<text x="' + n(mid) + '" y="' + n(top + i * lh) + '" text-anchor="middle" font-family="' + F +
+          '" font-size="' + size + '" font-weight="700" fill="' + s.name + '">' + esc(line) + "</text>");
+      });
       if (y) {
-        o.push('<text x="' + n(mid) + '" y="' + n(midY + 14) + '" text-anchor="middle" font-family="' + F +
+        o.push('<text x="' + n(mid) + '" y="' + n(top + (lines.length - 1) * lh + 14) + '" text-anchor="middle" font-family="' + F +
           '" font-size="10.5" fill="' + s.year + '">' + esc(y) + "</text>");
       }
     });

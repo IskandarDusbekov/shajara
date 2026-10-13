@@ -1043,6 +1043,29 @@ class BookAndPictureExportTests(TestCase):
         photo.refresh_from_db()
         self.assertEqual(photo.caption, "Bobom to'yida")
 
+        # anyone who may see the tree can download a picture, named after the person
+        r = self.client.get(reverse("photo_file", args=[self.key, photo.id]) + "?yuklash=1")
+        self.assertIn('attachment; filename="karim-1968.jpg"', r["Content-Disposition"])
+        r.close()
+        # the story's author (or the owner) adds a picture straight to the story
+        self.client.post(reverse("photo_add", args=[self.key, grandpa.id]),
+                         {"story": story.id, "images": [picture("ikkinchi.png", (500, 400))]})
+        self.assertEqual(story.photos.count(), 2)
+        self.client.force_login(other)
+        self.assertEqual(self.client.post(reverse("photo_add", args=[self.key, grandpa.id]),
+                                          {"story": story.id, "images": [picture()]}).status_code, 403)
+        # a person holds at most MAX_PHOTOS_PER_PERSON pictures
+        from . import photos as photo_mod
+        self.client.force_login(self.owner)
+        have = PersonPhoto.objects.filter(person=grandpa).count()
+        for _ in range((photo_mod.MAX_PHOTOS_PER_PERSON - have) // 10 + 1):
+            self.client.post(reverse("photo_add", args=[self.key, grandpa.id]),
+                             {"images": [picture(f"p{i}.png", (60, 60)) for i in range(10)]})
+        self.assertEqual(PersonPhoto.objects.filter(person=grandpa).count(), photo_mod.MAX_PHOTOS_PER_PERSON)
+        page = self.client.get(reverse("person_detail", args=[self.key, grandpa.id]))
+        self.assertContains(page, "chegaraga yetdi")
+        PersonPhoto.objects.filter(person=grandpa).exclude(pk__in=[photo.pk]).exclude(story=story).delete()
+
         # both pictures go into the book
         r = self.client.get(reverse("tree_pdf", args=[self.key]))
         self.assertEqual(r.status_code, 200)
@@ -1082,7 +1105,7 @@ class BookAndPictureExportTests(TestCase):
         from io import BytesIO
         from pypdf import PdfReader
         text = "".join(page.extract_text() for page in PdfReader(BytesIO(r.content)).pages)
-        for expected in ("Karimovlar", "Mundarija", "Nasl ro", "Siddiq", "Dehqon", record.pretty_code,
+        for expected in ("Karimovlar", "Mundarija", "Nasl ro", "Siddiq", "dehqon", record.pretty_code,
                          "oilasi", "Farzandlari", "Keyingi avlodda"):
             self.assertIn(expected, text)
 
