@@ -131,6 +131,40 @@
     {% endif %}
   </section>
 
+  {# ------------------------------------------------------------ photos #}
+  {% if gallery or can_write %}
+  <section class="pf-card pd-section" id="suratlar">
+    <div class="pd-h2-row">
+      <h2 class="pd-h2">Suratlar</h2>
+      {% if gallery %}<span class="pd-count">{{ gallery|length }}</span>{% endif %}
+    </div>
+    <p class="pd-sub">Eski oilaviy suratlar — kim, qayerda, qachon tushganini yozib qo'ying. Ular PDF kitobga ham kiradi.</p>
+    {% if gallery %}
+    <div class="pd-gallery">
+      {% for ph in gallery %}{% include "shajara/_photo.html" %}{% endfor %}
+    </div>
+    {% endif %}
+    {% if can_write %}
+    <details class="pd-upload"{% if not gallery %} open{% endif %}>
+      <summary><span class="pd-upload-plus">+</span>Surat qo'shish</summary>
+      <form method="post" action="{% url 'photo_add' tree.url_key person.id %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <label class="pd-drop">
+          <input type="file" name="images" accept="image/*" multiple required data-preview="gal-preview">
+          <span><b>Suratni tanlang</b> yoki telefon kamerasi bilan eski suratni rasmga oling<small>Bir vaqtda 10 tagacha · har biri 15 MB gacha</small></span>
+        </label>
+        <div class="pd-preview" id="gal-preview"></div>
+        <div class="pf-row">
+          <div><label class="pf-label">Izoh <small>ixtiyoriy</small></label><input class="pf-input" name="caption" maxlength="300" placeholder="Masalan: Bobom to'yida, chapdan ikkinchi"></div>
+          <div><label class="pf-label">Qachon olingan <small>ixtiyoriy</small></label><input class="pf-input" name="when" maxlength="60" placeholder="Masalan: 1968"></div>
+        </div>
+        <div class="pf-actions"><button class="pf-btn pf-btn-primary" type="submit">Suratni saqlash</button></div>
+      </form>
+    </details>
+    {% endif %}
+  </section>
+  {% endif %}
+
   {# ----------------------------------------------------------- stories #}
   <section class="pf-card pd-section" id="hikoyalar">
     <div class="pd-h2-row">
@@ -146,6 +180,11 @@
         {% if story.when %}<span class="pd-when">{{ story.when }}</span>{% endif %}
       </header>
       <div class="pd-story-text">{{ story.text|linebreaks }}</div>
+      {% if story.pictures %}
+      <div class="pd-gallery pd-gallery-story">
+        {% for ph in story.pictures %}{% include "shajara/_photo.html" %}{% endfor %}
+      </div>
+      {% endif %}
       <footer class="pd-story-foot">
         <span class="pd-story-av">{% if story.author %}{{ story.author.first_name|default:story.author.username|first|upper }}{% else %}?{% endif %}</span>
         <span>
@@ -164,7 +203,7 @@
         {% endif %}
       </footer>
       {% if story.can_edit %}
-      <form method="post" action="{% url 'story_edit' tree.url_key person.id story.id %}" class="pd-story-form" data-story-form="{{ story.id }}" hidden>
+      <form method="post" action="{% url 'story_edit' tree.url_key person.id story.id %}" class="pd-story-form" data-story-form="{{ story.id }}" enctype="multipart/form-data" hidden>
         {% csrf_token %}
         <div class="pf-row">
           <div><label class="pf-label">Sarlavha</label><input class="pf-input" name="title" maxlength="120" value="{{ story.title }}" placeholder="Masalan: Bobomning bog'i"></div>
@@ -172,6 +211,8 @@
         </div>
         <label class="pf-label">Hikoya</label>
         <textarea class="pf-input" name="text" rows="6" required>{{ story.text }}</textarea>
+        <label class="pf-label">Yana surat biriktirish <small>ixtiyoriy</small></label>
+        <input class="pf-input" type="file" name="images" accept="image/*" multiple>
         <div class="pf-actions">
           <button type="submit" class="pf-btn pf-btn-primary pf-btn-sm">Saqlash</button>
           <button type="button" class="pf-btn pf-btn-sm" data-edit-story="{{ story.id }}">Bekor qilish</button>
@@ -187,7 +228,7 @@
     {% endfor %}
 
     {% if can_write %}
-    <form method="post" action="{% url 'add_story' tree.url_key person.id %}" class="pd-compose" id="yozish">
+    <form method="post" action="{% url 'add_story' tree.url_key person.id %}" class="pd-compose" id="yozish" enctype="multipart/form-data">
       {% csrf_token %}
       <h3 class="pd-h3" style="margin-top:0;">Yangi hikoya</h3>
       <p class="pd-sub" style="margin-bottom:8px;">Nimadan boshlashni bilmasangiz, mavzu tanlang:</p>
@@ -200,11 +241,18 @@
       </div>
       <label class="pf-label" for="st-text">Hikoya</label>
       <textarea class="pf-input" id="st-text" name="text" rows="5" required placeholder="{{ person.first_name }} haqida bir voqea, odati yoki aytgan so'zini yozing…"></textarea>
+      <label class="pd-attach">
+        <input type="file" name="images" accept="image/*" multiple data-preview="st-preview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>
+        <span>Hikoyaga surat biriktirish <small>ixtiyoriy</small></span>
+      </label>
+      <div class="pd-preview" id="st-preview"></div>
       <div class="pf-actions"><button class="pf-btn pf-btn-primary" type="submit">Hikoyani saqlash</button></div>
     </form>
     {% endif %}
   </section>
 </main>
+<dialog class="pd-lightbox" id="pd-lightbox" aria-label="Surat"><img src="" alt=""><p></p></dialog>
 <script>
 (function () {
   "use strict";
@@ -219,6 +267,33 @@
       form.hidden = !open;
       art.classList.toggle("is-editing", open);
       if (open) form.querySelector("textarea").focus();
+    });
+  });
+  // pictures open large
+  var box = document.getElementById("pd-lightbox");
+  if (box && box.showModal) {
+    document.querySelectorAll(".pd-photo-open").forEach(function (b) {
+      b.addEventListener("click", function () {
+        box.querySelector("img").src = b.getAttribute("data-full");
+        box.querySelector("p").textContent = b.getAttribute("data-caption") || "";
+        box.showModal();
+      });
+    });
+    box.addEventListener("click", function () { box.close(); });
+  }
+  // chosen files show as small thumbnails before saving
+  document.querySelectorAll("input[type=file][data-preview]").forEach(function (input) {
+    var out = document.getElementById(input.getAttribute("data-preview"));
+    input.addEventListener("change", function () {
+      if (!out) return;
+      out.innerHTML = "";
+      Array.prototype.slice.call(input.files, 0, 10).forEach(function (f) {
+        if (!/^image\//.test(f.type)) return;
+        var img = document.createElement("img");
+        img.src = URL.createObjectURL(f);
+        img.alt = "";
+        out.appendChild(img);
+      });
     });
   });
   // a topic fills the title and asks the question

@@ -169,8 +169,8 @@
     <div class="pf-savebar">
       <a class="pf-btn" href="{% if is_add %}{% url 'index' tree_key %}{% else %}{% url 'person_detail' cancel_tree_key cancel_pk %}{% endif %}">Bekor qilish</a>
       {% if is_add %}
-      <button class="pf-btn" type="submit" data-tour="save">{% include "shajara/_icon.html" with name="check" %}Saqlash</button>
-      <button class="pf-btn pf-btn-primary" type="submit" name="save_next" value="1">{% include "shajara/_icon.html" with name="arrow" %}Saqlash va keyingisini qo'shish</button>
+      <button class="pf-btn pf-btn-primary" type="submit" data-tour="save">{% include "shajara/_icon.html" with name="check" %}Saqlash</button>
+      {% if next_label and not adding_self %}<button class="pf-btn" type="submit" name="save_next" value="1">{% include "shajara/_icon.html" with name="arrow" %}{{ next_label }}</button>{% endif %}
       {% else %}
       <button class="pf-btn pf-btn-primary" type="submit" data-tour="save">{% include "shajara/_icon.html" with name="check" %}Saqlash</button>
       {% endif %}

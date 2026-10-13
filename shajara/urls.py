@@ -1,6 +1,6 @@
 from django.urls import include, path, re_path, register_converter
 
-from . import collab_views, export_views, maps_views, public_views, quiz, views
+from . import collab_views, export_views, maps_views, photos, public_views, quiz, views
 from .converters import TreeKeyConverter
 
 register_converter(TreeKeyConverter, "treekey")
@@ -65,6 +65,10 @@ urlpatterns = [
     path("shajara/<treekey:tree_key>/shaxs/<int:pk>/hikoya/<int:story_id>/", views.story_edit_view, name="story_edit"),
     path("shajara/<treekey:tree_key>/shaxs/<int:pk>/hikoya/<int:story_id>/ochirish/", views.story_delete_view,
          name="story_delete"),
+    path("shajara/<treekey:tree_key>/shaxs/<int:pk>/surat/", photos.photo_add_view, name="photo_add"),
+    path("shajara/<treekey:tree_key>/shaxs/<int:pk>/surat/<int:photo_id>/", photos.photo_edit_view, name="photo_edit"),
+    path("shajara/<treekey:tree_key>/shaxs/<int:pk>/surat/<int:photo_id>/ochirish/", photos.photo_delete_view,
+         name="photo_delete"),
 
     path("taklif/<str:token>/", collab_views.invite_accept_view, name="invite_accept"),
     path("taklif/<str:token>/rasm.png", export_views.invite_preview_view, name="invite_preview"),

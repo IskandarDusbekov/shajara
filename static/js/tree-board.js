@@ -95,6 +95,7 @@
   var pos = {};         // id -> {x, y}: where each card is right now
   var unitOrder = [];   // blocks, parents before children
   var layoutParent = {};
+  var cardSize = {};    // id -> {w, h}, measured by computeAutoLayout
 
   function unitOf(id) { return findGroup(id); }
 
@@ -104,6 +105,7 @@
     nodes.forEach(function (el) {
       size[el.dataset.person] = { w: el.offsetWidth, h: el.offsetHeight };
     });
+    cardSize = size;
 
     // blocks and their generation
     var units = {};
@@ -308,9 +310,31 @@
 
   /* Saved positions win. Someone added after the save has none, so they
      follow the block they hang from: it moves by as much as that block was
-     moved, which keeps a new child under its (dragged) parents. */
+     moved, which keeps a new child under its (dragged) parents. A newcomer
+     that would then land on a card already there is slid right until it is
+     clear — and its own children slide with it. */
+  var CLEAR_GAP = 14;
   function positionsFrom(saved) {
-    var out = {}, shift = {};
+    var out = {}, shift = {}, placed = [];
+    var manual = Object.keys(saved).length > 0;
+
+    function box(id) {
+      var s = cardSize[id] || { w: 120, h: 50 };
+      return { x: out[id].x, y: out[id].y, w: s.w, h: s.h };
+    }
+    function overlap(r) {
+      for (var i = 0; i < placed.length; i++) {
+        var q = placed[i];
+        if (r.x < q.x + q.w + CLEAR_GAP && q.x < r.x + r.w + CLEAR_GAP && r.y < q.y + q.h && q.y < r.y + r.h) return q;
+      }
+      return null;
+    }
+    if (manual) {
+      Object.keys(saved).forEach(function (id) {
+        if (autoPos[id]) { out[id] = { x: saved[id].x, y: saved[id].y }; placed.push(box(id)); }
+      });
+    }
+
     unitOrder.forEach(function (u) {
       var members = (groupMembers[u] || []).map(function (el) { return el.dataset.person; });
       var d = null;
@@ -318,11 +342,28 @@
         if (!d && saved[id] && autoPos[id]) d = { x: saved[id].x - autoPos[id].x, y: saved[id].y - autoPos[id].y };
       });
       if (!d) d = layoutParent[u] !== undefined ? shift[layoutParent[u]] : { x: 0, y: 0 };
-      shift[u] = d;
+      d = { x: d.x, y: d.y };
+      var fresh = [];
       members.forEach(function (id) {
         if (!autoPos[id]) return;
-        out[id] = saved[id] ? { x: saved[id].x, y: saved[id].y } : { x: autoPos[id].x + d.x, y: autoPos[id].y + d.y };
+        if (saved[id]) { out[id] = { x: saved[id].x, y: saved[id].y }; return; }
+        out[id] = { x: autoPos[id].x + d.x, y: autoPos[id].y + d.y };
+        fresh.push(id);
       });
+      if (manual && fresh.length) {
+        for (var guard = 0; guard < 400; guard++) {
+          var push = 0;
+          fresh.forEach(function (id) {
+            var r = box(id), q = overlap(r);
+            if (q) push = Math.max(push, q.x + q.w + CLEAR_GAP - r.x);
+          });
+          if (!push) break;
+          fresh.forEach(function (id) { out[id].x += push; });
+          d.x += push;
+        }
+        fresh.forEach(function (id) { placed.push(box(id)); });
+      }
+      shift[u] = d;
     });
     return out;
   }

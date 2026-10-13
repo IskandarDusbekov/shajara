@@ -1197,10 +1197,51 @@ def clean_inf(markup):
     return markup if not glyphs or 0x221E in glyphs else markup.replace("∞", "×")
 
 
+def book_image(field, max_w, max_h):
+    """A picture for the page, shrunk first so the PDF stays small; None if the file is gone."""
+    try:
+        from PIL import Image as PILImage
+        with field.open("rb") as fh:
+            img = PILImage.open(fh)
+            img = img.convert("RGB")
+            img.thumbnail((1000, 1000))
+            buf = BytesIO()
+            img.save(buf, format="JPEG", quality=80)
+        buf.seek(0)
+        w, h = img.size
+        k = min(max_w / w, max_h / h)
+        flow = Image(buf, width=w * k, height=h * k)
+        return flow
+    except Exception:
+        return None
+
+
+def photo_grid(photos, st, width=15.7 * cm, cols=3):
+    """Pictures in rows of three, each with its caption and year underneath."""
+    cell_w = width / cols
+    cells = []
+    for ph in photos:
+        img = book_image(ph.image, cell_w - 0.5 * cm, 4.6 * cm)
+        if img is None:
+            continue
+        note = " · ".join(clean(x) for x in (ph.caption, ph.when) if x)
+        cells.append([img, Paragraph(note, st["center_small"])] if note else [img])
+    if not cells:
+        return []
+    rows = [cells[i:i + cols] for i in range(0, len(cells), cols)]
+    rows[-1] += [""] * (cols - len(rows[-1]))
+    t = Table(rows, colWidths=[cell_w] * cols)
+    t.setStyle(TableStyle([
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"), ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    return [t]
+
+
 def has_story(p):
     """Anything worth a paragraph beyond the name and years."""
     return bool(p.bio or p.occupation or p.birth_region or p.birth_district or p.location or p.photo
-                or p.patronymic or p.stories.exists())
+                or p.patronymic or p.stories.exists() or p.photos.exists())
 
 
 def family_section(fam, pid, st, tree):
@@ -1363,6 +1404,7 @@ def person_entry(fam, pid, st, tree, show_children=True):
     if p.bio:
         out += [Spacer(1, 4)] + [Paragraph(clean(par), st["bio"]) for par in p.bio.split("\n") if par.strip()]
     stories = list(p.stories.select_related("author").order_by("created_at"))
+    pictures = list(p.photos.all())
     if stories:
         out.append(Spacer(1, 6))
         out.append(Paragraph("Xotiralar", st["label"]))
@@ -1381,7 +1423,11 @@ def person_entry(fam, pid, st, tree, show_children=True):
             for n, par in enumerate(parts):
                 mark = f"<font color='{A_HEX}'><b>“</b></font> " if n == 0 else ""
                 out.append(Paragraph(mark + clean(par), quote_style))
+            out += photo_grid([ph for ph in pictures if ph.story_id == s.id], st)
             out.append(Paragraph(f"— {clean(author)}, {s.created_at:%d.%m.%Y}",
                                  ParagraphStyle("quote_meta", parent=st["story_meta"], leftIndent=12, spaceAfter=3)))
+    gallery = [ph for ph in pictures if not ph.story_id]
+    if gallery:
+        out += [Spacer(1, 6), Paragraph("Suratlar", st["label"]), Spacer(1, 3)] + photo_grid(gallery, st)
     out.append(Spacer(1, 4))
     return out

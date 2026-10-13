@@ -1,0 +1,22 @@
+{% comment %}One picture on a person's page: opens large on click; its caption can be fixed by whoever added it.{% endcomment %}
+<figure class="pd-photo" id="surat-{{ ph.id }}">
+  <button type="button" class="pd-photo-open" data-full="{{ ph.image.url }}" data-caption="{{ ph.caption }}{% if ph.when %} · {{ ph.when }}{% endif %}" aria-label="Kattalashtirish">
+    <img src="{{ ph.image.url }}" alt="{% firstof ph.caption person.full_name %}" loading="lazy">
+    {% if ph.when %}<span class="pd-photo-when">{{ ph.when }}</span>{% endif %}
+  </button>
+  {% if ph.caption %}<figcaption>{{ ph.caption }}</figcaption>{% endif %}
+  {% if ph.can_change %}
+  <details class="pd-photo-tools">
+    <summary>Izoh · o'chirish</summary>
+    <form method="post" action="{% url 'photo_edit' tree.url_key person.id ph.id %}">
+      {% csrf_token %}
+      <input class="pf-input" name="caption" maxlength="300" value="{{ ph.caption }}" placeholder="Kim, qayerda?">
+      <input class="pf-input" name="when" maxlength="60" value="{{ ph.when }}" placeholder="Qachon? Masalan: 1968">
+      <button class="pf-btn pf-btn-primary pf-btn-sm" type="submit">Saqlash</button>
+    </form>
+    <form method="post" action="{% url 'photo_delete' tree.url_key person.id ph.id %}" onsubmit="return confirm('Bu suratni o\'chirasizmi?');">
+      {% csrf_token %}<button type="submit" class="pd-link pd-link-danger">Suratni o'chirish</button>
+    </form>
+  </details>
+  {% endif %}
+</figure>

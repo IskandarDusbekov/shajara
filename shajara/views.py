@@ -17,7 +17,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
-from . import share_cards
+from . import photos, share_cards
 from .activity import log_activity
 from .public_views import site_url, tree_stats
 from .emails import send_otp_email
@@ -802,9 +802,13 @@ def person_detail_view(request, tree_key, pk):
     can_edit = can_edit_in_tree(request.user, tree, person)
     role = tree_role(request.user, tree)
     stories = list(person.stories.select_related("author").order_by("created_at"))
+    pictures = list(person.photos.select_related("uploaded_by"))
+    for ph in pictures:
+        ph.can_change = ph.uploaded_by_id == request.user.id or role == "owner"
     for s in stories:
         s.can_edit = s.author_id == request.user.id
         s.can_delete = s.can_edit or role == "owner"
+        s.pictures = [ph for ph in pictures if ph.story_id == s.id]
     lvl = levels.get(pk, 0)
     return private_response(render(request, "shajara/person_detail.html", {
         "tree": tree, "root": tree.root_person, "person": person,
@@ -818,6 +822,7 @@ def person_detail_view(request, tree_key, pk):
         "marriages": marriages,
         "siblings": person.siblings(),
         "stories": stories,
+        "gallery": [ph for ph in pictures if not ph.story_id],
         "story_prompts": STORY_PROMPTS,
     }))
 
@@ -851,11 +856,16 @@ def add_story_view(request, tree_key, pk):
     form = StoryForm(request.POST)
     if form.is_valid():
         d = form.cleaned_data
-        person.stories.create(author=request.user, title=d["title"].strip(), when=d["when"].strip(), text=d["text"].strip())
+        story = person.stories.create(author=request.user, title=d["title"].strip(), when=d["when"].strip(),
+                                      text=d["text"].strip())
         log_activity(request, "story_add", tree=tree, person=person, detail=person.full_name)
         messages.success(request, "Hikoya saqlandi — rahmat, oila xotirasi boyidi.")
-    else:
-        messages.error(request, "Hikoya matnini yozing.")
+        files = request.FILES.getlist("images")
+        if files:
+            saved, rejected = photos.attach_photos(request, person, files, when=story.when, story=story)
+            photos.report(request, saved, rejected)
+        return redirect(reverse("person_detail", args=[tree.url_key, pk]) + f"#hikoya-{story.pk}")
+    messages.error(request, "Hikoya matnini yozing.")
     return redirect(reverse("person_detail", args=[tree.url_key, pk]) + "#hikoyalar")
 
 
@@ -875,6 +885,10 @@ def story_edit_view(request, tree_key, pk, story_id):
         story.save(update_fields=["title", "when", "text", "updated_at"])
         log_activity(request, "story_edit", tree=tree, person=person, detail=person.full_name)
         messages.success(request, "Hikoya yangilandi.")
+        files = request.FILES.getlist("images")
+        if files:
+            saved, rejected = photos.attach_photos(request, person, files, when=story.when, story=story)
+            photos.report(request, saved, rejected)
     else:
         messages.error(request, "Hikoya matni bo'sh bo'lmasin.")
     return redirect(reverse("person_detail", args=[tree.url_key, pk]) + f"#hikoya-{story.pk}")
@@ -984,6 +998,27 @@ def person_delete_view(request, tree_key, pk):
     return redirect("index", tree_key=tree.url_key)
 
 
+def follow_up(anchor, relation, family_id=None):
+    """What «Saqlash va keyingisini qo'shish» adds next: more of the same
+    around the same person, never a jump to somebody else in the tree.
+    Returns (query string, button label) or None."""
+    name = anchor.first_name
+    fam = anchor.child_family
+    if relation == "farzand":
+        q = f"anchor={anchor.id}&relation=farzand" + (f"&family={family_id}" if family_id else "")
+        return q, f"Saqlash va yana {name}ning farzandini qo'shish"
+    if relation == "akauka":
+        return f"anchor={anchor.id}&relation=akauka", f"Saqlash va yana {name}ning aka-uka, opa-singlini qo'shish"
+    if relation == "ota" and not (fam and fam.mother_id):
+        return f"anchor={anchor.id}&relation=ona", f"Saqlash va {name}ning onasini qo'shish"
+    if relation == "ona" and not (fam and fam.father_id):
+        return f"anchor={anchor.id}&relation=ota", f"Saqlash va {name}ning otasini qo'shish"
+    if relation == "turmush":
+        q = f"anchor={anchor.id}&relation=farzand" + (f"&family={family_id}" if family_id else "")
+        return q, f"Saqlash va ularning farzandini qo'shish"
+    return None
+
+
 @login_required
 def add_relative_view(request, tree_key):
     tree = get_editable_tree(request, tree_key)
@@ -1088,11 +1123,11 @@ def add_relative_view(request, tree_key):
             else:
                 messages.success(request, f"{new_person.first_name} shajaraga qo'shildi — zo'r, shajarangiz o'sib bormoqda!")
             if request.POST.get("save_next"):
-                levels, people, families = compute_levels(tree.root_person)
-                upcoming, _ = next_steps(tree, people, families, levels, limit=1,
-                                         me_id=my_person_id(request.user, tree, people))
-                if upcoming:
-                    return redirect(upcoming[0]["url"])
+                # carry on with the same person: another child, the other parent…
+                anchor.refresh_from_db()
+                nxt = follow_up(anchor, relation, fam.id if relation in ("farzand", "turmush") else None)
+                if nxt:
+                    return redirect(f"{reverse('add_relative', args=[tree.url_key])}?{nxt[0]}")
             return redirect("index", tree_key=tree.url_key)
 
     intro_title, intro_lead = relation_intro(relation, anchor, my_person_id(request.user, tree))
@@ -1107,6 +1142,7 @@ def add_relative_view(request, tree_key):
         "error": error, "is_add": True, "tree_key": tree.url_key,
         "anchor_id": anchor.id, "relation": relation, "family_id": family_id,
         "tree": tree, "anchor": anchor, "adding_self": bool(membership),
+        "next_label": (follow_up(anchor, relation, family_id) or (None, None))[1],
         "relation_label": {"ota": "Otasi", "ona": "Onasi", "farzand": "Farzandi", "akauka": "Aka-uka / opa-singili",
                            "turmush": "Turmush o'rtog'i"}[relation],
     })

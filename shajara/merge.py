@@ -67,7 +67,7 @@ class Merger:
 
     # --------------------------------------------------------------- people
     def merge(self, keep_id, drop_id, depth=0):
-        from .models import Family, Person, PersonStory, Tree
+        from .models import Family, Person, PersonPhoto, PersonStory, Tree
 
         keep_id, drop_id = self.resolve(keep_id), self.resolve(drop_id)
         if not keep_id or not drop_id or keep_id == drop_id:
@@ -104,6 +104,9 @@ class Merger:
         moved = PersonStory.objects.filter(person_id=drop_id).update(person_id=keep_id)
         if moved:
             self.note("story", f"{moved} ta hikoya ko'chirildi")
+        moved = PersonPhoto.objects.filter(person_id=drop_id).update(person_id=keep_id)
+        if moved:
+            self.note("story", f"{moved} ta surat ko'chirildi")
         for tree in Tree.objects.filter(root_person_id=drop_id):
             tree.root_person_id = keep_id
             tree.save(update_fields=["root_person"])

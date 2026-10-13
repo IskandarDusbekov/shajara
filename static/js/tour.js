@@ -43,7 +43,7 @@
     { page: "add_relative", el: '[data-tour="person-name"]', require: "#id_first_name", title: "6. Ismini yozing",
       body: "Faqat ism kerak, qolganini keyin to'ldirasiz." },
     { page: "add_relative", el: '[data-tour="save"]', action: "click", title: "7. Saqlang",
-      body: "«Saqlash» ni bosing. «Saqlash va keyingisini qo'shish» esa navbatdagi qarindoshga o'zi o'tkazadi." },
+      body: "«Saqlash» ni bosing. Ikkinchi tugma esa shu odamning yana bir qarindoshini (masalan, onasini) qo'shishga o'tkazadi." },
 
     { page: "index", el: "#next-card, #nc-pill", title: "Tayyor!", primary: "Tugatish",
       body: "Davom etish oson: kartochkadagi keyingi qadamni bosing. Qo'llanmani menyudagi «Yordam» orqali qayta ochishingiz mumkin." }

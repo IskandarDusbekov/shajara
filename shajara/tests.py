@@ -965,6 +965,61 @@ class BookAndPictureExportTests(TestCase):
         self.assertNotIn("Ro'zigul", numbers)       # she appears beside her husband
         self.assertIn("1 ning turmush", lin.label_for(next(p for p in lin.people if lin.people[p].first_name == "Ro'zigul")))
 
+    def test_family_photos_added_to_gallery_and_stories_and_book(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image as PILImage
+        from io import BytesIO
+        from .models import PersonPhoto, PersonStory
+
+        def picture(name="eski.png", size=(2400, 1600)):
+            buf = BytesIO()
+            PILImage.new("RGBA", size, (120, 90, 60, 255)).save(buf, format="PNG")
+            return SimpleUploadedFile(name, buf.getvalue(), content_type="image/png")
+
+        grandpa = Person.objects.get(first_name="Karim")
+        add = reverse("photo_add", args=[self.key, grandpa.id])
+        # outsiders cannot add; a viewer member can, and a fake image is refused
+        self.client.force_login(self.stranger)
+        self.assertEqual(self.client.post(add, {"images": [picture()]}).status_code, 403)
+        self.client.force_login(self.viewer)
+        fake = SimpleUploadedFile("virus.png", b"not really an image", content_type="image/png")
+        self.client.post(add, {"images": [picture(), fake], "caption": "To'yda", "when": "1968"})
+        photo = PersonPhoto.objects.get(person=grandpa)
+        self.assertEqual((photo.caption, photo.when, photo.uploaded_by), ("To'yda", "1968", self.viewer))
+        self.assertTrue(photo.image.name.endswith(".jpg"))
+        with photo.image.open("rb") as fh:
+            stored = PILImage.open(fh)
+            self.assertEqual(stored.format, "JPEG")
+            self.assertLessEqual(max(stored.size), 2000)      # shrunk on the way in
+
+        # a picture inside a story
+        self.client.post(reverse("add_story", args=[self.key, grandpa.id]),
+                         {"title": "Bog'", "text": "Bobom bog' ekkan.", "images": [picture("bog.png", (800, 600))]})
+        story = PersonStory.objects.get(person=grandpa)
+        self.assertEqual(story.photos.count(), 1)
+        page = self.client.get(reverse("person_detail", args=[self.key, grandpa.id]))
+        self.assertContains(page, 'id="suratlar"')
+        self.assertContains(page, "To&#x27;yda")
+
+        # the owner may fix or delete anyone's picture; a third member may not
+        other = User.objects.create_user("kitob_other", password="pw-12345678")
+        from .models import TreeMember
+        TreeMember.objects.create(tree=self.tree, user=other, role="muharrir")
+        self.client.force_login(other)
+        self.assertEqual(self.client.post(reverse("photo_delete", args=[self.key, grandpa.id, photo.id])).status_code, 403)
+        self.client.force_login(self.owner)
+        self.client.post(reverse("photo_edit", args=[self.key, grandpa.id, photo.id]), {"caption": "Bobom to'yida", "when": "1968"})
+        photo.refresh_from_db()
+        self.assertEqual(photo.caption, "Bobom to'yida")
+
+        # both pictures go into the book
+        r = self.client.get(reverse("tree_pdf", args=[self.key]))
+        self.assertEqual(r.status_code, 200)
+        self.assertGreaterEqual(r.content.count(b"/Subtype /Image"), 2)
+
+        self.client.post(reverse("photo_delete", args=[self.key, grandpa.id, photo.id]))
+        self.assertFalse(PersonPhoto.objects.filter(pk=photo.pk).exists())
+
     def test_pdf_book_in_every_style_with_tree_drawing(self):
         from pypdf import PdfReader
         from io import BytesIO
@@ -1584,7 +1639,17 @@ class NextStepGuideTests(TestCase):
         self.assertIn("relation=ona", r["Location"])
         form = self.client.get(r["Location"])
         self.assertContains(form, "Onangizni qo&#x27;shamiz")
-        self.assertContains(form, "Saqlash va keyingisini qo'shish")
+        self.assertNotContains(form, 'name="save_next"')     # both parents in: nothing more of the same
+        # a grandfather's children: «save and add another» stays with him
+        karim = Person.objects.get(first_name="Karim")
+        add = reverse("add_relative", args=[self.key])
+        form = self.client.get(f"{add}?anchor={karim.id}&relation=farzand")
+        self.assertContains(form, "Saqlash va yana Karimning farzandini qo&#x27;shish")
+        r = self.client.post(add, {"anchor": karim.id, "relation": "farzand", "first_name": "Rahim",
+                                   "gender": "erkak", "save_next": "1"})
+        self.assertIn(f"anchor={karim.id}&relation=farzand", r["Location"])
+        rahim = Person.objects.get(first_name="Rahim")
+        self.assertEqual(rahim.child_family.father_id, karim.id)
 
     def test_grandparents_are_suggested_after_parents(self):
         from .tree import compute_levels, next_steps

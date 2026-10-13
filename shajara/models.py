@@ -182,6 +182,36 @@ class PersonStory(models.Model):
         return f"{self.person} haqida hikoya #{self.pk}"
 
 
+def photo_upload_to(instance, filename):
+    """Random names: family pictures are served from /media/ directly, so the
+    address itself must not be guessable."""
+    return f"photos/{secrets.token_hex(16)}.jpg"
+
+
+class PersonPhoto(models.Model):
+    """An old family picture of a person, with what relatives know about it.
+    Attached to a story it is shown inside that story; otherwise it is in
+    the person's gallery. Both end up in the PDF book."""
+
+    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name="photos")
+    story = models.ForeignKey(PersonStory, null=True, blank=True, on_delete=models.SET_NULL, related_name="photos")
+    image = models.ImageField("Surat", upload_to=photo_upload_to)
+    caption = models.CharField("Izoh", max_length=300, blank=True)
+    when = models.CharField("Qachon olingan", max_length=60, blank=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="photos_uploaded"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        verbose_name = "Surat"
+        verbose_name_plural = "Suratlar"
+
+    def __str__(self):
+        return f"{self.person} surati #{self.pk}"
+
+
 VISIBILITY_CHOICES = [
     ("private", "Shaxsiy"),
     ("public", "Ommaviy"),
@@ -737,6 +767,9 @@ ACTIVITY_CHOICES = [
     ("story_add", "Hikoya yozdi"),
     ("story_edit", "Hikoyani tahrirladi"),
     ("story_delete", "Hikoyani o'chirdi"),
+    ("photo_add", "Surat qo'shdi"),
+    ("photo_edit", "Surat izohini o'zgartirdi"),
+    ("photo_delete", "Suratni o'chirdi"),
     ("comment_add", "Izoh qoldirdi"),
     ("gratitude", "Minnatdorchilik bildirdi"),
     ("request_send", "Bog'lanish so'rovi yubordi"),

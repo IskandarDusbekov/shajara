@@ -934,3 +934,43 @@ html:not(.app-light) .pd-when { color: #e9c869; border-color: rgba(201,162,39,.3
 .pf-fold[open] > summary::after { transform: rotate(-135deg); }
 .pf-fold:not([open]) { padding-top: 16px; padding-bottom: 16px; }
 .pf-fold > summary small { font-weight: 500; }
+
+/* --- person page: pictures --- */
+.pd-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.pd-gallery-story { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); margin: 10px 0 0 12px; }
+.pd-photo { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.pd-photo-open { position: relative; display: block; padding: 6px 6px 18px; border: 0; border-radius: 4px; cursor: zoom-in; background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 8px 18px rgba(15,42,30,.14); transform: rotate(-.6deg); transition: transform .15s; }
+.pd-photo:nth-child(2n) .pd-photo-open { transform: rotate(.7deg); }
+.pd-photo-open:hover { transform: rotate(0) translateY(-2px); }
+.pd-photo-open img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; filter: sepia(.08); }
+.pd-photo-when { position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%); font: 700 11px var(--pf-serif); color: #6f5418; }
+.pd-photo figcaption { font: 13.5px/1.4 var(--pf-serif); color: var(--pf-ink); padding: 0 2px; }
+.pd-photo-tools summary { list-style: none; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--pf-muted); padding: 0 2px; }
+.pd-photo-tools summary::-webkit-details-marker { display: none; }
+.pd-photo-tools form { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.pd-upload { margin-top: 4px; border-radius: 14px; border: 1.5px dashed var(--pf-line-strong); padding: 0 14px; }
+.pd-upload[open] { padding-bottom: 14px; }
+.pd-upload > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 12px 0; font-weight: 700; color: var(--pf-accent); }
+.pd-upload > summary::-webkit-details-marker { display: none; }
+.pd-upload-plus { width: 28px; height: 28px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; background: var(--pf-soft); font-size: 18px; }
+.pd-upload form { display: flex; flex-direction: column; gap: 8px; }
+.pd-drop { position: relative; display: block; padding: 18px; border-radius: 12px; background: var(--pf-soft); text-align: center; cursor: pointer; }
+.pd-drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.pd-drop span { font-size: 14px; color: var(--pf-ink); }
+.pd-drop small { display: block; margin-top: 3px; font-size: 12px; color: var(--pf-muted); }
+.pd-preview { display: flex; flex-wrap: wrap; gap: 6px; }
+.pd-preview:empty { display: none; }
+.pd-preview img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid var(--pf-line); }
+.pd-attach { position: relative; display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 12px; border-radius: 10px;
+  border: 1px dashed var(--pf-line-strong); color: var(--pf-accent); font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.pd-attach input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.pd-attach svg { width: 18px; height: 18px; }
+.pd-attach small { font-weight: 500; color: var(--pf-muted); }
+.pd-compose .pd-preview { margin-top: 8px; }
+.pd-lightbox { max-width: min(92vw, 1100px); max-height: 92vh; padding: 10px; border: 0; border-radius: 6px; background: #fff; cursor: zoom-out; }
+.pd-lightbox::backdrop { background: rgba(8, 18, 12, .82); }
+.pd-lightbox img { display: block; max-width: 100%; max-height: calc(92vh - 70px); margin: 0 auto; }
+.pd-lightbox p { margin: 8px 4px 2px; font: 15px var(--pf-serif); color: #222; text-align: center; }
+.pd-lightbox p:empty { display: none; }
+@media (max-width: 620px) { .pd-gallery { grid-template-columns: repeat(2, 1fr); } }
