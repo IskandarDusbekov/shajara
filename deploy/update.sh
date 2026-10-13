@@ -22,7 +22,11 @@ echo "==> Ma'lumotlar bazasi migratsiyalari"
 as_app "DJANGO_DEBUG=0 venv/bin/python manage.py migrate --noinput"
 
 echo "==> Statik fayllar"
-as_app "DJANGO_DEBUG=0 venv/bin/python manage.py collectstatic --noinput --verbosity 0"
+# root bilan bir marta ishga tushirilgan collectstatic fayllarni root'niki qilib
+# qo'yadi va keyingi yangilanishlar ularni almashtira olmaydi (eski CSS/JS qoladi).
+mkdir -p "$APP_DIR/staticfiles"
+chown -R "$APP_USER": "$APP_DIR/staticfiles"
+as_app "DJANGO_DEBUG=0 venv/bin/python manage.py collectstatic --noinput --verbosity 1"
 
 echo "==> Tekshiruv"
 as_app "DJANGO_DEBUG=0 venv/bin/python manage.py check --deploy --fail-level ERROR"

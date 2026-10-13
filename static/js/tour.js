@@ -22,55 +22,31 @@
   var CFG = window.SHAJARA_TOUR;
   if (!CFG) return;
 
+  // Short on purpose: welcome, then only the real actions that get a first
+  // relative onto the map. «Yordam» in the menu replays it.
   var STEPS = [
-    // ------------------------------------------------------------ start page
     { page: "my_trees", title: "e-Shajara'ga xush kelibsiz!", primary: "Boshlash",
-      body: "Bir-ikki daqiqada asosiy tugmalar nima qilishini ko'rsataman, keyin birinchi oilaviy shajarangizni birga tuzamiz. Qadamlarni o'zingiz bosib bajarasiz." },
-    { page: "my_trees", el: '[data-tour="nav-trees"]', title: "Shajaralarim",
-      body: "Siz tuzgan va qarindoshlaringiz sizga ulashgan barcha shajaralar shu yerda turadi." },
-    { page: "my_trees", el: '[data-tour="nav-library"]', title: "Kutubxona",
-      body: "Hamma uchun ochiq shajaralar: tarixiy shaxslar, sulolalar. O'rganish, darsda ko'rsatish va o'zingizni sinash uchun." },
-    { page: "my_trees", el: "#header-menu-btn, #tabbar-menu", title: "Menyu",
-      body: "Xaritalar, so'rovlar, profil, odam qidirish va sozlamalar shu yerda. «Yordam» bandi shu qo'llanmani qayta ochadi." },
-    { page: "my_trees", el: '[data-tour="start-fam"]', action: "click", title: "Qani, boshladik!",
-      body: "Oilaviy shajara tugmasini bosing — o'z oilangiz shajarasini tuzamiz." },
+      body: "Sizga 2 daqiqa yetadi: birinchi shajarangizni birga tuzamiz. Faqat kerakli tugmalarni bosasiz." },
+    { page: "my_trees", el: '[data-tour="start-fam"]', action: "click", title: "1. Boshlaymiz",
+      body: "Oilaviy shajara tugmasini bosing." },
 
-    // ----------------------------------------------------------- create form
-    { page: "tree_create", el: ".pf-choices", title: "Shajara turi",
-      body: "«Oilaviy» — o'z oilangiz uchun. «Ta'limiy» — tarixiy shaxs yoki sulola uchun. Hozir oilaviy tanlangan." },
-    { page: "tree_create", el: '[data-tour="tree-name"]', require: "#id_tree_name", title: "Shajara nomi",
-      body: "Nom yozing, masalan «Karimovlar oilasi». Yozganingizdan keyin «Keyingi» ochiladi." },
-    { page: "tree_create", el: '[data-tour="root-person"]', require: "#id_first_name", title: "Kimdan boshlaymiz?",
-      body: "Odatda o'zingizdan: ismingizni yozing va jinsingizni tanlang. Ota-ona, farzandlarni keyin qo'shasiz." },
-    { page: "tree_create", el: '[data-tour="visibility"]', title: "Kim ko'radi",
-      body: "«Shaxsiy» — faqat siz va taklif qilgan qarindoshlaringiz. «Ommaviy» — Kutubxonada hamma ko'radi. Keyin sozlamalardan o'zgartirsa bo'ladi." },
-    { page: "tree_create", el: '[data-tour="create-submit"]', action: "click", title: "Yaratamiz",
+    { page: "tree_create", el: '[data-tour="tree-name"]', require: "#id_tree_name", title: "2. Nom bering",
+      body: "Masalan «Karimovlar oilasi». Yozgach «Keyingi» ochiladi." },
+    { page: "tree_create", el: '[data-tour="root-person"]', require: "#id_first_name", title: "3. O'zingiz",
+      body: "Ismingizni yozing va jinsingizni tanlang. Qolganini keyin qo'shasiz." },
+    { page: "tree_create", el: '[data-tour="create-submit"]', action: "click", title: "4. Yarating",
       body: "«Shajarani yaratish» tugmasini bosing." },
 
-    // -------------------------------------------------------------- tree map
-    { page: "index", el: ".leaf-node-root", title: "Bu — siz",
-      body: "Tojli karta — shajaraning bosh shaxsi. Butun oila shu kartadan tarqaladi: ota-ona tepada, farzandlar pastda." },
-    { page: "index", el: ".map-hud", title: "Xarita tugmalari",
-      body: "Kattalashtirish, kichiklashtirish, hammasini ko'rsatish, yuklab olish va bosh shaxsga qaytish. Xaritaning o'zini sichqoncha yoki barmoq bilan surasiz." },
-    { page: "index", el: "#next-card, #nc-pill", title: "Keyingi qadam doim shu yerda",
-      body: "Kimni qo'shishni bilmay qolsangiz — bu kartochka aytib turadi: avval ota-ona, keyin aka-uka, turmush o'rtog'i, farzandlar va bobo-buvilar." },
-    { page: "index", el: '[data-tour="nav-members"]', title: "A'zolar",
-      body: "Qarindoshlaringizga taklif havolasini yuborasiz — ular ham o'z shoxini qo'shadi va shajara birga to'ladi." },
-    { page: "index", el: '[data-tour="start-next"]', action: "click", title: "Birinchi qarindosh",
-      body: "Yashil tugmani bosing — ota yoki onangizni qo'shamiz. Bu atigi bir daqiqa." },
-    // ------------------------------------------------------ add a relative
-    { page: "add_relative", el: '[data-tour="person-name"]', require: "#id_first_name", title: "Ismini yozing",
-      body: "Faqat ism majburiy. Familiya va otasining ismini bilsangiz, ular ham yordam beradi." },
-    { page: "add_relative", el: '[data-tour="years"]', title: "Yillari",
-      body: "Tug'ilgan yilini 4 raqam bilan yozing. Aniq bilmasangiz «taxminan»ni belgilang, umuman bilmasangiz bo'sh qoldiring." },
-    { page: "add_relative", el: '[data-tour="birth-place"]', title: "Tug'ilgan joyi",
-      body: "Ixtiyoriy. Viloyat va tumanni qidirib tanlaysiz — boshqa shajaralardagi qarindoshlarni topishga yordam beradi." },
-    { page: "add_relative", el: '[data-tour="save"]', action: "click", title: "Saqlang",
-      body: "«Saqlash» tugmasini bosing." },
+    { page: "index", el: '[data-tour="start-next"]', action: "click", title: "5. Birinchi qarindosh",
+      body: "Yashil tugma keyingi qadamni o'zi tanlaydi. Bosing — ota yoki onangizni qo'shamiz." },
 
-    // ------------------------------------------------------ back on the map
-    { page: "index", el: "#next-card, #nc-pill", title: "Ajoyib, qarindosh qo'shildi!", primary: "Tugatish",
-      body: "Endi shu yo'l bilan davom eting: kartochkadagi keyingi qadamni bosing yoki formada «Saqlash va keyingisini qo'shish» tugmasidan foydalaning. Qo'llanmani istalgan payt menyudagi «Yordam» orqali qayta ochishingiz mumkin." }
+    { page: "add_relative", el: '[data-tour="person-name"]', require: "#id_first_name", title: "6. Ismini yozing",
+      body: "Faqat ism kerak, qolganini keyin to'ldirasiz." },
+    { page: "add_relative", el: '[data-tour="save"]', action: "click", title: "7. Saqlang",
+      body: "«Saqlash» ni bosing. «Saqlash va keyingisini qo'shish» esa navbatdagi qarindoshga o'zi o'tkazadi." },
+
+    { page: "index", el: "#next-card, #nc-pill", title: "Tayyor!", primary: "Tugatish",
+      body: "Davom etish oson: kartochkadagi keyingi qadamni bosing. Qo'llanmani menyudagi «Yordam» orqali qayta ochishingiz mumkin." }
   ];
 
   var STORE = "eshajara_tour_" + CFG.user;
