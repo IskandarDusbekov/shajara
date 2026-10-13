@@ -1,6 +1,6 @@
 <a class="relation-card" href="{% url 'person_detail' tree.url_key rel.id %}">
   {% if rel.photo %}
-    <img class="rel-av" src="{{ rel.photo.url }}" alt="">
+    <img class="rel-av" src="{% url 'person_avatar' tree.url_key rel.id %}?v={{ rel.updated_at|date:'U' }}" alt="">
   {% else %}
     <span class="rel-av {% if rel.gender == 'ayol' %}av-female{% else %}av-male{% endif %}">{{ rel.first_name|first|upper }}</span>
   {% endif %}

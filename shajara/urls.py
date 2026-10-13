@@ -65,6 +65,8 @@ urlpatterns = [
     path("shajara/<treekey:tree_key>/shaxs/<int:pk>/hikoya/<int:story_id>/", views.story_edit_view, name="story_edit"),
     path("shajara/<treekey:tree_key>/shaxs/<int:pk>/hikoya/<int:story_id>/ochirish/", views.story_delete_view,
          name="story_delete"),
+    path("shajara/<treekey:tree_key>/shaxs/<int:pk>/rasm.jpg", photos.person_avatar_view, name="person_avatar"),
+    path("shajara/<treekey:tree_key>/surat/<int:photo_id>.jpg", photos.photo_file_view, name="photo_file"),
     path("shajara/<treekey:tree_key>/shaxs/<int:pk>/surat/", photos.photo_add_view, name="photo_add"),
     path("shajara/<treekey:tree_key>/shaxs/<int:pk>/surat/<int:photo_id>/", photos.photo_edit_view, name="photo_edit"),
     path("shajara/<treekey:tree_key>/shaxs/<int:pk>/surat/<int:photo_id>/ochirish/", photos.photo_delete_view,

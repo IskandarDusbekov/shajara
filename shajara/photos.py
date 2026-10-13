@@ -7,6 +7,10 @@ and the tree's owner may change the caption or remove the picture.
 Every upload is opened and re-encoded here: only real images are kept,
 turned upright, shrunk to a sensible size and saved as JPEG without the
 camera's metadata (which can hold the place a photo was taken).
+
+Pictures of people are never served from /media/ directly (nginx refuses
+those folders): each request goes through a view that checks the visitor
+may see the tree, so a copied link is useless to anyone outside the family.
 """
 
 from io import BytesIO
@@ -14,7 +18,7 @@ from io import BytesIO
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.files.base import ContentFile
-from django.http import HttpResponseForbidden
+from django.http import FileResponse, Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -35,6 +39,7 @@ def clean_image(upload):
     if not upload or upload.size > MAX_PHOTO_BYTES:
         return None
     try:
+        upload.seek(0)
         img = Image.open(upload)
         img.verify()
         upload.seek(0)
@@ -142,6 +147,42 @@ def photo_delete_view(request, tree_key, pk, photo_id):
     log_activity(request, "photo_delete", tree=tree, person=person, detail=person.full_name)
     messages.success(request, "Surat o'chirildi.")
     return _back(tree, pk, f"hikoya-{in_story}" if in_story else "suratlar")
+
+
+def _private_file(field):
+    """Hand a stored picture out to someone already checked; never cached by shared proxies."""
+    try:
+        handle = field.open("rb")
+    except (FileNotFoundError, OSError, ValueError):
+        raise Http404
+    response = FileResponse(handle, content_type="image/jpeg" if field.name.endswith(".jpg") else None)
+    response["Cache-Control"] = "private, max-age=3600"
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Content-Disposition"] = "inline"
+    return response
+
+
+def _viewable_person(request, tree_key, pk):
+    """The person, if the visitor may see this tree and the person belongs to it — else 404,
+    so a stranger can't even learn that the picture exists."""
+    tree = Tree.objects.select_related("root_person").filter(public_id=tree_key).first()
+    if not tree or not can_view_tree(request.user, tree) or pk not in person_ids_in_tree(tree.root_person):
+        raise Http404
+    return tree
+
+
+def person_avatar_view(request, tree_key, pk):
+    _viewable_person(request, tree_key, pk)
+    person = get_object_or_404(Person, pk=pk)
+    if not person.photo:
+        raise Http404
+    return _private_file(person.photo)
+
+
+def photo_file_view(request, tree_key, photo_id):
+    photo = get_object_or_404(PersonPhoto, pk=photo_id)
+    _viewable_person(request, tree_key, photo.person_id)
+    return _private_file(photo.image)
 
 
 def story_photos(story_id_list):

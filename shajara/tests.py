@@ -992,6 +992,20 @@ class BookAndPictureExportTests(TestCase):
             self.assertEqual(stored.format, "JPEG")
             self.assertLessEqual(max(stored.size), 2000)      # shrunk on the way in
 
+        # a portrait is re-encoded, renamed and served only through the checked view
+        self.client.force_login(self.owner)
+        self.client.post(reverse("person_edit", args=[self.key, grandpa.id]),
+                         {"first_name": "Karim", "gender": "erkak", "photo": picture("IMG_1234.png", (900, 900))})
+        grandpa.refresh_from_db()
+        self.assertRegex(grandpa.photo.name, r"^people/[0-9a-f]{32}\.jpg$")
+        avatar = reverse("person_avatar", args=[self.key, grandpa.id])
+        r = self.client.get(avatar)
+        self.assertEqual(r.status_code, 200)
+        r.close()
+        self.client.force_login(self.stranger)
+        self.assertEqual(self.client.get(avatar).status_code, 404)
+        self.client.force_login(self.viewer)
+
         # a picture inside a story
         self.client.post(reverse("add_story", args=[self.key, grandpa.id]),
                          {"title": "Bog'", "text": "Bobom bog' ekkan.", "images": [picture("bog.png", (800, 600))]})
@@ -1000,6 +1014,23 @@ class BookAndPictureExportTests(TestCase):
         page = self.client.get(reverse("person_detail", args=[self.key, grandpa.id]))
         self.assertContains(page, 'id="suratlar"')
         self.assertContains(page, "To&#x27;yda")
+        # pictures are never linked straight from /media/; the file view checks access
+        self.assertNotContains(page, "/media/")
+        file_url = reverse("photo_file", args=[self.key, photo.id])
+        self.assertContains(page, file_url)
+        r = self.client.get(file_url)
+        self.assertEqual((r.status_code, r["Cache-Control"]), (200, "private, max-age=3600"))
+        r.close()
+        self.client.force_login(self.stranger)
+        self.assertEqual(self.client.get(file_url).status_code, 404)
+        self.client.logout()
+        self.assertEqual(self.client.get(file_url).status_code, 404)
+        # a picture of someone outside this tree can't be fetched through it
+        stranger_person = Person.objects.create(first_name="Begona", gender="erkak")
+        alien = PersonPhoto.objects.create(person=stranger_person, image=photo.image.name)
+        self.client.force_login(self.viewer)
+        self.assertEqual(self.client.get(reverse("photo_file", args=[self.key, alien.id])).status_code, 404)
+        alien.delete()
 
         # the owner may fix or delete anyone's picture; a third member may not
         other = User.objects.create_user("kitob_other", password="pw-12345678")

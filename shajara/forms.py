@@ -1,5 +1,6 @@
 import datetime
 import re
+import secrets
 
 from django import forms
 from django.contrib.auth import get_user_model
@@ -221,6 +222,19 @@ class PersonForm(forms.ModelForm):
     def clean_death_year(self):
         return normalise_year(self.cleaned_data.get("death_year"), bool(self.data.get("death_year_approx")),
                               "Vafot etgan yil")
+
+    def clean_photo(self):
+        """A new portrait is re-encoded like every family picture (upright, shrunk,
+        no camera metadata) and stored under a random name."""
+        upload = self.cleaned_data.get("photo")
+        if not upload or upload is False or not hasattr(upload, "content_type"):
+            return upload           # unchanged, or cleared
+        from .photos import clean_image
+        content = clean_image(upload)
+        if not content:
+            raise forms.ValidationError("Bu fayl rasm emas yoki 15 MB dan katta.")
+        content.name = f"{secrets.token_hex(16)}.jpg"
+        return content
 
     def clean_birth_date(self):
         date = self.cleaned_data.get("birth_date")

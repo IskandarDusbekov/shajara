@@ -1,22 +1,30 @@
-{% comment %}One picture on a person's page: opens large on click; its caption can be fixed by whoever added it.{% endcomment %}
+{% comment %}One picture on a person's page: opens large on click; whoever added it (or the tree's owner) can fix the caption or remove it.{% endcomment %}
 <figure class="pd-photo" id="surat-{{ ph.id }}">
-  <button type="button" class="pd-photo-open" data-full="{{ ph.image.url }}" data-caption="{{ ph.caption }}{% if ph.when %} · {{ ph.when }}{% endif %}" aria-label="Kattalashtirish">
-    <img src="{{ ph.image.url }}" alt="{% firstof ph.caption person.full_name %}" loading="lazy">
+  <button type="button" class="pd-photo-open" data-full="{% url 'photo_file' tree.url_key ph.id %}" data-caption="{{ ph.caption }}{% if ph.when %} · {{ ph.when }}{% endif %}" aria-label="Kattalashtirish">
+    <img src="{% url 'photo_file' tree.url_key ph.id %}" alt="{% firstof ph.caption person.full_name %}" loading="lazy">
     {% if ph.when %}<span class="pd-photo-when">{{ ph.when }}</span>{% endif %}
   </button>
   {% if ph.caption %}<figcaption>{{ ph.caption }}</figcaption>{% endif %}
   {% if ph.can_change %}
-  <details class="pd-photo-tools">
-    <summary>Izoh · o'chirish</summary>
-    <form method="post" action="{% url 'photo_edit' tree.url_key person.id ph.id %}">
+  <div class="pd-photo-tools">
+    <button type="button" class="pd-tool" data-photo-edit="{{ ph.id }}" title="Izoh va yilini o'zgartirish">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Izoh
+    </button>
+    <form method="post" action="{% url 'photo_delete' tree.url_key person.id ph.id %}" data-confirm="Bu suratni butunlay o'chirasizmi? Uni qaytarib bo'lmaydi.">
       {% csrf_token %}
-      <input class="pf-input" name="caption" maxlength="300" value="{{ ph.caption }}" placeholder="Kim, qayerda?">
-      <input class="pf-input" name="when" maxlength="60" value="{{ ph.when }}" placeholder="Qachon? Masalan: 1968">
+      <button type="submit" class="pd-tool pd-tool-danger" title="Suratni o'chirish">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>O'chirish
+      </button>
+    </form>
+  </div>
+  <form method="post" action="{% url 'photo_edit' tree.url_key person.id ph.id %}" class="pd-photo-edit" data-photo-form="{{ ph.id }}" hidden>
+    {% csrf_token %}
+    <input class="pf-input" name="caption" maxlength="300" value="{{ ph.caption }}" placeholder="Kim, qayerda?">
+    <input class="pf-input" name="when" maxlength="60" value="{{ ph.when }}" placeholder="Qachon? Masalan: 1968">
+    <div class="pd-photo-edit-row">
       <button class="pf-btn pf-btn-primary pf-btn-sm" type="submit">Saqlash</button>
-    </form>
-    <form method="post" action="{% url 'photo_delete' tree.url_key person.id ph.id %}" onsubmit="return confirm('Bu suratni o\'chirasizmi?');">
-      {% csrf_token %}<button type="submit" class="pd-link pd-link-danger">Suratni o'chirish</button>
-    </form>
-  </details>
+      <button class="pf-btn pf-btn-sm" type="button" data-photo-edit="{{ ph.id }}">Bekor</button>
+    </div>
+  </form>
   {% endif %}
 </figure>

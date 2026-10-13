@@ -159,7 +159,7 @@
       <span class="pf-label">Surati</span>
       <div class="pf-photo">
         <span class="pf-photo-thumb" id="photo-thumb">
-          {% if subject_person.photo %}<img src="{{ subject_person.photo.url }}" alt="">{% else %}{% include "shajara/_icon.html" with name="student" %}{% endif %}
+          {% if subject_person.photo %}<img src="{% url 'person_avatar' tree.url_key subject_person.id %}?v={{ subject_person.updated_at|date:'U' }}" alt="">{% else %}{% include "shajara/_icon.html" with name="student" %}{% endif %}
         </span>
         <input type="file" name="photo" id="id_photo" accept="image/*">
       </div>

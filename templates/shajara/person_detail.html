@@ -13,7 +13,7 @@
   {# --------------------------------------------------------------- who #}
   <section class="pf-card pd-hero{% if person.gender == 'ayol' %} is-f{% endif %}">
     {% if person.photo %}
-      <img class="pd-avatar" src="{{ person.photo.url }}" alt="{{ person.full_name }} surati">
+      <img class="pd-avatar" src="{% url 'person_avatar' tree.url_key person.id %}?v={{ person.updated_at|date:'U' }}" alt="{{ person.full_name }} surati">
     {% else %}
       <span class="pd-avatar" aria-hidden="true">{{ person.first_name|first|upper }}</span>
     {% endif %}
@@ -150,8 +150,11 @@
       <form method="post" action="{% url 'photo_add' tree.url_key person.id %}" enctype="multipart/form-data">
         {% csrf_token %}
         <label class="pd-drop">
-          <input type="file" name="images" accept="image/*" multiple required data-preview="gal-preview">
-          <span><b>Suratni tanlang</b> yoki telefon kamerasi bilan eski suratni rasmga oling<small>Bir vaqtda 10 tagacha · har biri 15 MB gacha</small></span>
+          <input type="file" name="images" accept="image/*" multiple required data-preview="gal-preview" data-count="gal-count">
+          <span class="pd-drop-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M20 16v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3"/></svg></span>
+          <span class="pd-drop-btn">Suratlarni tanlash</span>
+          <span class="pd-drop-hint" id="gal-count">yoki shu yerga tashlang · telefonda kamera bilan eski suratni rasmga oling</span>
+          <small>Bir vaqtda 10 tagacha · har biri 15 MB gacha · JPG yoki PNG</small>
         </label>
         <div class="pd-preview" id="gal-preview"></div>
         <div class="pf-row">
@@ -281,10 +284,33 @@
     });
     box.addEventListener("click", function () { box.close(); });
   }
+  // edit a picture's caption in place
+  document.querySelectorAll("[data-photo-edit]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var form = document.querySelector('[data-photo-form="' + b.getAttribute("data-photo-edit") + '"]');
+      if (!form) return;
+      form.hidden = !form.hidden;
+      if (!form.hidden) form.querySelector("input[name=caption]").focus();
+    });
+  });
+  // removing anything asks first
+  document.querySelectorAll("form[data-confirm]").forEach(function (f) {
+    f.addEventListener("submit", function (e) { if (!confirm(f.getAttribute("data-confirm"))) e.preventDefault(); });
+  });
+  // dropping files on the picker works too
+  document.querySelectorAll(".pd-drop").forEach(function (zone) {
+    ["dragenter", "dragover"].forEach(function (t) { zone.addEventListener(t, function () { zone.classList.add("is-over"); }); });
+    ["dragleave", "drop"].forEach(function (t) { zone.addEventListener(t, function () { zone.classList.remove("is-over"); }); });
+  });
   // chosen files show as small thumbnails before saving
   document.querySelectorAll("input[type=file][data-preview]").forEach(function (input) {
     var out = document.getElementById(input.getAttribute("data-preview"));
+    var count = document.getElementById(input.getAttribute("data-count") || "");
+    var zone = input.closest(".pd-drop");
     input.addEventListener("change", function () {
+      var n = input.files.length;
+      if (count) count.textContent = n ? n + " ta surat tanlandi — endi «Suratni saqlash»ni bosing" : "";
+      if (zone) zone.classList.toggle("has-files", n > 0);
       if (!out) return;
       out.innerHTML = "";
       Array.prototype.slice.call(input.files, 0, 10).forEach(function (f) {

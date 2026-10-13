@@ -35,7 +35,7 @@ because a caption would stay behind when a card is dragged away from it.
                      data-place="{{ p.birth_place }}"
                      data-patronymic="{{ p.patronymic }}"
                      data-bio="{{ p.bio|truncatechars:240 }}"
-                     {% if p.photo %}data-photo="{{ p.photo.url }}"{% endif %}
+                     {% if p.photo and tree %}data-photo="{% url 'person_avatar' tree.url_key p.id %}?v={{ p.updated_at|date:'U' }}"{% endif %}
                      {% if p.merged_count > 1 %}data-merged="{{ p.merged_count }}"{% endif %}
                      data-url="{% if p.detail_url %}{{ p.detail_url }}{% else %}{% url 'person_detail' tree.url_key p.id %}{% endif %}">
                   <span class="leaf-icon">

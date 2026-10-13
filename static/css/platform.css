@@ -974,3 +974,31 @@ html:not(.app-light) .pd-when { color: #e9c869; border-color: rgba(201,162,39,.3
 .pd-lightbox p { margin: 8px 4px 2px; font: 15px var(--pf-serif); color: #222; text-align: center; }
 .pd-lightbox p:empty { display: none; }
 @media (max-width: 620px) { .pd-gallery { grid-template-columns: repeat(2, 1fr); } }
+
+/* picker: a big, obvious target */
+.pd-drop { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 26px 18px; border-radius: 16px; text-align: center; cursor: pointer;
+  background: var(--pf-soft); border: 2px dashed var(--pf-accent); transition: background .15s, border-color .15s, transform .15s; }
+.pd-drop:hover, .pd-drop.is-over { background: var(--pf-card); transform: translateY(-1px); box-shadow: 0 10px 24px rgba(15,61,39,.12); }
+.pd-drop.has-files { border-style: solid; }
+.pd-drop:focus-within { outline: 3px solid var(--pf-accent); outline-offset: 2px; }
+.pd-drop-ic { width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: var(--pf-accent); color: var(--pf-on-accent); }
+.pd-drop-ic svg { width: 26px; height: 26px; }
+.pd-drop-btn { display: inline-flex; align-items: center; min-height: 42px; padding: 0 22px; border-radius: 999px; background: var(--pf-accent); color: var(--pf-on-accent);
+  font: 700 15px var(--pf-sans); box-shadow: 0 6px 16px rgba(26,122,70,.28); }
+.pd-drop-hint { font-size: 13.5px; color: var(--pf-ink); max-width: 420px; }
+.pd-drop.has-files .pd-drop-hint { font-weight: 700; color: var(--pf-accent); }
+.pd-drop small { font-size: 12px; color: var(--pf-muted); margin: 0; }
+.pd-preview img { width: 76px; height: 76px; }
+/* picture tools: plain, labelled buttons */
+.pd-photo-tools { display: flex; gap: 6px; padding: 0 2px; }
+.pd-photo-tools form { margin: 0; }
+.pd-tool { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--pf-line); background: var(--pf-card);
+  font: 600 12.5px var(--pf-sans); color: var(--pf-ink); cursor: pointer; }
+.pd-tool svg { width: 14px; height: 14px; }
+.pd-tool:hover { border-color: var(--pf-accent); color: var(--pf-accent); }
+.pd-tool-danger { color: var(--pf-bad); }
+.pd-tool-danger:hover { border-color: var(--pf-bad); color: var(--pf-bad); background: var(--pf-bad-soft); }
+.pd-photo-edit { display: flex; flex-direction: column; gap: 6px; }
+.pd-photo-edit[hidden] { display: none; }
+.pd-photo-edit-row { display: flex; gap: 6px; }
+.pd-drop .pd-drop-btn, .pd-drop .pd-drop-ic { color: var(--pf-on-accent); }

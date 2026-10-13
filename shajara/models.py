@@ -183,8 +183,8 @@ class PersonStory(models.Model):
 
 
 def photo_upload_to(instance, filename):
-    """Random names: family pictures are served from /media/ directly, so the
-    address itself must not be guessable."""
+    """Random names, as a second lock: the pictures are only ever handed out
+    by a view that checks access (photos.photo_file_view)."""
     return f"photos/{secrets.token_hex(16)}.jpg"
 
 
