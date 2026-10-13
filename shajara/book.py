@@ -35,15 +35,15 @@ from django.conf import settings
 from reportlab.graphics.barcode.qr import QrCodeWidget
 from reportlab.graphics.shapes import Drawing
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import cm, mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
-    BaseDocTemplate, CondPageBreak, Flowable, Frame, Image, KeepTogether, NextPageTemplate, PageBreak,
-    PageTemplate, Paragraph, Spacer, Table, TableStyle,
+    BaseDocTemplate, CondPageBreak, Flowable, Frame, Image, ImageAndFlowables, KeepTogether, NextPageTemplate,
+    PageBreak, PageTemplate, Paragraph, Spacer, Table, TableStyle,
 )
 from reportlab.platypus.tableofcontents import TableOfContents
 
@@ -92,20 +92,31 @@ BOOK_THEMES = {
         "row_alt": "#f4f4f4", "main_fill": "#eeeeee", "female": "#777777",
         "cover": {"kind": "ink", "bg": "#ffffff", "title": "#111111", "text": "#111111", "muted": "#555555", "accent": "#333333"},
     },
+    # An old printed book: cream paper with a faint grain, EB Garamond text
+    # and Cinzel titles, engraved-looking frames and vignettes, mirrored
+    # margins, drop caps, and the tree drawn in brown ink in cartouches.
+    "vintage": {
+        "label": "Vintage kitob", "frame": "vintage", "fonts": "vintage", "boxes": "cartouche", "texture": True,
+        "mirror": True, "dropcap": True, "folio": "dashes", "bar_style": "ruled",
+        "paper": "#f6f1e4", "ink": "#3a2a1c", "muted": "#7b6549", "accent": "#8b6a32", "accent_soft": "#cbb48a",
+        "title": "#4b2d18", "rule": "#ddcfb0", "bar": "#4b2d18", "bar_num": "#8b6a32", "bar_sub": "#7b6549",
+        "row_alt": "#efe7d4", "main_fill": "#eee2c6", "female": "#8e4f4f", "line": "#4b2d18", "cell": "#fbf7ee",
+        "cover": {"kind": "vintage", "bg": "#f6f1e4", "title": "#4b2d18", "text": "#3a2a1c", "muted": "#7b6549", "accent": "#8b6a32"},
+    },
 }
-BOOK_STYLE_ORDER = ["classic", "emerald", "samarkand", "modern", "ink"]
+BOOK_STYLE_ORDER = ["classic", "emerald", "samarkand", "modern", "ink", "vintage"]
 
 # The colours below are read by every drawing function; build_book() points
 # them at the chosen style for the length of one build (under _BUILD_LOCK).
 THEME = BOOK_THEMES["classic"]
 INK = MUTED = GOLD = GOLD_SOFT = WINE = PAPER = RULE = None
-BAR = BAR_SUB = ROW_ALT = MAIN_FILL = FEMALE = None
+BAR = BAR_SUB = ROW_ALT = MAIN_FILL = FEMALE = LINE = CELL = None
 A_HEX = M_HEX = BN_HEX = ""
 _BUILD_LOCK = threading.Lock()
 
 
 def use_theme(name):
-    global THEME, INK, MUTED, GOLD, GOLD_SOFT, WINE, PAPER, RULE, BAR, BAR_SUB, ROW_ALT, MAIN_FILL, FEMALE
+    global THEME, INK, MUTED, GOLD, GOLD_SOFT, WINE, PAPER, RULE, BAR, BAR_SUB, ROW_ALT, MAIN_FILL, FEMALE, LINE, CELL
     global A_HEX, M_HEX, BN_HEX
     THEME = BOOK_THEMES.get(name) or BOOK_THEMES["classic"]
     h = colors.HexColor
@@ -113,7 +124,12 @@ def use_theme(name):
     WINE, PAPER, RULE = h(THEME["title"]), h(THEME["paper"]), h(THEME["rule"])
     BAR, BAR_SUB, ROW_ALT = h(THEME["bar"]), h(THEME["bar_sub"]), h(THEME["row_alt"])
     MAIN_FILL, FEMALE = h(THEME["main_fill"]), h(THEME["female"])
+    LINE, CELL = h(THEME.get("line", THEME["accent"])), h(THEME.get("cell", "#ffffff"))
     A_HEX, M_HEX, BN_HEX = THEME["accent"], THEME["muted"], THEME["bar_num"]
+
+
+def vintage():
+    return THEME.get("frame") == "vintage"
 
 
 use_theme("classic")
@@ -138,8 +154,42 @@ FONT_SETS = [
 ]
 
 
-@lru_cache(maxsize=1)
+# The vintage book's own type, shipped in static/fonts/vintage (SIL Open Font License).
+VINTAGE_BODY = ("EBGaramond-Regular.ttf", "EBGaramond-Bold.ttf", "EBGaramond-Italic.ttf", "EBGaramond-BoldItalic.ttf")
+VINTAGE_DISPLAY = ("Cinzel-Regular.ttf", "Cinzel-Bold.ttf")
+
+
 def book_fonts():
+    """The fonts of the style being built: names (regular, bold, italic,
+    bold italic), display (regular, bold) for titles, and the glyphs the
+    body font has (empty when unknown)."""
+    return _font_family(THEME.get("fonts", ""))
+
+
+@lru_cache(maxsize=4)
+def _font_family(kind):
+    if kind == "vintage":
+        folder = os.path.join(settings.BASE_DIR, "static", "fonts", "vintage")
+        body = [os.path.join(folder, f) for f in VINTAGE_BODY]
+        display = [os.path.join(folder, f) for f in VINTAGE_DISPLAY]
+        if all(os.path.exists(f) for f in body + display):
+            names = ("Vintage", "Vintage-Bold", "Vintage-Italic", "Vintage-BoldItalic")
+            for name, path in zip(names, body):
+                pdfmetrics.registerFont(TTFont(name, path))
+            pdfmetrics.registerFontFamily("Vintage", normal=names[0], bold=names[1], italic=names[2], boldItalic=names[3])
+            dnames = ("VintageDisplay", "VintageDisplay-Bold")
+            for name, path in zip(dnames, display):
+                pdfmetrics.registerFont(TTFont(name, path))
+            glyphs = set(pdfmetrics.getFont(names[0]).face.charToGlyph)
+            dglyphs = set(pdfmetrics.getFont(dnames[1]).face.charToGlyph)
+            # titles are set in Cinzel, which has no ʻ ʼ: use ‘ ’ throughout so the two agree
+            glyphs -= {0x2BB, 0x2BC} - dglyphs
+            return {"names": names, "display": dnames, "glyphs": glyphs, "dglyphs": dglyphs}
+    return _default_fonts()
+
+
+@lru_cache(maxsize=1)
+def _default_fonts():
     """Register a serif family once. A book font dropped into static/fonts
     wins; otherwise a system serif; reportlab's own Vera as the last resort."""
     font_dir = getattr(settings, "SHAJARA_PDF_FONT_DIR", None) or os.path.join(settings.BASE_DIR, "static", "fonts")
@@ -153,9 +203,31 @@ def book_fonts():
             for name, path in zip(names, files):
                 pdfmetrics.registerFont(TTFont(name, path))
             pdfmetrics.registerFontFamily("BookSerif", normal=names[0], bold=names[1], italic=names[2], boldItalic=names[3])
-            face = pdfmetrics.getFont(names[0]).face
-            return {"names": names, "glyphs": set(face.charToGlyph)}
-    return {"names": ("Times-Roman", "Times-Bold", "Times-Italic", "Times-BoldItalic"), "glyphs": set()}
+            glyphs = set(pdfmetrics.getFont(names[0]).face.charToGlyph)
+            return {"names": names, "display": names[:2], "glyphs": glyphs, "dglyphs": glyphs}
+    names = ("Times-Roman", "Times-Bold", "Times-Italic", "Times-BoldItalic")
+    return {"names": names, "display": names[:2], "glyphs": set(), "dglyphs": set()}
+
+
+def dclean(text):
+    """clean() for a title set in the display face; text with letters that
+    face lacks (Cyrillic in Cinzel, say) falls back to the bold body font."""
+    f = book_fonts()
+    out = clean(text)
+    dglyphs = f["dglyphs"]
+    if dglyphs and f["display"][1] != f["names"][1] and any(
+            ord(ch) not in dglyphs for ch in plain(text) if not ch.isspace()):
+        return f"<font name='{f['names'][1]}'>{out}</font>"
+    return out
+
+
+def display_font_for(text, bold=True):
+    """The display font if it can set `text`, else the body's bold."""
+    f = book_fonts()
+    name = f["display"][1 if bold else 0]
+    if f["dglyphs"] and any(ord(ch) not in f["dglyphs"] for ch in text if not ch.isspace()):
+        return f["names"][1]
+    return name
 
 
 def plain(text):
@@ -181,26 +253,32 @@ def clean(text):
 # ----------------------------------------------------------------- styles --
 
 def make_styles():
-    r, b, i, bi = book_fonts()["names"]
+    f = book_fonts()
+    r, b, i, bi = f["names"]
+    dr, db = f["display"]
+    big = 0.6 if vintage() else 0      # EB Garamond sets small; a touch larger reads like the other faces
     s = {}
-    s["body"] = ParagraphStyle("body", fontName=r, fontSize=10.5, leading=15.5, textColor=INK, alignment=TA_JUSTIFY)
+    s["body"] = ParagraphStyle("body", fontName=r, fontSize=10.5 + big, leading=15.5 + big, textColor=INK,
+                               alignment=TA_JUSTIFY)
     s["body_left"] = ParagraphStyle("body_left", parent=s["body"], alignment=TA_LEFT)
-    s["small"] = ParagraphStyle("small", parent=s["body"], fontSize=8.8, leading=12, textColor=MUTED, alignment=TA_LEFT)
+    s["small"] = ParagraphStyle("small", parent=s["body"], fontSize=8.8 + big, leading=12 + big, textColor=MUTED,
+                                alignment=TA_LEFT)
     s["center_small"] = ParagraphStyle("center_small", parent=s["small"], alignment=TA_CENTER)
-    s["kicker"] = ParagraphStyle("kicker", fontName=b, fontSize=9, leading=12, textColor=GOLD, alignment=TA_CENTER,
+    s["kicker"] = ParagraphStyle("kicker", fontName=db, fontSize=9, leading=12, textColor=GOLD, alignment=TA_CENTER,
                                  spaceAfter=6)
-    s["cover_title"] = ParagraphStyle("cover_title", fontName=b, fontSize=30, leading=36, textColor=WINE,
+    s["cover_title"] = ParagraphStyle("cover_title", fontName=db, fontSize=30, leading=36, textColor=WINE,
                                       alignment=TA_CENTER)
     s["cover_sub"] = ParagraphStyle("cover_sub", fontName=i, fontSize=13, leading=18, textColor=INK, alignment=TA_CENTER)
     s["cover_meta"] = ParagraphStyle("cover_meta", fontName=r, fontSize=10.5, leading=15, textColor=MUTED,
                                      alignment=TA_CENTER)
-    s["h1"] = ParagraphStyle("h1", fontName=b, fontSize=22, leading=28, textColor=WINE, alignment=TA_CENTER,
+    s["h1"] = ParagraphStyle("h1", fontName=db, fontSize=22, leading=28, textColor=WINE, alignment=TA_CENTER,
                              spaceAfter=4)
-    s["chapter_no"] = ParagraphStyle("chapter_no", fontName=b, fontSize=40, leading=44, textColor=GOLD,
+    s["chapter_no"] = ParagraphStyle("chapter_no", fontName=db, fontSize=40, leading=44, textColor=GOLD,
                                      alignment=TA_CENTER)
-    s["chapter_intro"] = ParagraphStyle("chapter_intro", fontName=i, fontSize=10.5, leading=15, textColor=MUTED,
-                                        alignment=TA_CENTER)
-    s["h2"] = ParagraphStyle("h2", fontName=b, fontSize=14, leading=19, textColor=WINE, spaceBefore=10, spaceAfter=6)
+    s["chapter_intro"] = ParagraphStyle("chapter_intro", fontName=i, fontSize=10.5 + big, leading=15 + big,
+                                        textColor=MUTED, alignment=TA_CENTER)
+    s["h2"] = ParagraphStyle("h2", fontName=db, fontSize=14 if not vintage() else 13, leading=19, textColor=WINE,
+                             spaceBefore=10, spaceAfter=6)
     s["num"] = ParagraphStyle("num", fontName=b, fontSize=8.5, leading=11, textColor=GOLD)
     s["name"] = ParagraphStyle("name", fontName=b, fontSize=15, leading=19, textColor=INK)
     s["years"] = ParagraphStyle("years", fontName=i, fontSize=10.5, leading=14, textColor=MUTED)
@@ -211,7 +289,7 @@ def make_styles():
     s["story_meta"] = ParagraphStyle("story_meta", fontName=r, fontSize=8.5, leading=11, textColor=MUTED,
                                      alignment=TA_LEFT)
     s["reg"] = ParagraphStyle("reg", fontName=r, fontSize=9.8, leading=13.2, textColor=INK)
-    s["toc1"] = ParagraphStyle("toc1", fontName=b, fontSize=11, leading=18, textColor=WINE, leftIndent=0, spaceBefore=6)
+    s["toc1"] = ParagraphStyle("toc1", fontName=db, fontSize=11, leading=18, textColor=WINE, leftIndent=0, spaceBefore=6)
     s["toc2"] = ParagraphStyle("toc2", fontName=r, fontSize=9.8, leading=14, textColor=INK, leftIndent=16)
     s["family_title"] = ParagraphStyle("family_title", fontName=b, fontSize=15.5, leading=20, textColor=colors.white)
     s["family_sub"] = ParagraphStyle("family_sub", fontName=i, fontSize=9.5, leading=13, textColor=BAR_SUB)
@@ -227,13 +305,27 @@ def make_styles():
     s["c_foot"] = ParagraphStyle("c_foot", parent=s["body_left"], textColor=cv["text"])
     s["c_accent"] = cv["accent"]
     # «at a glance» numbers and the reading guide
-    s["stat_num"] = ParagraphStyle("stat_num", fontName=b, fontSize=22, leading=26, textColor=WINE, alignment=TA_CENTER)
+    s["stat_num"] = ParagraphStyle("stat_num", fontName=db, fontSize=22, leading=26, textColor=WINE, alignment=TA_CENTER)
     s["stat_label"] = ParagraphStyle("stat_label", fontName=r, fontSize=8.6, leading=11, textColor=MUTED, alignment=TA_CENTER)
-    s["mem_h"] = ParagraphStyle("mem_h", fontName=bi, fontSize=11.5, leading=15, textColor=WINE, spaceBefore=2, spaceAfter=2)
+    s["mem_h"] = ParagraphStyle("mem_h", fontName=bi, fontSize=11.5, leading=15, textColor=WINE, spaceBefore=2, spaceAfter=2,
+                                keepWithNext=1)
     s["fact_t"] = ParagraphStyle("fact_t", fontName=b, fontSize=9, leading=12, textColor=GOLD)
     s["fact_v"] = ParagraphStyle("fact_v", fontName=r, fontSize=10.3, leading=14.5, textColor=INK)
-    s["guide"] = ParagraphStyle("guide", parent=s["body_left"], fontSize=10, leading=14.5, leftIndent=12, bulletIndent=0,
-                                spaceAfter=4)
+    s["guide"] = ParagraphStyle("guide", parent=s["body_left"], fontSize=10 + big, leading=14.5 + big, leftIndent=12,
+                                bulletIndent=0, spaceAfter=4)
+    # how a person is related to the book's main person, under their name
+    s["kin"] = ParagraphStyle("kin", fontName=i, fontSize=9.6 + big, leading=13, textColor=GOLD)
+    # the family heading of the vintage book: rules instead of a coloured bar
+    s["fam_num"] = ParagraphStyle("fam_num", fontName=r, fontSize=9, leading=12, textColor=GOLD, alignment=TA_CENTER)
+    s["fam_title"] = ParagraphStyle("fam_title", fontName=db, fontSize=14, leading=19, textColor=WINE,
+                                    alignment=TA_CENTER)
+    s["fam_sub"] = ParagraphStyle("fam_sub", fontName=i, fontSize=10, leading=13.5, textColor=MUTED, alignment=TA_CENTER)
+    # the chronicle and the index of names
+    s["decade"] = ParagraphStyle("decade", fontName=db, fontSize=12, leading=16, textColor=WINE, spaceBefore=10,
+                                 spaceAfter=3)
+    s["chron_year"] = ParagraphStyle("chron_year", fontName=b, fontSize=10, leading=13.5, textColor=GOLD)
+    s["chron"] = ParagraphStyle("chron", fontName=r, fontSize=9.8 + big, leading=13.5 + big, textColor=INK)
+    s["idx"] = ParagraphStyle("idx", fontName=r, fontSize=9.6 + big, leading=14, textColor=INK)
     return s
 
 
@@ -254,6 +346,14 @@ class Ornament(Flowable):
     def draw(self):
         c = self.canv
         cx, y = self.avail / 2, self.space + 5
+        if vintage():
+            if self.w <= 3 * cm:    # the small one round a chapter number
+                vignette(c, cx, y, self.w, self.color or GOLD, s=0.7)
+            elif self.w < 4 * cm:   # a tailpiece: the printer's floral heart
+                fleuron(c, cx, y, 15, self.color or GOLD)
+            else:
+                vignette(c, cx, y, self.w, self.color or GOLD)
+            return
         c.setStrokeColor(self.color or GOLD)
         c.setFillColor(self.color or GOLD)
         c.setLineWidth(0.7)
@@ -264,6 +364,185 @@ class Ornament(Flowable):
         c.drawPath(p, stroke=0, fill=1)
         for dx in (-self.w / 2 - 3, self.w / 2 + 3):
             c.circle(cx + dx, y, 1.3, stroke=0, fill=1)
+
+
+# ------------------------------------------------- the vintage engraving --
+# Everything is drawn in a local frame and placed with translate/scale, so
+# one curl serves every corner and both sides of a vignette.
+
+def scroll(c, s=1.0, width=0.6):
+    """A flourish heading right from the origin: it rises, turns and ends in
+    a curl, the stroke an engraver would cut beside a title."""
+    p = c.beginPath()
+    p.moveTo(0, 0)
+    p.curveTo(6 * s, 0, 9 * s, 5 * s, 14 * s, 5 * s)
+    p.curveTo(19 * s, 5 * s, 22.5 * s, 2 * s, 21.5 * s, -1 * s)
+    p.curveTo(20.6 * s, -3.4 * s, 17 * s, -3 * s, 17 * s, -0.8 * s)
+    p.curveTo(17 * s, 0.9 * s, 19.2 * s, 1.1 * s, 19.6 * s, -0.3 * s)
+    c.setLineWidth(width)
+    c.setLineCap(1)
+    c.drawPath(p, stroke=1, fill=0)
+    # a small leaf where the curve leaves the stem
+    leaf = c.beginPath()
+    leaf.moveTo(7 * s, 1.4 * s)
+    leaf.curveTo(9 * s, -1.6 * s, 12 * s, -2 * s, 13.5 * s, -1.2 * s)
+    leaf.curveTo(12 * s, 0.4 * s, 9.5 * s, 1.6 * s, 7 * s, 1.4 * s)
+    c.drawPath(leaf, stroke=0, fill=1)
+
+
+def rosette(c, x, y, r, color):
+    """Four petals round a dot."""
+    c.saveState()
+    c.setFillColor(color)
+    c.translate(x, y)
+    for k in range(4):
+        p = c.beginPath()
+        p.moveTo(0, 0)
+        p.curveTo(r * 0.45, r * 0.35, r * 0.4, r * 0.85, 0, r)
+        p.curveTo(-r * 0.4, r * 0.85, -r * 0.45, r * 0.35, 0, 0)
+        c.drawPath(p, stroke=0, fill=1)
+        c.rotate(90)
+    c.setFillColor(PAPER)
+    c.circle(0, 0, r * 0.22, stroke=0, fill=1)
+    c.restoreState()
+
+
+def vignette(c, cx, y, w, color, s=1.0):
+    """The divider under a title: a diamond between two mirrored flourishes,
+    each running out into a fine rule that ends in a dot."""
+    c.saveState()
+    c.setStrokeColor(color)
+    c.setFillColor(color)
+    _diamond(c, cx, y, 3.4 * s, color)
+    for sx in (1, -1):
+        c.circle(cx + sx * 7 * s, y, 1.1 * s, stroke=0, fill=1)
+        c.saveState()
+        c.translate(cx + sx * 10 * s, y)
+        c.scale(sx, 1)
+        scroll(c, 0.95 * s)
+        c.restoreState()
+        end = max(w / 2, 34 * s)
+        if end > 34 * s:
+            c.setLineWidth(0.5)
+            c.line(cx + sx * 32 * s, y - 0.6 * s, cx + sx * (end - 3), y - 0.6 * s)
+            c.circle(cx + sx * end, y - 0.6 * s, 1.0 * s, stroke=0, fill=1)
+    c.restoreState()
+
+
+def fleuron(c, cx, y, size, color):
+    """❦ when the font has it, else a small vignette."""
+    f = book_fonts()
+    if 0x2766 in f["glyphs"]:
+        c.saveState()
+        c.setFillColor(color)
+        c.setFont(f["names"][0], size)
+        c.drawCentredString(cx, y - size * 0.3, "❦")
+        c.restoreState()
+    else:
+        vignette(c, cx, y, 2 * cm, color, s=0.7)
+
+
+def cartouche(c, x, y, w, h, r, fill=None, stroke=None, lw=0.8, inner=None):
+    """A box with its corners cut inward in quarter circles, as round the
+    names in an engraved family tree; `inner` adds a fine second line."""
+    def path(x, y, w, h, r):
+        k = 0.5523 * r
+        p = c.beginPath()
+        p.moveTo(x + r, y)
+        p.lineTo(x + w - r, y)
+        p.curveTo(x + w - r, y + k, x + w - k, y + r, x + w, y + r)
+        p.lineTo(x + w, y + h - r)
+        p.curveTo(x + w - k, y + h - r, x + w - r, y + h - k, x + w - r, y + h)
+        p.lineTo(x + r, y + h)
+        p.curveTo(x + r, y + h - k, x + k, y + h - r, x, y + h - r)
+        p.lineTo(x, y + r)
+        p.curveTo(x + k, y + r, x + r, y + k, x + r, y)
+        p.close()
+        return p
+
+    c.saveState()
+    if fill is not None:
+        c.setFillColor(fill)
+    if stroke is not None:
+        c.setStrokeColor(stroke)
+    c.setLineWidth(lw)
+    c.drawPath(path(x, y, w, h, r), stroke=1 if stroke is not None else 0, fill=1 if fill is not None else 0)
+    if inner is not None:
+        d = 2.2
+        c.setStrokeColor(inner)
+        c.setLineWidth(0.35)
+        c.drawPath(path(x + d, y + d, w - 2 * d, h - 2 * d, max(1.5, r - d * 0.6)), stroke=1, fill=0)
+    c.restoreState()
+
+
+def vintage_frame(c, W, H, inset, s=1.0):
+    """A heavy and a fine rule round the page, the fine one cut inward at the
+    corners, a rosette in each cut and a flourish running off along both edges."""
+    gap, r = 4.5 * s, 13 * s
+    c.saveState()
+    c.setStrokeColor(WINE)
+    c.setLineWidth(1.1 * s)
+    c.rect(inset, inset, W - 2 * inset, H - 2 * inset, stroke=1, fill=0)
+    x0, y0 = inset + gap, inset + gap
+    cartouche(c, x0, y0, W - 2 * x0, H - 2 * y0, r, stroke=GOLD, lw=0.5 * s)
+    c.setStrokeColor(GOLD)
+    c.setFillColor(GOLD)
+    for x, y, sx, sy in ((x0, y0, 1, 1), (W - x0, y0, -1, 1), (x0, H - y0, 1, -1), (W - x0, H - y0, -1, -1)):
+        c.saveState()
+        c.translate(x, y)
+        c.scale(sx, sy)
+        rosette(c, 0, 0, 7 * s, GOLD)
+        for swap in (False, True):
+            c.saveState()
+            if swap:
+                c.transform(0, 1, 1, 0, 0, 0)    # the same curl along the other edge
+            c.translate(r + 2.5 * s, 3.2 * s)
+            scroll(c, 0.85 * s, width=0.55 * s)
+            c.restoreState()
+        c.restoreState()
+    c.restoreState()
+
+
+def paper_texture(c, W, H):
+    """Faint fibres and specks and edges a shade darker, as on old paper.
+    Drawn once per document and page shape as a form, then reused."""
+    name = f"paper{int(W)}x{int(H)}"
+    if not c.hasForm(name):
+        import random
+        rnd = random.Random(1907)
+        # Colours are mixed with the paper beforehand instead of drawn
+        # translucent: viewers and printers handle alpha in forms unevenly.
+        def tint(amount, ink="#6b4f2a"):
+            a, b = PAPER, colors.HexColor(ink)
+            return colors.Color(a.red + (b.red - a.red) * amount, a.green + (b.green - a.green) * amount,
+                                a.blue + (b.blue - a.blue) * amount)
+
+        c.beginForm(name)
+        c.saveState()
+        for amount in (0.06, 0.1, 0.16):
+            c.setFillColor(tint(amount))
+            for _ in range(int(W * H / 4200)):
+                c.circle(rnd.uniform(0, W), rnd.uniform(0, H), rnd.uniform(0.2, 0.7), stroke=0, fill=1)
+        c.setStrokeColor(tint(0.09))
+        c.setLineWidth(0.3)
+        for _ in range(int(W * H / 7000)):
+            x, y, a = rnd.uniform(0, W), rnd.uniform(0, H), rnd.uniform(0, math.pi)
+            L = rnd.uniform(3, 9)
+            p = c.beginPath()
+            p.moveTo(x, y)
+            p.curveTo(x + L * 0.4 * math.cos(a) + 1, y + L * 0.4 * math.sin(a), x + L * 0.7 * math.cos(a),
+                      y + L * 0.7 * math.sin(a) + 1, x + L * math.cos(a), y + L * math.sin(a))
+            c.drawPath(p, stroke=1, fill=0)
+        # the edges, darker the nearer they are: bands from the inside out
+        steps, band = 16, 2.2
+        c.setLineWidth(band + 0.4)
+        for k in range(steps):
+            depth = (steps - k - 0.5) * band
+            c.setStrokeColor(tint(0.11 * ((k + 1) / steps) ** 2, "#8a6a3a"))
+            c.rect(depth, depth, W - 2 * depth, H - 2 * depth, stroke=1, fill=0)
+        c.restoreState()
+        c.endForm()
+    c.doForm(name)
 
 
 class Rule(Flowable):
@@ -315,6 +594,92 @@ class ChapterMark(Flowable):
         return "bob-" + re.sub(r"[^A-Za-z0-9]+", "-", self.title)[:40]
 
 
+class PersonMark(Flowable):
+    """Zero-size marker where a person's entry starts: a link target and a
+    line, with its page, in the index of names."""
+
+    def __init__(self, pid, text, sort, weak=False):
+        super().__init__()
+        self.pid, self.text, self.sort, self.weak = pid, text, sort, weak
+        # weak: only a row in the parents' table — used if the person has no entry of their own
+        self.key = f"p{pid}" + ("t" if weak else "")
+
+    def wrap(self, *args):
+        return 0, 0
+
+    def draw(self):
+        self.canv.bookmarkPage(self.key)
+
+
+class NameIndex(TableOfContents):
+    """The index of names at the back: everyone in alphabetical order with
+    their number and page. Entries arrive in page order and are only sorted
+    for display, so multiBuild still sees them settle."""
+
+    def __init__(self, style):
+        super().__init__(notifyKind="NameEntry", dotsMinLevel=0, levelStyles=[style])
+        self.order = {}
+
+    def addEntry(self, level, text, pageNum, key=None, sort=""):
+        self.order[key] = sort
+        super().addEntry(level, text, pageNum, key)
+
+    def wrap(self, avail_w, avail_h):
+        last = self._lastEntries
+        self._lastEntries = sorted(last, key=lambda e: self.order.get(e[3], ""))
+        try:
+            return super().wrap(avail_w, avail_h)
+        finally:
+            self._lastEntries = last
+
+
+INDEX_TITLE = "Ismlar ko‘rsatkichi"
+
+
+def sort_key(name):
+    return re.sub(r"[ʻʼ‘’'`]", "", plain(name)).lower()
+
+
+class DropCap(Flowable):
+    """The first letter of a paragraph, three lines tall, in the title face.
+    Sits beside the paragraph's first lines through ImageAndFlowables."""
+
+    def __init__(self, letter, style, lines=3):
+        super().__init__()
+        self.letter = plain(letter)
+        self.font = display_font_for(self.letter)
+        cap = 0.7      # cap height of Cinzel / the body's bold, in ems
+        self.size = (style.fontSize * 0.66 + (lines - 1) * style.leading) / cap
+        self.h = style.fontSize + (lines - 1) * style.leading + 1.5
+        self.w = pdfmetrics.stringWidth(self.letter, self.font, self.size) + 2
+
+    def wrap(self, *args):
+        return self.w, self.h
+
+    # ImageAndFlowables expects an Image; a letter never needs shrinking
+    def _restrictSize(self, *args):
+        return self.w, self.h
+
+    def _unRestrictSize(self):
+        pass
+
+    def draw(self):
+        self.canv.setFillColor(WINE)
+        self.canv.setFont(self.font, self.size)
+        self.canv.drawString(0, 1.5, self.letter)
+
+
+def opening(markup, style, min_len=140):
+    """A paragraph that opens a text: with a drop cap in the vintage book
+    when it is long enough to wrap round one, a plain paragraph otherwise."""
+    if not THEME.get("dropcap") or len(markup) < min_len or not markup[:1].isalpha():
+        return Paragraph(markup, style)
+    n = 2 if markup[1:2] in ("ʻ", "ʼ", "‘", "’", "'") else 1
+    return ImageAndFlowables(DropCap(markup[:n], style), [Paragraph(markup[n:].lstrip(), style)],
+                             imageSide="left", imageLeftPadding=0, imageRightPadding=3,
+                             imageTopPadding=0, imageBottomPadding=0)
+
+
 def qr_drawing(url, size=2.6 * cm):
     widget = QrCodeWidget(url)
     widget.barFillColor = INK
@@ -343,6 +708,8 @@ class BookTemplate(BaseDocTemplate):
 
     def beforeDocument(self):
         self.chapter = ""
+        self.indexed = set()
+        self.weak = {}
 
     def afterFlowable(self, flowable):
         if isinstance(flowable, ChapterMark):
@@ -350,9 +717,31 @@ class BookTemplate(BaseDocTemplate):
             if flowable.toc:
                 self.notify("TOCEntry", (0, clean(flowable.title), self.page, flowable.key))
                 self.canv.addOutlineEntry(plain(flowable.title), flowable.key, level=0, closed=True)
+            if flowable.title == INDEX_TITLE:
+                # everyone without an entry of their own: the row in their parents' table
+                for pid, entry in self.weak.items():
+                    if pid not in self.indexed:
+                        self.notify("NameEntry", entry)
         elif isinstance(flowable, FamilyMark):
             self.notify("TOCEntry", (1, clean(flowable.title), self.page, flowable.key))
             self.canv.addOutlineEntry(plain(flowable.title), flowable.key, level=1)
+        elif isinstance(flowable, PersonMark):
+            entry = (0, flowable.text, self.page, flowable.key, flowable.sort)
+            if flowable.weak:
+                self.weak.setdefault(flowable.pid, entry)
+            elif flowable.pid not in self.indexed:
+                self.indexed.add(flowable.pid)
+                self.notify("NameEntry", entry)
+
+    def margins(self, W, H):
+        """(left, right) margins of this page. The vintage book keeps the
+        wider margin on the bound edge: left on a right-hand (odd) page."""
+        if W > H:
+            return 2.0 * cm, 2.0 * cm
+        if THEME.get("mirror"):
+            inner, outer = 2.8 * cm, 1.8 * cm
+            return (inner, outer) if self.page % 2 else (outer, inner)
+        return 2.3 * cm, 2.3 * cm
 
     # page furniture
     def _paper(self, c, inset):
@@ -361,7 +750,11 @@ class BookTemplate(BaseDocTemplate):
         c.saveState()
         c.setFillColor(PAPER)
         c.rect(0, 0, W, H, stroke=0, fill=1)
-        if kind in ("double", "tiles"):
+        if THEME.get("texture"):
+            paper_texture(c, W, H)
+        if kind == "vintage":
+            vintage_frame(c, W, H, inset)
+        elif kind in ("double", "tiles"):
             c.setStrokeColor(WINE if kind == "tiles" else GOLD)
             c.setLineWidth(1.2)
             c.rect(inset, inset, W - 2 * inset, H - 2 * inset, stroke=1, fill=0)
@@ -384,34 +777,62 @@ class BookTemplate(BaseDocTemplate):
         draw_cover(c)
 
     def draw_body_page(self, c, doc):
+        W, H = c._pagesize
+        if THEME.get("mirror") and W < H:
+            # called before the frame is reset for the page, so the text block moves with the margins
+            doc.pageTemplate.frames[0].x1 = self.margins(W, H)[0]
         self._paper(c, 1.25 * cm)
 
     def draw_running_head(self, c, doc):
         """Drawn once the page is full, so it names the chapter the page is in."""
         W, H = c._pagesize
-        r, b, i, bi = book_fonts()["names"]
-        m = 2.3 * cm if W < H else 2.0 * cm
+        f = book_fonts()
+        r, b, i, bi = f["names"]
+        left, right = self.margins(W, H)
+        title = self.book["title_plain"][:70]
+        chapter = plain(self.chapter)[:60]
         c.saveState()
         c.setFillColor(MUTED)
-        c.setFont(i, 8.5)
-        c.drawString(m, H - 1.85 * cm, self.book["title_plain"][:70])
-        if self.chapter:
-            c.setFont(r, 8)
-            c.drawRightString(W - m, H - 1.85 * cm, plain(self.chapter)[:60])
-        c.setStrokeColor(GOLD_SOFT)
-        c.setLineWidth(0.5)
-        c.line(m, H - 2.0 * cm, W - m, H - 2.0 * cm)
-        c.setFillColor(GOLD)
-        c.setFont(b, 9.5)
-        label = str(doc.page)
-        c.drawCentredString(W / 2, 1.75 * cm, label)
-        w = pdfmetrics.stringWidth(label, b, 9.5)
-        c.setStrokeColor(GOLD)
-        c.line(W / 2 - w / 2 - 22, 1.84 * cm, W / 2 - w / 2 - 6, 1.84 * cm)
-        c.line(W / 2 + w / 2 + 6, 1.84 * cm, W / 2 + w / 2 + 22, 1.84 * cm)
+        if vintage():
+            # the book's name on the outer edge, the chapter's on the inner one
+            if doc.page % 2 == 0 or W > H:
+                outer_x, inner_x, outer_draw, inner_draw = left, W - right, c.drawString, c.drawRightString
+            else:
+                outer_x, inner_x, outer_draw, inner_draw = W - right, left, c.drawRightString, c.drawString
+            c.setFont(display_font_for(title, bold=False), 7.6)
+            outer_draw(outer_x, H - 1.85 * cm, title)
+            if chapter:
+                c.setFont(i, 8.8)
+                inner_draw(inner_x, H - 1.85 * cm, chapter)
+        else:
+            c.setFont(i, 8.5)
+            c.drawString(left, H - 1.85 * cm, title)
+            if chapter:
+                c.setFont(r, 8)
+                c.drawRightString(W - right, H - 1.85 * cm, chapter)
+        c.setStrokeColor(GOLD_SOFT if not vintage() else GOLD)
+        c.setLineWidth(0.5 if not vintage() else 0.4)
+        c.line(left, H - 2.0 * cm, W - right, H - 2.0 * cm)
+        if THEME.get("folio") == "dashes":
+            c.setFillColor(INK)
+            c.setFont(r, 10.5)
+            c.drawCentredString(W / 2, 1.72 * cm, f"— {doc.page} —")
+        else:
+            c.setFillColor(GOLD)
+            c.setFont(b, 9.5)
+            label = str(doc.page)
+            c.drawCentredString(W / 2, 1.75 * cm, label)
+            w = pdfmetrics.stringWidth(label, b, 9.5)
+            c.setStrokeColor(GOLD)
+            c.line(W / 2 - w / 2 - 22, 1.84 * cm, W / 2 - w / 2 - 6, 1.84 * cm)
+            c.line(W / 2 + w / 2 + 6, 1.84 * cm, W / 2 + w / 2 + 22, 1.84 * cm)
         c.setFillColor(MUTED)
         c.setFont(r, 7)
-        c.drawString(m, 1.75 * cm, f"Tekshirish kodi: {self.book['code']}")
+        code = f"Tekshirish kodi: {self.book['code']}"
+        if vintage() and doc.page % 2 and W < H:
+            c.drawRightString(W - right, 1.75 * cm, code)
+        else:
+            c.drawString(left, 1.75 * cm, code)
         c.restoreState()
 
 
@@ -497,6 +918,15 @@ def draw_cover(c):
         c.setStrokeColor(colors.HexColor("#d7e9de"))
         c.setLineWidth(1)
         c.roundRect(2.3 * cm, 1.4 * cm, W - 3.7 * cm, H - 2.8 * cm, 14, stroke=1, fill=0)
+    elif kind == "vintage":
+        paper_texture(c, W, H)
+        vintage_frame(c, W, H, 1.1 * cm, s=1.45)
+        # a third, finer rule and a vignette at the head and the foot of the page
+        c.setStrokeColor(GOLD)
+        c.setLineWidth(0.35)
+        c.rect(2.1 * cm, 2.1 * cm, W - 4.2 * cm, H - 4.2 * cm, stroke=1, fill=0)
+        vignette(c, W / 2, H - 2.9 * cm, 9 * cm, acc, s=1.25)
+        vignette(c, W / 2, 2.9 * cm, 9 * cm, acc, s=1.25)
     elif kind == "ink":
         c.setStrokeColor(acc)
         c.setLineWidth(1.4)
@@ -548,12 +978,16 @@ class FamilyDiagram(Flowable):
     def _box(self, c, x, y, pid, kind):
         r, b, i, bi = book_fonts()["names"]
         p = self.lin.people[pid]
-        fill = {"main": MAIN_FILL, "spouse": colors.white, "child": colors.white}[kind]
+        fill = {"main": MAIN_FILL, "spouse": CELL, "child": CELL}[kind]
         stroke = FEMALE if p.gender == "ayol" else GOLD
-        c.setFillColor(fill)
-        c.setStrokeColor(stroke)
-        c.setLineWidth(1.3 if kind == "main" else 0.8)
-        c.roundRect(x, y, self.BOX_W, self.BOX_H, 5, stroke=1, fill=1)
+        if THEME.get("boxes") == "cartouche":
+            cartouche(c, x, y, self.BOX_W, self.BOX_H, 6, fill=fill, stroke=FEMALE if p.gender == "ayol" else LINE,
+                      lw=1.1 if kind == "main" else 0.7, inner=GOLD)
+        else:
+            c.setFillColor(fill)
+            c.setStrokeColor(stroke)
+            c.setLineWidth(1.3 if kind == "main" else 0.8)
+            c.roundRect(x, y, self.BOX_W, self.BOX_H, 5, stroke=1, fill=1)
         name = plain(p.full_name)
         size = 9.2
         while pdfmetrics.stringWidth(name, b, size) > self.BOX_W - 10 and size > 6.8:
@@ -580,7 +1014,7 @@ class FamilyDiagram(Flowable):
         total = n * self.BOX_W + (n - 1) * self.GAP_X * 2
         x0 = (self.avail - total) / 2
         centers = []
-        c.setStrokeColor(GOLD)
+        c.setStrokeColor(LINE)
         c.setLineWidth(1)
         for k, pid in enumerate(self.parents):
             x = x0 + k * (self.BOX_W + self.GAP_X * 2)
@@ -600,7 +1034,7 @@ class FamilyDiagram(Flowable):
             c.circle(mx, top_y + self.BOX_H / 2, 4.5, stroke=1, fill=1)
             trunk_x = mx
         y = top_y
-        c.setStrokeColor(GOLD)
+        c.setStrokeColor(LINE)
         for row in rows:
             row_y = y - self.ROW_GAP - self.BOX_H
             bus_y = row_y + self.BOX_H + self.ROW_GAP / 2
@@ -699,8 +1133,8 @@ class TreeOverview(Flowable):
             return self.total_h - self.BH - row * (self.BH + self.ROW)
 
         # lines first, boxes on top
-        c.setStrokeColor(GOLD)
-        c.setLineWidth(1.1)
+        c.setStrokeColor(LINE)
+        c.setLineWidth(1.1 if not vintage() else 0.9)
         for pid, ux in self.pos.items():
             kids = self.kids(pid)
             members = self.unit(pid)
@@ -725,18 +1159,25 @@ class TreeOverview(Flowable):
                 self._box(c, ux + j * (self.BW + self.SP), y, m, main=(j == 0))
             if len(self.unit(pid)) > 1:
                 c.setFillColor(PAPER)
-                c.setStrokeColor(GOLD)
+                c.setStrokeColor(LINE)
                 c.circle(ux + self.BW + self.SP / 2, y + self.BH / 2, 3.2, stroke=1, fill=1)
         c.restoreState()
 
     def _box(self, c, x, y, pid, main):
         r, b, i, bi = book_fonts()["names"]
         p = self.lin.people[pid]
+        engraved = THEME.get("boxes") == "cartouche"
         is_root = self.lin.root.id == pid
-        c.setFillColor(BAR if is_root else (MAIN_FILL if main else colors.white))
-        c.setStrokeColor(FEMALE if p.gender == "ayol" else GOLD)
-        c.setLineWidth(1.4 if is_root else 0.9)
-        c.roundRect(x, y, self.BW, self.BH, 6, stroke=1, fill=1)
+        dark_root = is_root and not engraved
+        if engraved:
+            cartouche(c, x, y, self.BW, self.BH, 7, fill=MAIN_FILL if (main or is_root) else CELL,
+                      stroke=FEMALE if p.gender == "ayol" else LINE, lw=1.5 if is_root else 0.8, inner=GOLD)
+        else:
+            c.setFillColor(BAR if is_root else (MAIN_FILL if main else colors.white))
+            c.setStrokeColor(FEMALE if p.gender == "ayol" else GOLD)
+            c.setLineWidth(1.4 if is_root else 0.9)
+            c.roundRect(x, y, self.BW, self.BH, 6, stroke=1, fill=1)
+        is_root = dark_root     # below: white text on the dark box
 
         def fit(text, font, size, low):
             text = plain(text)
@@ -929,6 +1370,119 @@ class Lineage:
             return f"{clean('№')} {self.number[partner]} ning turmush o‘rtog‘i"
         return ""
 
+    def mark(self, pid, weak=False):
+        """The index-of-names marker for `pid`."""
+        p = self.people[pid]
+        num = self.number.get(pid) or self.number.get(self.married_to.get(pid), "")
+        note = (f"{clean('№')} {num}" if pid in self.number else f"{clean('№')} {num} ning turmush o‘rtog‘i" if num else "")
+        years = life_span(p)
+        text = f"<b>{clean(p.full_name)}</b>" + (f" <font color='{M_HEX}'>({clean(years)})</font>" if years else "") + \
+            (f" <font size='8' color='{A_HEX}'>{note}</font>" if note else "")
+        return PersonMark(pid, text, sort_key(p.full_name) + f" {num}", weak=weak)
+
+    # -- how everyone is related to the main person -------------------
+    def paths(self):
+        """Shortest chain of links from the main person to everyone:
+        pid -> [(step, person)], step P = parent, C = child, S = spouse.
+        Blood links are tried before marriages, so a mother is «onasi»,
+        not «otasining xotini»."""
+        if not hasattr(self, "_paths"):
+            from collections import deque
+            root = self.root.id
+            paths, queue = {root: []}, deque([root])
+            while queue:
+                pid = queue.popleft()
+                links = ([("P", x) for x in (self.father.get(pid), self.mother.get(pid)) if x]
+                         + [("C", x) for x in self.children.get(pid, [])]
+                         + [("S", x) for x in self.spouses[pid]])
+                for step, other in links:
+                    if other not in paths:
+                        paths[other] = paths[pid] + [(step, other)]
+                        queue.append(other)
+            self._paths = paths
+        return self._paths
+
+    def kinship(self, pid):
+        """«bobosi (ota tomondan)», «amakisi», «xotinining opa-singlisi» — or '' for the main person himself
+        or someone too far to name in a few words."""
+        path = self.paths().get(pid)
+        if not path:
+            return ""
+        return kin_term(self, path)
+
+
+def named_kin(fam, ref, path, side=True):
+    """The Uzbek word for a short chain of links from person `ref`, as «his/her …»
+    («otasi», «amakisi», «kelini»), or None when there is no one word for it."""
+    people = fam.people
+    kinds = "".join(step for step, _ in path)
+    target = path[-1][1]
+    m = people[target].gender != "ayol"
+    n = len(kinds)
+    first_male = people[path[0][1]].gender != "ayol"
+    via = (" (ota tomondan)" if first_male else " (ona tomondan)") if side else ""
+    if kinds == "P" * n:
+        if n == 1:
+            return "otasi" if m else "onasi"
+        word = "bobosi" if m else "buvisi"
+        return {2: word + via, 3: f"katta {word}{via}"}.get(n)    # further up: «katta bobosining otasi»
+    if kinds == "C" * n:
+        return {1: "o‘g‘li" if m else "qizi", 2: "nevarasi", 3: "chevarasi", 4: "evarasi"}.get(n)
+    if kinds == "PC":
+        mine, theirs = _year(people[ref].display_year), _year(people[target].display_year)
+        if mine and theirs and mine != theirs:
+            older = theirs < mine
+            return ("akasi" if older else "ukasi") if m else ("opasi" if older else "singlisi")
+        return "aka-ukasi" if m else "opa-singlisi"
+    if kinds == "PPC":
+        if first_male:
+            return "amakisi" if m else "ammasi"
+        return "tog‘asi" if m else "xolasi"
+    if kinds == "PCC":
+        return "jiyani"
+    if kinds == "PPCC":
+        uncle_male = people[path[2][1]].gender != "ayol"
+        if first_male:
+            return "amakivachchasi" if uncle_male else "ammavachchasi"
+        return "tog‘avachchasi" if uncle_male else "xolavachchasi"
+    return {
+        "S": "eri" if m else "xotini",
+        "SP": "qaynotasi" if m else "qaynonasi",
+        "CS": "kuyovi" if m else "kelini",
+        "CCS": "nevara kuyovi" if m else "nevara kelini",
+        "PCS": "pochchasi" if m else "yangasi",
+        "PS": "o‘gay otasi" if m else "o‘gay onasi",
+        "SC": "o‘gay o‘g‘li" if m else "o‘gay qizi",
+    }.get(kinds)
+
+
+def kin_term(fam, path):
+    """Name the relation one word at a time where no single word fits:
+    «xotinining opa-singlisi», «amakisining kelini». '' if it takes more than three words."""
+    root = fam.root.id
+    whole = named_kin(fam, root, path)
+    if whole:
+        return whole
+    parts, i = [], 0
+    while i < len(path):
+        ref = path[i - 1][1] if i else root
+        for j in range(min(len(path), i + 4), i, -1):
+            word = named_kin(fam, ref, path[i:j], side=False)
+            if word:
+                parts.append(word)
+                i = j
+                break
+        else:
+            return ""
+    if len(parts) > 3:
+        return ""
+    return " ".join(p + "ning" for p in parts[:-1]) + " " + parts[-1]
+
+
+def genitive(name):
+    """«Jasur» -> «Jasurning»."""
+    return f"{name}ning"
+
 
 # ---------------------------------------------------------- the builder --
 
@@ -1039,7 +1593,7 @@ def _build_book(tree, *, code, verify_url, tree_url, contributors, sources):
         ("TOPPADDING", (0, 0), (-1, 0), 10), ("BOTTOMPADDING", (0, 1), (-1, 1), 10),
         ("TOPPADDING", (0, 1), (-1, 1), 0),
     ]))
-    story += [Spacer(1, 4), stats, Spacer(1, 12), P(intro, st["body"])]
+    story += [Spacer(1, 4), stats, Spacer(1, 12), opening(intro, st["body"])]
     if tree.description:
         story += [Spacer(1, 6), P(clean(tree.description), st["body"])]
 
@@ -1076,6 +1630,12 @@ def _build_book(tree, *, code, verify_url, tree_url, contributors, sources):
         guide_line("<b>Ismlar yonidagi raqamlar</b> — kitob ichidagi «manzil»: <b>1</b> — nasl boshi, <b>1.2</b> — "
                    "uning ikkinchi farzandi, <b>1.2.1</b> — o‘sha farzandning birinchi farzandi. Raqam bo‘yicha "
                    "kerakli oilani tez topasiz; elektron nusxada uni bossangiz o‘sha sahifa ochiladi."),
+        guide_line(f"<b>Har bir ism ostida</b> u kishi {clean(genitive(root.first_name))} kimi bo‘lishi yozilgan: "
+                   "«bobosi (ota tomondan)», «amakisi», «jiyani» va hokazo — shunda kim kimga qanday qarindosh "
+                   "ekanini o‘ylab o‘tirmaysiz."),
+        guide_line("<b>«Yilnoma»</b> oilaning tarixini yillar bo‘yicha — kim qachon tug‘ilgan, qachon vafot etgan, "
+                   "qaysi voqea qachon bo‘lgan — bir joyda ko‘rsatadi."),
+        guide_line("<b>Kitob oxiridagi «Ismlar ko‘rsatkichi»</b>da hamma alifbo tartibida, sahifasi bilan berilgan."),
         guide_line("<b>Qisqartmalar:</b> t. — tug‘ilgan, v. — vafot etgan, taxm. — taxminiy yil."),
     ]
     box = Table([[guide]], colWidths=[None])
@@ -1124,6 +1684,9 @@ def _build_book(tree, *, code, verify_url, tree_url, contributors, sources):
         story.append(P(clean_inf(line), ParagraphStyle(f"reg{min(depth, 9)}", parent=st["reg"],
                                                          leftIndent=min(depth, 9) * 0.55 * cm)))
 
+    # ---------------------------------------------------------- chronicle --
+    story += chronicle(fam, st)
+
     # ------------------------------------------------------------ chapters --
     for chapter_no, lvl in enumerate(gens, start=1):
         heads = [pid for pid, _, _ in fam.register if levels[pid] == lvl]
@@ -1134,11 +1697,13 @@ def _build_book(tree, *, code, verify_url, tree_url, contributors, sources):
         title = f"{roman(chapter_no)}. {ordinal_generation(chapter_no)}"
         people_here = sum(1 for pid in people if levels[pid] == lvl)
         story += [
-            PageBreak() if chapter_no == 1 else CondPageBreak(16 * cm),
+            PageBreak() if chapter_no == 1 or vintage() else CondPageBreak(16 * cm),
             ChapterMark(f"{title} — {relative}"),
-            Spacer(1, 0.6 * cm),
+            Spacer(1, 0.6 * cm if not vintage() else 1.4 * cm),
+        ] + ([Ornament(2.6 * cm, space=4)] if vintage() else []) + [
             P(roman(chapter_no), st["chapter_no"]),
             P("BOB", st["kicker"]),
+        ] + ([Ornament(2.6 * cm, space=2)] if vintage() else []) + [
             P(clean(ordinal_generation(chapter_no)), st["h1"]),
             Ornament(6 * cm),
             P((f"{clean(root.full_name)}ga nisbatan: {clean(relative)} · " if lvl != 0 else
@@ -1184,6 +1749,11 @@ def _build_book(tree, *, code, verify_url, tree_url, contributors, sources):
                 story.append(Spacer(1, 3))
         else:
             story.append(P("Manbalar ko‘rsatilmagan.", st["body"]))
+
+    # ------------------------------------------------------- index of names --
+    story += [PageBreak(), ChapterMark(INDEX_TITLE), P(INDEX_TITLE, st["h1"]), Ornament(),
+              P("Kitobdagi barcha shaxslar alifbo tartibida: raqami va hayoti yozilgan sahifa.", st["chapter_intro"]),
+              Spacer(1, 10), NameIndex(st["idx"])]
 
     # ------------------------------------------------------------ colophon --
     story += [PageBreak(), ChapterMark("Tuzuvchilar va tasdiqlash"), P("Tuzuvchilar va tasdiqlash", st["h1"]),
@@ -1304,18 +1874,30 @@ def family_section(fam, pid, st, tree):
     if kids:
         sub += f" · {len(kids)} farzand"
 
-    bar = Table(
-        [[Paragraph(f"<font color='{BN_HEX}'>{clean('№')} {num}</font>&nbsp;&nbsp;{clean(title)}" if num else clean(title),
-                    st["family_title"])],
-         [Paragraph(clean(sub), st["family_sub"])]],
-        colWidths=[None],
-    )
-    bar.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), BAR),
-        ("LEFTPADDING", (0, 0), (-1, -1), 12), ("RIGHTPADDING", (0, 0), (-1, -1), 12),
-        ("TOPPADDING", (0, 0), (0, 0), 9), ("BOTTOMPADDING", (0, -1), (-1, -1), 9),
-        ("TOPPADDING", (0, 1), (-1, 1), 0),
-    ]))
+    if THEME.get("bar_style") == "ruled":
+        # a printed heading: number, title and parents between a double and a single rule
+        rows = ([[Paragraph(f"{clean('№')} {num}-oila", st["fam_num"])]] if num else []) + [
+            [Paragraph(dclean(title), st["fam_title"])], [Paragraph(clean(sub), st["fam_sub"])]]
+        bar = Table(rows, colWidths=[None])
+        bar.setStyle(TableStyle([
+            ("LINEABOVE", (0, 0), (-1, 0), 0.6, WINE, None, None, None, 2, 1.8),
+            ("LINEBELOW", (0, -1), (-1, -1), 0.4, GOLD),
+            ("TOPPADDING", (0, 0), (-1, -1), 1), ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
+            ("TOPPADDING", (0, 0), (-1, 0), 7), ("BOTTOMPADDING", (0, -1), (-1, -1), 7),
+        ]))
+    else:
+        bar = Table(
+            [[Paragraph(f"<font color='{BN_HEX}'>{clean('№')} {num}</font>&nbsp;&nbsp;{clean(title)}" if num else clean(title),
+                        st["family_title"])],
+             [Paragraph(clean(sub), st["family_sub"])]],
+            colWidths=[None],
+        )
+        bar.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), BAR),
+            ("LEFTPADDING", (0, 0), (-1, -1), 12), ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+            ("TOPPADDING", (0, 0), (0, 0), 9), ("BOTTOMPADDING", (0, -1), (-1, -1), 9),
+            ("TOPPADDING", (0, 1), (-1, 1), 0),
+        ]))
 
     out = [CondPageBreak(7 * cm), FamilyMark(toc_title, family_key(num) if num else f"shaxs-{pid}"),
            Paragraph(f'<a name="{family_key(num) if num else f"shaxs-{pid}"}"/>', st["small"]), bar, Spacer(1, 10)]
@@ -1362,10 +1944,10 @@ def family_section(fam, pid, st, tree):
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("LINEBELOW", (0, 0), (-1, 0), 0.8, GOLD),
             ("LINEBELOW", (0, 1), (-1, -1), 0.3, RULE),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, ROW_ALT]),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [CELL, ROW_ALT]),
             ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
         ]))
-        out += [Spacer(1, 8), Paragraph("Farzandlari", st["h2"]), table]
+        out += [Spacer(1, 8), Paragraph("Farzandlari", st["h2"])] + [fam.mark(k, weak=True) for k in kids] + [table]
     out += [Spacer(1, 6), Ornament(3.5 * cm, space=8)]
     return out
 
@@ -1425,6 +2007,60 @@ def family_facts(fam):
         facts.append(("Xotiralar", f"Kitobda {held} bor — ular har bir kishining sahifasida, uning hayoti "
                                    f"bilan yonma-yon."))
     return facts
+
+
+def chronicle(fam, st):
+    """«Yilnoma»: the family's years in order — who was born and who died,
+    and the memories that carry a year — decade by decade. [] if no years are known."""
+    people = fam.people
+    events = defaultdict(list)     # year -> [(order, text)]
+
+    def who(pid):
+        num = fam.number.get(pid)
+        return f"<b>{clean(people[pid].full_name)}</b>" + (f" <font size='8' color='{A_HEX}'>{num}</font>" if num else "")
+
+    for pid, p in people.items():
+        born = _year(p.display_year)
+        if born:
+            about = " (taxminan)" if (p.birth_year or "").strip().startswith("~") and not p.birth_date else ""
+            events[born].append((0, f"{who(pid)} tug‘ildi{about}"))
+        died = _year(p.death_year)
+        if died:
+            events[died].append((2, f"{who(pid)} vafot etdi"))
+        for s in p.stories.all():
+            year = _year(s.when)
+            if year and s.title:
+                events[year].append((1, f"<i>«{clean(s.title)}»</i> — {clean(genitive(p.first_name))} hayotidan"))
+    if not events:
+        return []
+    out = [PageBreak(), ChapterMark("Yilnoma"), Paragraph("Yilnoma", st["h1"]), Ornament(),
+           Paragraph("Oila tarixi yillar bo‘yicha: tug‘ilish, vafot va xotiralardagi voqealar.", st["chapter_intro"]),
+           Spacer(1, 6)]
+    decade = None
+    rows = []
+
+    def flush():
+        if rows:
+            t = Table(rows, colWidths=[1.6 * cm, None])
+            t.setStyle(TableStyle([
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LINEBELOW", (0, 0), (-1, -2), 0.3, RULE),
+                ("LEFTPADDING", (0, 0), (-1, -1), 2), ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ]))
+            out.append(t)
+            rows.clear()
+
+    for year in sorted(events):
+        if year // 10 != decade:
+            flush()
+            decade = year // 10
+            out.append(CondPageBreak(2.5 * cm))
+            out.append(Paragraph(f"{decade * 10}-yillar", st["decade"]))
+        lines = [text for _, text in sorted(events[year], key=lambda e: e[0])]
+        rows.append([Paragraph(str(year), st["chron_year"]), Paragraph("<br/>".join(lines), st["chron"])])
+    flush()
+    return out
 
 
 def join_and(items):
@@ -1501,6 +2137,9 @@ def person_entry(fam, pid, st, tree, show_children=True):
     ]
     if life_span(p):
         head.append(Paragraph(clean(life_span(p)), st["years"]))
+    kin = fam.kinship(pid)
+    if kin:
+        head.append(Paragraph(f"{clean(genitive(fam.root.first_name))} {clean(kin)}", st["kin"]))
     head.append(Spacer(1, 4))
 
     facts = Paragraph(told, st["body"]) if told else None
@@ -1529,32 +2168,44 @@ def person_entry(fam, pid, st, tree, show_children=True):
     else:
         block = top
 
-    out = [CondPageBreak(4.5 * cm), KeepTogether(block)]
+    out = [CondPageBreak(4.5 * cm), fam.mark(pid), KeepTogether(block)]
     if p.bio:
-        out += [Spacer(1, 4)] + [Paragraph(clean(par), st["bio"]) for par in p.bio.split("\n") if par.strip()]
+        pars = [clean(par) for par in p.bio.split("\n") if par.strip()]
+        out += [Spacer(1, 4)] + [opening(par, st["bio"]) if n == 0 else Paragraph(par, st["bio"])
+                                 for n, par in enumerate(pars)]
     stories = list(p.stories.select_related("author").order_by("created_at"))
     pictures = list(p.photos.all())
+    book_like = vintage()     # set as running text with a drop cap, not as indented quotes
+    indent = 0 if book_like else 12
     if stories:
         out.append(Spacer(1, 8))
         out.append(Paragraph(f"{clean(p.first_name)} haqida xotiralar", st["mem_h"]))
         for s in stories:
-            author = s.author.get_full_name() or s.author.username if s.author else "Noma’lum"
+            author = (s.author.get_full_name() or s.author.username) if s.author else ""
             # Paragraphs, not a table cell: a long memory must be able to run
             # onto the next page.
-            quote_style = ParagraphStyle("quote", parent=st["story"], leftIndent=12, borderPadding=0)
+            quote_style = ParagraphStyle("quote", parent=st["story"], leftIndent=indent, borderPadding=0)
+            if book_like:
+                quote_style = ParagraphStyle("quote_v", parent=st["body"], spaceAfter=3)
             parts = [par for par in s.text.split("\n") if par.strip()] or [s.text]
             out.append(Spacer(1, 3))
             if s.title or s.when:
                 head = f"<b>{clean(s.title)}</b>" if s.title else ""
                 if s.when:
                     head += f"{' · ' if head else ''}<font color='{M_HEX}'><i>{clean(s.when)}</i></font>"
-                out.append(Paragraph(head, ParagraphStyle("quote_head", parent=st["body_left"], leftIndent=12, spaceAfter=2)))
+                out.append(Paragraph(head, ParagraphStyle("quote_head", parent=st["body_left"], leftIndent=indent,
+                                                          spaceAfter=2, keepWithNext=1)))
             for n, par in enumerate(parts):
+                if book_like:
+                    out.append(opening(clean(par), quote_style, min_len=110) if n == 0 else Paragraph(clean(par), quote_style))
+                    continue
                 mark = f"<font color='{A_HEX}'><b>“</b></font> " if n == 0 else ""
                 out.append(Paragraph(mark + clean(par), quote_style))
             out += photo_grid([ph for ph in pictures if ph.story_id == s.id], st)
-            out.append(Paragraph(f"— {clean(author)}, {s.created_at:%d.%m.%Y}",
-                                 ParagraphStyle("quote_meta", parent=st["story_meta"], leftIndent=12, spaceAfter=3)))
+            # who wrote it down; nothing for a memory brought in from an archive with no account behind it
+            out.append(Paragraph(f"— {clean(author)}, {s.created_at:%d.%m.%Y}" if author else "",
+                                 ParagraphStyle("quote_meta", parent=st["story_meta"], leftIndent=indent, spaceAfter=3,
+                                                alignment=TA_RIGHT if book_like else TA_LEFT)))
     gallery = [ph for ph in pictures if not ph.story_id]
     if gallery:
         out += [Spacer(1, 6), Paragraph("Suratlar", st["label"]), Spacer(1, 3)] + photo_grid(gallery, st)

@@ -723,6 +723,53 @@ class SharedTreeTests(TestCase):
         self.client.force_login(self.relative)
         self.assertEqual(self.client.get(reverse("tree_export", args=[self.key])).status_code, 403)
 
+    def test_archive_import_brings_pictures_and_makes_a_vintage_book(self):
+        import base64
+        from io import BytesIO
+        from PIL import Image
+        from .models import Person, Tree
+        buf = BytesIO()
+        Image.new("RGB", (60, 80), "#b08a5a").save(buf, format="PNG")
+        png = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+        archive = {
+            "root_key": "nevara",
+            "people": [
+                {"key": "bobo", "first_name": "Karim", "gender": "erkak", "birth_year": "1900", "photo": png,
+                 "bio": "Bog‘bon bo‘lgan. " * 20,
+                 "stories": [{"title": "Bog‘", "when": "1925", "text": "Bobo bog‘ ekdi. " * 20,
+                              "photos": [{"image": png, "caption": "Bog‘", "when": "1925"}, {"image": "data:image/png;base64,!!"}]}],
+                 "photos": [{"image": png, "caption": "Hovli"}, {"image": "emas"}]},
+                {"key": "ota", "first_name": "Ali", "gender": "erkak", "birth_year": "1930", "child_family_key": "f1"},
+                {"key": "amaki", "first_name": "Vali", "gender": "erkak", "birth_year": "1934", "child_family_key": "f1",
+                 "bio": "Usta bo‘lgan."},
+                {"key": "nevara", "first_name": "Jasur", "gender": "erkak", "birth_year": "1960", "child_family_key": "f2"},
+            ],
+            "families": [{"key": "f1", "father_key": "bobo"}, {"key": "f2", "father_key": "ota"}],
+        }
+        upload = BytesIO(json.dumps(archive).encode())
+        upload.name = "arxiv.json"
+        self.client.force_login(self.relative)
+        r = self.client.post(reverse("tree_import_create"), {"tree_name": "Rasmli", "kind": "oilaviy",
+                                                             "visibility": "private", "backup_file": upload})
+        self.assertEqual(r.status_code, 302)
+        bobo = Person.objects.get(first_name="Karim", added_by=self.relative)
+        self.assertTrue(bobo.photo)
+        # the broken pictures are skipped, the good ones re-encoded as JPEG
+        self.assertEqual(bobo.photos.count(), 2)
+        self.assertEqual(bobo.photos.filter(story__isnull=False).count(), 1)
+        self.assertTrue(all(ph.image.name.endswith(".jpg") for ph in bobo.photos.all()))
+
+        from pypdf import PdfReader
+        tree = Tree.objects.get(name="Rasmli")
+        r = self.client.get(reverse("tree_pdf", args=[tree.url_key]) + "?uslub=vintage")
+        self.assertEqual(r.status_code, 200)
+        text = "".join(p.extract_text() or "" for p in PdfReader(BytesIO(r.content)).pages)
+        # kinship under each name, the chronicle and the index of names
+        for expected in ("Jasurning bobosi", "Jasurning amakisi", "Yilnoma", "ko‘rsatkichi", "Vali"):
+            self.assertIn(expected, text.replace("ʻ", "‘"))
+        # (the pictures are alike, and the PDF stores alike pictures once)
+        self.assertGreaterEqual(r.content.count(b"/Subtype /Image"), 2)
+
     def test_owner_locks_whole_tree_at_once(self):
         from .models import Person
         self.client.force_login(self.owner)

@@ -31,7 +31,7 @@ MAX_PREVIEW_BYTES = 5 * 1024 * 1024
 MAX_PREVIEW_SIDE = 4000
 
 # The poster styles and sheet sizes tree-export.js offers (for the activity log).
-PICTURE_STYLES = ("classic", "emerald", "samarkand", "modern", "ink")
+PICTURE_STYLES = ("classic", "emerald", "samarkand", "modern", "ink", "vintage")
 PICTURE_PAPERS = ("auto", "a4", "a3", "a2")
 
 

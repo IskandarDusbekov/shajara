@@ -308,6 +308,31 @@ def export_tree_json(root):
 
 
 MAX_IMPORT_PEOPLE = 5000
+MAX_IMPORT_PHOTOS = 300
+
+
+def archive_image(value):
+    """A picture embedded in an archive as a data: URI (or bare base64),
+    opened and re-encoded like any upload; None if it isn't a usable image."""
+    import base64
+    import binascii
+    from django.core.files.base import ContentFile
+    from .photos import MAX_PHOTO_BYTES, clean_image
+
+    if not isinstance(value, str) or not value:
+        return None
+    if value.startswith("data:"):
+        head, _, value = value.partition(",")
+        if ";base64" not in head:
+            return None
+    value = "".join(value.split())
+    if len(value) > MAX_PHOTO_BYTES * 4 // 3 + 4:
+        return None
+    try:
+        raw = base64.b64decode(value, validate=True)
+    except (binascii.Error, ValueError):
+        return None
+    return clean_image(ContentFile(raw, name="photo.jpg"))
 
 
 def import_tree_json(user, data):
@@ -318,9 +343,13 @@ def import_tree_json(user, data):
     every value is turned into text of the field's size, unknown choices are
     dropped, and stories are never credited to another account just because
     the file names it — only the importer's own stories keep their author.
+    Pictures may ride along as data: URIs — «photo» (the portrait), «photos»
+    (the gallery) and a story's own «photos» — each {"image", "caption", "when"};
+    they are re-encoded like uploads, and unusable ones are skipped.
     Raises ValueError on a file that isn't a tree archive."""
     import datetime
-    from .models import GENDER_CHOICES, REGION_CHOICES, Person, PersonStory
+    from .models import GENDER_CHOICES, REGION_CHOICES, Person, PersonPhoto, PersonStory
+    from .photos import MAX_PHOTOS_PER_PERSON
 
     if not isinstance(data, dict) or not isinstance(data.get("people"), list):
         raise ValueError("Fayl formati noto'g'ri.")
@@ -365,19 +394,43 @@ def import_tree_json(user, data):
         fam.mother = key_to_person.get(fdata.get("mother_key"))
         fam.save()
 
+    photos_left = MAX_IMPORT_PHOTOS
+
+    def add_photos(person, items, story=None):
+        nonlocal photos_left
+        for pic in items if isinstance(items, list) else []:
+            if photos_left <= 0 or person.photos.count() >= MAX_PHOTOS_PER_PERSON:
+                return
+            if not isinstance(pic, dict):
+                continue
+            content = archive_image(pic.get("image"))
+            if not content:
+                continue
+            photos_left -= 1
+            photo = PersonPhoto(person=person, story=story, caption=text(pic, "caption", 300),
+                                when=text(pic, "when", 60), uploaded_by=user)
+            photo.image.save("photo.jpg", content, save=True)
+
     for pdata in people:
         person = key_to_person[pdata["key"]]
         cf_key = pdata.get("child_family_key")
         if isinstance(cf_key, str) and cf_key in key_to_family:
             person.child_family = key_to_family[cf_key]
             person.save(update_fields=["child_family"])
+        if photos_left > 0 and pdata.get("photo"):
+            portrait = archive_image(pdata.get("photo"))
+            if portrait:
+                photos_left -= 1
+                person.photo.save("portrait.jpg", portrait, save=True)
         for sdata in pdata.get("stories") or []:
             if not isinstance(sdata, dict) or not text(sdata, "text"):
                 continue
             mine = sdata.get("author") == user.username
-            PersonStory.objects.create(person=person, author=user if mine else None,
-                                       title=text(sdata, "title", 120), when=text(sdata, "when", 60),
-                                       text=text(sdata, "text"))
+            story = PersonStory.objects.create(person=person, author=user if mine else None,
+                                               title=text(sdata, "title", 120), when=text(sdata, "when", 60),
+                                               text=text(sdata, "text"))
+            add_photos(person, sdata.get("photos"), story)
+        add_photos(person, pdata.get("photos"))
 
     root = data.get("root_key")
     return key_to_person.get(root) if isinstance(root, str) else None

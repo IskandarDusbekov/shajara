@@ -412,7 +412,7 @@ def tree_create_view(request):
     })
 
 
-MAX_ARCHIVE_BYTES = 10 * 1024 * 1024
+MAX_ARCHIVE_BYTES = 20 * 1024 * 1024     # pictures may ride along; nginx allows 25 MB
 
 
 @login_required
@@ -423,7 +423,7 @@ def tree_import_create_view(request):
         upload = form.cleaned_data["backup_file"]
         try:
             if upload.size > MAX_ARCHIVE_BYTES:
-                raise ValueError("arxiv fayli juda katta (ko'pi bilan 10 MB).")
+                raise ValueError("arxiv fayli juda katta (ko'pi bilan 20 MB).")
             data = json.loads(upload.read().decode("utf-8"))
             if not isinstance(data, dict) or "people" not in data or "root_key" not in data:
                 raise ValueError("Fayl formati noto'g'ri.")

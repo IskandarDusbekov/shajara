@@ -190,9 +190,73 @@
         rect(o, 30, 30, W - 60, H - 60, 'fill="none" stroke="#111" stroke-width="0.7"');
       },
       mark: function (o, x, y, d) { diamond(o, x, y, d, "#222"); }
+    },
+
+    // An old printed book: cream paper with a faint grain and darker edges,
+    // brown ink, an engraved frame with rosettes and curls, names in cartouches.
+    vintage: {
+      label: "Vintage kitob", swatch: ["#f6f1e4", "#8b6a32", "#4b2d18"],
+      font: SERIF, bg: "#f6f1e4", base: "#f6f1e4", shape: "cartouche",
+      kicker: "#8b6a32", title: "#4b2d18", sub: "#7b6549", ink: "#3a2a1c", muted: "#7b6549", rule: "#cbb48a", accent: "#8b6a32",
+      line: "#4b2d18", lineW: 1.8, knotBg: "#f6f1e4", rx: 10,
+      card: { fill: "#fbf7ee", stroke: "#4b2d18", name: "#3a2a1c", year: "#7b6549", sw: 1.3, inner: "#8b6a32" },
+      cardF: { fill: "#fbf7ee", stroke: "#8e4f4f", name: "#3a2a1c", year: "#7b6549", sw: 1.3, inner: "#8b6a32" },
+      root: { fill: "#eee2c6", stroke: "#4b2d18", name: "#4b2d18", year: "#7b6549", sw: 2.2, inner: "#8b6a32" },
+      defs: function () {
+        return '<filter id="vgrain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="7"/>' +
+          '<feColorMatrix values="0 0 0 0 0.42  0 0 0 0 0.31  0 0 0 0 0.16  0 0 0 0.9 -0.3"/></filter>' +
+          '<radialGradient id="vedge" cx="50%" cy="50%" r="72%"><stop offset="0.7" stop-color="#8a6a3a" stop-opacity="0"/>' +
+          '<stop offset="1" stop-color="#8a6a3a" stop-opacity="0.2"/></radialGradient>';
+      },
+      frame: function (o, W, H, k) {
+        o.push('<rect width="' + W + '" height="' + H + '" filter="url(#vgrain)" opacity="0.35"/>');
+        o.push('<rect width="' + W + '" height="' + H + '" fill="url(#vedge)"/>');
+        var s = Math.max(1, Math.min(k, 2.2)), a = 22, g = 9 * s, r = 26 * s;
+        rect(o, a, a, W - 2 * a, H - 2 * a, 'fill="none" stroke="#4b2d18" stroke-width="' + n(2.2 * s) + '"');
+        o.push('<path d="' + cartouchePath(a + g, a + g, W - 2 * (a + g), H - 2 * (a + g), r) + '" fill="none" stroke="#8b6a32" stroke-width="' + n(1 * s) + '"/>');
+        [[a + g, a + g, 1, 1], [W - a - g, a + g, -1, 1], [a + g, H - a - g, 1, -1], [W - a - g, H - a - g, -1, -1]].forEach(function (c) {
+          o.push('<g transform="translate(' + n(c[0]) + " " + n(c[1]) + ") scale(" + c[2] * s + " " + c[3] * s + ')" fill="#8b6a32" stroke="#8b6a32">');
+          rosette(o, 0, 0, 13);
+          // the curls bend into the page, along both edges
+          o.push('<g transform="translate(31 6) scale(1 -1)">' + SCROLL + "</g>");
+          o.push('<g transform="matrix(0 1 1 0 0 0) translate(31 6) scale(1 -1)">' + SCROLL + "</g>");
+          o.push("</g>");
+        });
+      },
+      mark: function (o, x, y, d) {
+        var s = d / 6;
+        o.push('<g transform="translate(' + n(x) + " " + n(y) + ") scale(" + n(s) + ')" fill="#8b6a32" stroke="#8b6a32">');
+        diamond(o, 0, 0, 5, "#8b6a32");
+        o.push('<g transform="translate(14 0)">' + SCROLL + '</g><g transform="scale(-1 1) translate(14 0)">' + SCROLL + "</g></g>");
+      }
     }
   };
-  var THEME_ORDER = ["classic", "emerald", "samarkand", "modern", "ink"];
+  var THEME_ORDER = ["classic", "emerald", "samarkand", "modern", "ink", "vintage"];
+
+  // The vintage flourish (the same curl as the PDF book's), drawn right from the origin.
+  var SCROLL = '<path d="M0 0 C12 0 18 -10 28 -10 C38 -10 45 -4 43 2 C41.2 6.8 34 6 34 1.6 C34 -1.8 38.4 -2.2 39.2 0.6" fill="none" stroke-width="1.2" stroke-linecap="round"/>' +
+    '<path d="M14 -2.8 C18 3.2 24 4 27 2.4 C24 -0.8 19 -3.2 14 -2.8Z" stroke="none"/>';
+
+  function rosette(o, x, y, r) {
+    for (var i = 0; i < 4; i++) {
+      o.push('<path transform="translate(' + x + " " + y + ") rotate(" + i * 90 + ')" d="M0 0 C' + n(r * 0.45) + " " + n(-r * 0.35) + " " + n(r * 0.4) + " " + n(-r * 0.85) +
+        " 0 " + n(-r) + " C" + n(-r * 0.4) + " " + n(-r * 0.85) + " " + n(-r * 0.45) + " " + n(-r * 0.35) + ' 0 0Z" stroke="none"/>');
+    }
+    o.push('<circle cx="' + x + '" cy="' + y + '" r="' + n(r * 0.22) + '" fill="#f6f1e4" stroke="none"/>');
+  }
+
+  // A box with its corners cut inward in quarter circles.
+  function cartouchePath(x, y, w, h, r) {
+    var k = 0.5523 * r;
+    return "M" + n(x + r) + " " + n(y) + " H" + n(x + w - r) +
+      " C" + n(x + w - r) + " " + n(y + k) + " " + n(x + w - k) + " " + n(y + r) + " " + n(x + w) + " " + n(y + r) +
+      " V" + n(y + h - r) +
+      " C" + n(x + w - k) + " " + n(y + h - r) + " " + n(x + w - r) + " " + n(y + h - k) + " " + n(x + w - r) + " " + n(y + h) +
+      " H" + n(x + r) +
+      " C" + n(x + r) + " " + n(y + h - k) + " " + n(x + k) + " " + n(y + h - r) + " " + n(x) + " " + n(y + h - r) +
+      " V" + n(y + r) +
+      " C" + n(x + k) + " " + n(y + r) + " " + n(x + r) + " " + n(y + k) + " " + n(x + r) + " " + n(y) + "Z";
+  }
 
   // Paper sheets in millimetres (portrait); the orientation follows the tree.
   var PAPERS = {
@@ -332,10 +396,15 @@
     cards.forEach(function (c) {
       var s = c.root ? T.root : c.gender === "ayol" ? T.cardF : T.card;
       var y = years(c);
-      o.push('<rect x="' + n(c.x) + '" y="' + n(c.y) + '" width="' + n(c.w) + '" height="' + n(c.h) + '" rx="' + T.rx + '" fill="' + s.fill +
-        '" stroke="' + s.stroke + '" stroke-width="' + s.sw + '"' + (s.dash ? ' stroke-dasharray="' + s.dash + '"' : "") +
-        (T.shadow ? ' filter="url(#cs)"' : "") + "/>");
-      if (s.inner) {
+      if (T.shape === "cartouche") {
+        o.push('<path d="' + cartouchePath(c.x, c.y, c.w, c.h, T.rx) + '" fill="' + s.fill + '" stroke="' + s.stroke + '" stroke-width="' + s.sw + '"/>');
+        o.push('<path d="' + cartouchePath(c.x + 4, c.y + 4, c.w - 8, c.h - 8, T.rx - 2) + '" fill="none" stroke="' + s.inner + '" stroke-width="0.7"/>');
+      } else {
+        o.push('<rect x="' + n(c.x) + '" y="' + n(c.y) + '" width="' + n(c.w) + '" height="' + n(c.h) + '" rx="' + T.rx + '" fill="' + s.fill +
+          '" stroke="' + s.stroke + '" stroke-width="' + s.sw + '"' + (s.dash ? ' stroke-dasharray="' + s.dash + '"' : "") +
+          (T.shadow ? ' filter="url(#cs)"' : "") + "/>");
+      }
+      if (s.inner && T.shape !== "cartouche") {
         o.push('<rect x="' + n(c.x + 4) + '" y="' + n(c.y + 4) + '" width="' + n(c.w - 8) + '" height="' + n(c.h - 8) + '" rx="' + Math.max(2, T.rx - 4) +
           '" fill="none" stroke="' + s.inner + '" stroke-width="0.8"/>');
       }
@@ -573,7 +642,7 @@
   var BOOK_COVERS = {
     classic: ["#7a2f26", "#4e1b15", "#f3dfae", "#d6b25e"], emerald: ["#1d5640", "#0b2219", "#f3e3b5", "#d6b25e"],
     samarkand: ["#2a4fa6", "#1f3c88", "#f8f4ea", "#3aa7a3"], modern: ["#1f8a51", "#14653a", "#ffffff", "#c99a2e"],
-    ink: ["#3a3a3a", "#151515", "#ffffff", "#bbbbbb"]
+    ink: ["#3a3a3a", "#151515", "#ffffff", "#bbbbbb"], vintage: ["#f6f1e4", "#dccbaa", "#4b2d18", "#8b6a32"]
   };
   function syncBook() {
     var link = document.getElementById("export-book");
