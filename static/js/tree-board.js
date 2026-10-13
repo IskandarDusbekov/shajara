@@ -393,8 +393,10 @@
     }
     var t = document.createElement("div");
     t.className = "toast-msg" + (ok ? " toast-success" : "");
+    t.setAttribute("role", "status");
     t.textContent = text;
     box.appendChild(t);
+    t.addEventListener("click", function () { t.remove(); });
     setTimeout(function () { t.remove(); }, 3200);
   }
 
@@ -1151,4 +1153,34 @@
   show(read() !== people);
   min.addEventListener("click", function () { write(people); show(false); });
   pill.addEventListener("click", function () { try { localStorage.removeItem(key); } catch (e) { /* ignore */ } show(true); });
+
+  // «Shajarada siz kimsiz?»: two answers, one panel each.
+  var tabs = card.querySelectorAll(".who-tab");
+  Array.prototype.forEach.call(tabs, function (tab) {
+    tab.addEventListener("click", function () {
+      Array.prototype.forEach.call(tabs, function (t) {
+        var on = t === tab;
+        t.classList.toggle("is-on", on);
+        t.setAttribute("aria-selected", String(on));
+      });
+      Array.prototype.forEach.call(card.querySelectorAll("[data-who-panel]"), function (p) {
+        p.hidden = p.getAttribute("data-who-panel") !== tab.getAttribute("data-who");
+      });
+    });
+  });
+})();
+
+/* Notices after an action («… qo'shildi») step aside on their own, and a tap closes one at once. */
+(function () {
+  "use strict";
+  var box = document.querySelector(".map-toasts");
+  if (!box) return;
+  Array.prototype.forEach.call(box.querySelectorAll(".toast-msg"), function (t, i) {
+    function close() {
+      t.classList.add("is-leaving");
+      setTimeout(function () { t.remove(); }, 260);
+    }
+    t.addEventListener("click", close);
+    setTimeout(close, 4200 + i * 600);
+  });
 })();

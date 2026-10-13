@@ -47,6 +47,7 @@ because a caption would stay behind when a card is dragged away from it.
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c8.5 0 15-4.5 15-14-8 0-15 3-15 10z"/><path d="M4 20c2-5 5.5-8.5 10-10.5"/></svg>
                     {% endif %}
                   </span>
+                  {% if me_id and p.id == me_id %}<span class="leaf-me">Siz</span>{% endif %}
                   <span class="leaf-name">{{ p.full_name }}</span>
                   {% if p.display_year %}<span class="leaf-year">{{ p.display_year }}</span>{% endif %}
                 </div>
@@ -64,7 +65,7 @@ because a caption would stay behind when a card is dragged away from it.
   {% if messages %}
   <div class="map-toasts">
     {% for message in messages %}
-    <div class="toast-msg{% if message.tags == 'success' %} toast-success{% endif %}">{{ message }}</div>
+    <div class="toast-msg{% if message.tags == 'success' %} toast-success{% endif %}" role="status" title="Yopish uchun bosing">{{ message }}</div>
     {% endfor %}
   </div>
   {% endif %}
@@ -79,8 +80,47 @@ because a caption would stay behind when a card is dragged away from it.
     </button>
   </div>
 
-  {% comment %}Tells a builder exactly what to add next, so nobody has to find the tiny "+" on a card.{% endcomment %}
-  {% if can_edit and next_steps %}
+  {% comment %}A relative who joined by an invite first says which card is theirs; then the guide below speaks to them.{% endcomment %}
+  {% if whoami %}
+  <aside class="next-card who-card" id="next-card" data-key="{{ tree.url_key }}-men" data-people="0" aria-label="Shajarada siz kimsiz">
+    <button type="button" class="nc-min" id="nc-min" aria-label="Kichraytirish" title="Keyinroq">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 12h12"/></svg>
+    </button>
+    <p class="nc-kicker">Xush kelibsiz</p>
+    <h2 class="nc-title">Shajarada siz kimsiz?</h2>
+    <p class="nc-lead">O'zingizni bir marta belgilang — keyin «Otangizni qo'shing», «Farzandingizni qo'shing» kabi maslahatlar aynan sizga qarab beriladi.</p>
+    <div class="who-tabs" role="tablist">
+      <button type="button" class="who-tab is-on" role="tab" aria-selected="true" data-who="have">Men xaritada borman</button>
+      {% if can_edit %}<button type="button" class="who-tab" role="tab" aria-selected="false" data-who="new">Men hali yo'qman</button>{% endif %}
+    </div>
+    <form method="post" action="{% url 'tree_whoami' tree.url_key %}" class="who-form" data-who-panel="have">
+      {% csrf_token %}
+      <label class="who-label" for="who-me">Ro'yxatdan o'zingizni tanlang</label>
+      <select id="who-me" name="person" class="who-select" required>
+        <option value="">— tanlang —</option>
+        {% for p in whoami_people %}<option value="{{ p.id }}">{{ p.label }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="who-go">Bu menman</button>
+    </form>
+    {% if can_edit %}
+    <form method="post" action="{% url 'tree_whoami' tree.url_key %}" class="who-form" data-who-panel="new" hidden>
+      {% csrf_token %}
+      <input type="hidden" name="action" value="child">
+      <label class="who-label" for="who-parent">Otangiz yoki onangiz kim?</label>
+      <select id="who-parent" name="person" class="who-select" required>
+        <option value="">— tanlang —</option>
+        {% for p in whoami_people %}<option value="{{ p.id }}">{{ p.label }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="who-go">O'zimni qo'shaman</button>
+      <p class="who-note">Ota-onangiz ham yo'q bo'lsa, avval bobongizni toping va unga farzand qilib otangizni qo'shing.</p>
+    </form>
+    {% endif %}
+  </aside>
+  <button type="button" class="nc-pill" id="nc-pill" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
+    Siz kimsiz?
+  </button>
+  {% elif can_edit and next_steps %}
   <aside class="next-card" id="next-card" data-key="{{ tree.url_key }}" data-people="{{ next_progress.people }}" aria-label="Keyingi qadam">
     <button type="button" class="nc-min" id="nc-min" aria-label="Kichraytirish" title="Keyinroq">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 12h12"/></svg>
@@ -151,9 +191,18 @@ because a caption would stay behind when a card is dragged away from it.
   {% if tree %}
   <div class="export-menu" id="export-menu" role="dialog" aria-label="Yuklab olish" hidden>
     <p class="export-title">Yuklab olish</p>
-    <a class="export-item" href="{% url 'tree_pdf' tree.url_key %}">
-      <span class="export-ic export-ic-book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 11h6"/></svg></span>
-      <span class="export-text"><b>PDF kitob</b><small>Muqova, mundarija, har bir inson haqida maqola — chop etish uchun</small></span>
+    <a class="export-book" id="export-book" href="{% url 'tree_pdf' tree.url_key %}">
+      <span class="export-book-cover" aria-hidden="true">
+        <i></i><b>{{ tree.name|truncatechars:22 }}</b><em>SHAJARA</em>
+      </span>
+      <span class="export-book-text">
+        <b>Oila kitobi (PDF)</b>
+        <small>Muqova, mundarija, shajara chizmasi va har bir inson haqida sahifa — chop etib, kitob qilib saqlash uchun.</small>
+        <span class="export-book-go">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>
+          <span class="export-book-label">Kitobni yuklab olish</span>
+        </span>
+      </span>
     </a>
     <div class="export-sep"></div>
     <p class="export-title">Rasm — chop etish va ramka uchun</p>

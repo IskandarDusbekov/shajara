@@ -31,10 +31,18 @@
           <span>Kutubxona</span>
         </a>
         {% endif %}
+        {% if tree.is_learning %}
         <a class="topbar-link{% if page == 'tree_quiz' %} is-current{% endif %}" data-tour="nav-quiz" href="{% url 'tree_quiz' tree.url_key %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.3 9.2a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2.9-1.2 1.8"/><path d="M12 17h.01"/></svg>
           <span>Test</span>
         </a>
+        {% elif my_role %}
+        {% comment %}A family keeps its tree as a book: the PDF sits in the bar, not hidden in a menu.{% endcomment %}
+        <a class="topbar-link{% if page == 'tree_pdf' %} is-current{% endif %}" href="{% url 'tree_pdf' tree.url_key %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 11h6"/></svg>
+          <span>Kitob</span>
+        </a>
+        {% endif %}
       {% else %}
         <a class="topbar-link{% if page == 'my_trees' %} is-current{% endif %}" data-tour="nav-trees" href="{% url 'my_trees' %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-6"/><path d="M12 16c-3.5 0-6-2.4-6-6 0 0 3.4 0 6 2.4C12 8 12 5 12 5s0 3 0 7.4C14.6 10 18 10 18 10c0 3.6-2.5 6-6 6z"/></svg>
@@ -100,10 +108,12 @@
         <span>{% if my_role == "owner" %}A'zolar va ulashish{% else %}A'zolar{% endif %}</span>
       </a>
       {% endif %}
+      {% if tree.is_learning %}
       <a class="menu-item{% if page == 'tree_quiz' %} is-current{% endif %}" href="{% url 'tree_quiz' tree.url_key %}">
         <svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.3 9.2a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2.9-1.2 1.8"/><path d="M12 17h.01"/></svg>
-        <span>{% if tree.is_learning %}O'zingizni sinang{% else %}Oila bo'yicha test{% endif %}</span>
+        <span>O'zingizni sinang</span>
       </a>
+      {% endif %}
     </div>
 
     {% if my_role or tree.is_public or request.user.is_staff %}

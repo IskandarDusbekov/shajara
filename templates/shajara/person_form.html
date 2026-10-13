@@ -26,6 +26,7 @@
       <input type="hidden" name="anchor" value="{{ anchor_id }}">
       <input type="hidden" name="relation" value="{{ relation }}">
       {% if family_id %}<input type="hidden" name="family" value="{{ family_id }}">{% endif %}
+      {% if adding_self %}<input type="hidden" name="men" value="1">{% endif %}
     {% endif %}
     {% if form.non_field_errors %}<p class="pf-error">{{ form.non_field_errors|join:" " }}</p>{% endif %}
 

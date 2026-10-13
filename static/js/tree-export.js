@@ -624,6 +624,17 @@
   });
 
   buildPicker();
+
+  // The book is made on the server and takes a few seconds; say so.
+  var book = document.getElementById("export-book");
+  if (book) book.addEventListener("click", function () {
+    var label = book.querySelector(".export-book-label");
+    var was = label.textContent;
+    book.classList.add("is-busy");
+    label.textContent = "Kitob tayyorlanmoqda…";
+    setTimeout(function () { book.classList.remove("is-busy"); label.textContent = was; }, 8000);
+  });
+
   menu.querySelectorAll("[data-export]").forEach(function (b) {
     b.addEventListener("click", function () { run(b.dataset.export); });
   });

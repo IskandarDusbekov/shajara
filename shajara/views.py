@@ -33,7 +33,7 @@ from .tree import (
     attach_existing, can_delete_in_tree, can_edit_in_tree, can_edit_tree, can_view_tree, compute_levels,
     tree_role,
     export_tree_json, get_or_create_child_family, get_or_create_spouse_family,
-    group_people_by_level, import_tree_json, level_label, next_intro, next_steps, person_ids_in_tree,
+    group_people_by_level, import_tree_json, level_label, my_person_id, next_intro, next_steps, person_ids_in_tree,
     sibling_groups,
 )
 
@@ -599,19 +599,67 @@ def index_view(request, tree_key):
     ]
 
     can_edit = can_edit_tree(request.user, tree)
+    role = tree_role(request.user, tree)
+    me_id = my_person_id(request.user, tree, people)
     guide = {}
-    if can_edit:
-        steps, progress = next_steps(tree, people, families, levels)
+    if role in ("muharrir", "kuzatuvchi") and not me_id and not tree.is_learning:
+        # A relative who came by an invite: before any advice, find out which
+        # card is theirs — otherwise «Otangizni qo'shing» means the root's father.
+        guide = {"whoami": True, "whoami_people": [
+            {"id": p.id, "label": f"{p.full_name}{f' ({p.display_year})' if p.display_year else ''}"}
+            for p in sorted(people.values(), key=lambda p: (levels[p.id], p.first_name.lower()))
+        ]}
+    elif can_edit:
+        steps, progress = next_steps(tree, people, families, levels, me_id=me_id)
         if steps:
-            guide = {"next_steps": steps, "next_progress": progress, "next_intro": next_intro(progress["people"])}
+            member_name = people[me_id].first_name if me_id and me_id != root.id else None
+            guide = {"next_steps": steps, "next_progress": progress,
+                     "next_intro": next_intro(progress["people"], member_name)}
 
     return private_response(render(request, "shajara/tree.html", {
         "tree": tree, "root": root, "rows": rows_list,
         "families_json": families_json_for(families),
-        "can_edit": can_edit,
+        "can_edit": can_edit, "me_id": me_id if me_id != root.id else None,
         "saved_layout": tree.layout or {},
         **guide,
     }))
+
+
+@login_required
+@require_POST
+def tree_whoami_view(request, tree_key):
+    """A member says which card on the map is theirs — or, missing from the
+    tree, whose child they are, and goes on to add themselves."""
+    tree = get_object_or_404(Tree.objects.select_related("root_person"), public_id=tree_key)
+    member = TreeMember.objects.filter(tree=tree, user=request.user).first()
+    if not member:
+        return HttpResponseForbidden("Bu faqat shajara a'zolari uchun.")
+    try:
+        pid = int(request.POST.get("person") or 0)
+    except ValueError:
+        pid = 0
+    in_tree = person_ids_in_tree(tree.root_person)
+    if pid not in in_tree:
+        messages.error(request, "Ro'yxatdan bir kishini tanlang.")
+        return redirect("index", tree_key=tree.url_key)
+
+    if request.POST.get("action") == "child":
+        # «Men hali yo'qman»: add yourself as the chosen person's child.
+        if not member.can_edit:
+            messages.error(request, "Sizda odam qo'shish huquqi yo'q — shajara egasidan so'rang.")
+            return redirect("index", tree_key=tree.url_key)
+        return redirect(f"{reverse('add_relative', args=[tree.url_key])}?anchor={pid}&relation=farzand&men=1")
+
+    taken = TreeMember.objects.filter(tree=tree, person_id=pid).exclude(pk=member.pk).select_related("user").first()
+    if pid == tree.root_person_id or taken:
+        who = tree.owner.username if pid == tree.root_person_id else taken.user.username
+        messages.error(request, f"Bu kartochka allaqachon @{who} ga tegishli. O'zingizni tanlang.")
+        return redirect("index", tree_key=tree.url_key)
+    member.person_id = pid
+    member.save(update_fields=["person"])
+    log_activity(request, "member_whoami", tree=tree, detail=f"@{request.user.username}")
+    messages.success(request, "Tayyor! Endi maslahatlar sizga qarab beriladi.")
+    return redirect("index", tree_key=tree.url_key)
 
 
 MAX_LAYOUT_CARDS = 5000
@@ -848,6 +896,11 @@ def add_relative_view(request, tree_key):
     family_raw = request.GET.get("family") or request.POST.get("family") or ""
     family_id = int(family_raw) if family_raw.isdigit() else None
     ask_gender = relation in ("farzand", "akauka", "turmush")
+    # «Men hali yo'qman»: a member adds themselves as someone's child and the
+    # new card becomes theirs.
+    membership = None
+    if relation == "farzand" and (request.GET.get("men") or request.POST.get("men")):
+        membership = TreeMember.objects.filter(tree=tree, user=request.user, person__isnull=True).first()
 
     form = PersonForm(request.POST or None, request.FILES or None)
     if not ask_gender:
@@ -912,22 +965,31 @@ def add_relative_view(request, tree_key):
                 request, "person_add", tree=tree, person=new_person,
                 detail=f"{new_person.full_name} — {anchor.full_name}ning {RELATION_TITLES[relation].split()[0].lower()}",
             )
-            messages.success(request, f"{new_person.first_name} shajaraga qo'shildi — zo'r, shajarangiz o'sib bormoqda!")
+            if membership:
+                membership.person = new_person
+                membership.save(update_fields=["person"])
+                messages.success(request, f"Xush kelibsiz, {new_person.first_name}! Endi o'z oilangizni qo'shing.")
+            else:
+                messages.success(request, f"{new_person.first_name} shajaraga qo'shildi — zo'r, shajarangiz o'sib bormoqda!")
             if request.POST.get("save_next"):
                 levels, people, families = compute_levels(tree.root_person)
-                upcoming, _ = next_steps(tree, people, families, levels, limit=1)
+                upcoming, _ = next_steps(tree, people, families, levels, limit=1,
+                                         me_id=my_person_id(request.user, tree, people))
                 if upcoming:
                     return redirect(upcoming[0]["url"])
             return redirect("index", tree_key=tree.url_key)
 
-    intro_title, intro_lead = relation_intro(relation, anchor, tree.root_person_id)
+    intro_title, intro_lead = relation_intro(relation, anchor, my_person_id(request.user, tree))
+    if membership:
+        intro_title = f"O'zingizni qo'shamiz — {anchor.first_name}ning farzandi sifatida"
+        intro_lead = "Ismingizni yozing va jinsingizni tanlang. Shundan keyin maslahatlar sizga qarab beriladi."
     return render(request, "shajara/person_form.html", {
         "intro_lead": intro_lead,
         "form": form, "form_title": intro_title, "ask_gender": ask_gender,
         "cancel_tree_key": tree.url_key, "cancel_pk": anchor.id,
         "error": error, "is_add": True, "tree_key": tree.url_key,
         "anchor_id": anchor.id, "relation": relation, "family_id": family_id,
-        "tree": tree, "anchor": anchor,
+        "tree": tree, "anchor": anchor, "adding_self": bool(membership),
     })
 
 

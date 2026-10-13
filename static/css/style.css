@@ -364,8 +364,21 @@ body.map-page .content.is-rearranging .lines-svg { opacity: 0; }
 
 
 
-.map-toasts { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 7;
-  display: flex; flex-direction: column; gap: 6px; width: max-content; max-width: calc(100vw - 40px); }
+/* Notices sit low on the board, clear of the «Keyingi qadam» card at the top, and leave on their own. */
+.map-toasts { position: absolute; bottom: 72px; left: 50%; transform: translateX(-50%); z-index: 12;
+  display: flex; flex-direction: column; align-items: center; gap: 6px; width: max-content; max-width: min(460px, calc(100vw - 32px)); pointer-events: none; }
+.map-toasts .toast-msg { pointer-events: auto; cursor: pointer; font-size: 13.5px; line-height: 1.4; padding: 10px 16px; border-radius: 14px;
+  background: #3a2626; box-shadow: 0 10px 28px rgba(0,0,0,0.28); animation: toastIn .22s ease-out; transition: opacity .25s, transform .25s; }
+.map-toasts .toast-success { background: #1f3f2c; color: #c9f0d3; }
+.map-toasts .toast-msg.is-leaving { opacity: 0; transform: translateY(8px); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (max-width: 620px) { .map-toasts { bottom: 16px; } }
+@media (prefers-reduced-motion: reduce) { .map-toasts .toast-msg { animation: none; transition: none; } }
+
+/* «Siz» — a member's own card on someone else's tree */
+.leaf-node { position: relative; }
+.leaf-me { position: absolute; top: -9px; right: -8px; padding: 2px 8px; border-radius: 999px; font: 700 10.5px/1.5 system-ui, sans-serif;
+  letter-spacing: .02em; background: #e9c869; color: #14261c; box-shadow: 0 2px 6px rgba(0,0,0,.3); pointer-events: none; }
 
 .map-hint { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 4;
   pointer-events: none; display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; align-items: center;
@@ -990,6 +1003,23 @@ textarea.field { font-family: system-ui, sans-serif; resize: vertical; }
   .nc-kicker { margin-bottom: 3px; }
   .nc-pill { top: 8px; left: 8px; }
 }
+/* «Shajarada siz kimsiz?» */
+.who-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 3px; margin-bottom: 10px; border-radius: 12px; background: #e4f2e9; }
+.who-tab { padding: 8px 6px; border: 0; border-radius: 9px; background: transparent; color: #4f705d; font: 700 13px system-ui, sans-serif; cursor: pointer; }
+.who-tab.is-on { background: #fff; color: #123d27; box-shadow: 0 1px 4px rgba(0,0,0,.14); }
+.who-form { display: flex; flex-direction: column; gap: 8px; }
+.who-form[hidden] { display: none; }
+.who-label { font-size: 12.5px; font-weight: 700; color: #4f705d; }
+.who-select { width: 100%; height: 44px; padding: 0 10px; border-radius: 12px; border: 1.5px solid #cde5d5; background: #fff; color: #123d27; font: 15px system-ui, sans-serif; }
+.who-go { height: 46px; border: 0; border-radius: 14px; background: #1a7a46; color: #fff; font: 700 15px system-ui, sans-serif; cursor: pointer;
+  box-shadow: 0 8px 18px rgba(26,122,70,.30); }
+.who-note { margin: 0; font-size: 12px; line-height: 1.45; color: #6b8a78; }
+@media (max-width: 620px) { .who-card .nc-lead { display: block; } }
+html:not(.app-light) .who-tabs { background: rgba(255,255,255,.06); }
+html:not(.app-light) .who-tab { color: #a9c1b1; }
+html:not(.app-light) .who-tab.is-on { background: rgba(255,255,255,.12); color: #f1ead9; }
+html:not(.app-light) .who-label, html:not(.app-light) .who-note { color: #a9c1b1; }
+html:not(.app-light) .who-select { background: #10241a; color: #f1ead9; border-color: rgba(201,162,39,.35); }
 html:not(.app-light) .next-card { background: rgba(22,41,29,0.97); color: #e7f0e9; border-color: rgba(201,162,39,0.3); }
 html:not(.app-light) .nc-title { color: #f1ead9; }
 html:not(.app-light) .nc-lead, html:not(.app-light) .nc-progress { color: #a9c1b1; }

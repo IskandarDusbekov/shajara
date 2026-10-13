@@ -45,7 +45,8 @@
 
         <div class="pf-actions">
           <a class="pf-btn pf-btn-primary" href="{% url 'index' tree.url_key %}">{% include "shajara/_icon.html" with name="map" %}Xaritani ochish</a>
-          <a class="pf-btn pf-btn-edu" href="{% url 'tree_quiz' tree.url_key %}">{% include "shajara/_icon.html" with name="quiz" %}{% if tree.is_learning %}O'zingizni sinang{% else %}Oilangizni qanchalik bilasiz?{% endif %}</a>
+          {% if tree.is_learning %}<a class="pf-btn pf-btn-edu" href="{% url 'tree_quiz' tree.url_key %}">{% include "shajara/_icon.html" with name="quiz" %}O'zingizni sinang</a>
+          {% elif role %}<a class="pf-btn pf-btn-edu" href="{% url 'tree_pdf' tree.url_key %}">{% include "shajara/_icon.html" with name="upload" %}PDF kitobni yuklab olish</a>{% endif %}
           {% if role %}<a class="pf-btn" href="{% url 'tree_members' tree.url_key %}">{% include "shajara/_icon.html" with name="users" %}{% if is_owner %}A'zolar va ulashish{% else %}A'zolar{% endif %}</a>{% endif %}
           {% if tree.is_open_page %}<a class="pf-btn" href="{% url 'open_tree' tree.slug %}" target="_blank" rel="noopener">{% include "shajara/_icon.html" with name="globe" %}Ochiq sahifa</a>{% endif %}
           {% if is_owner %}<a class="pf-btn" href="{% url 'tree_settings' tree.url_key %}">{% include "shajara/_icon.html" with name="settings" %}Sozlamalar</a>{% endif %}

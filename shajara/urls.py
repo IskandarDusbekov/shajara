@@ -38,6 +38,7 @@ urlpatterns = [
     path("shajara/<treekey:tree_key>/", views.index_view, name="index"),
     path("shajara/<treekey:tree_key>/korish/", views.preview_redirect_view, name="preview"),
     path("shajara/<treekey:tree_key>/tartib/", views.tree_layout_view, name="tree_layout"),
+    path("shajara/<treekey:tree_key>/men/", views.tree_whoami_view, name="tree_whoami"),
     path("shajara/<treekey:tree_key>/haqida/", views.tree_overview_view, name="tree_overview"),
     path("shajara/<treekey:tree_key>/sozlamalar/", views.tree_settings_view, name="tree_settings"),
     path("shajara/<treekey:tree_key>/ochirish/", views.tree_delete_view, name="tree_delete"),

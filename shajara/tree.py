@@ -347,15 +347,33 @@ def _own(name):
     return f"{name}ning"
 
 
-def next_steps(tree, people, families, levels, limit=3):
+def my_person_id(user, tree, people=None):
+    """Which card on the map is `user`: the root for the owner, the person a
+    member picked for themselves, or None (not picked yet, or since removed)."""
+    role = tree_role(user, tree)
+    if role == "owner":
+        return tree.root_person_id
+    if role is None:
+        return None
+    from .models import TreeMember
+    pid = TreeMember.objects.filter(tree=tree, user=user).values_list("person_id", flat=True).first()
+    if not pid:
+        return None
+    in_tree = pid in people if people is not None else pid in person_ids_in_tree(tree.root_person)
+    return pid if in_tree else None
+
+
+def next_steps(tree, people, families, levels, limit=3, me_id=None):
     """A short, ordered list of the relatives worth adding next, so nobody has
     to guess: the person's parents first, then siblings, spouse and children,
-    then the grandparents. Each item is ready to link to the add-relative form.
+    then the grandparents. «The person» is whoever is looking — the root for
+    the owner, a member's own card for a relative who joined later.
+    Each item is ready to link to the add-relative form.
     Returns (steps, progress)."""
     from django.urls import reverse
 
     add_url = reverse("add_relative", args=[tree.url_key])
-    root = people[tree.root_person_id]
+    root = people.get(me_id) or people[tree.root_person_id]
 
     def parents(p):
         fam = families.get(p.child_family_id) if p.child_family_id else None
@@ -414,8 +432,12 @@ def next_steps(tree, people, families, levels, limit=3):
     return steps[:limit], progress
 
 
-def next_intro(people_count):
-    """Warm, specific wording for the guide card, by how far along the tree is."""
+def next_intro(people_count, member_name=None):
+    """Warm, specific wording for the guide card, by how far along the tree is.
+    A relative who joined someone else's tree gets their own branch talked about."""
+    if member_name:
+        return {"kicker": "Sizning shoxingiz", "title": f"{member_name}, o'z oilangizni qo'shing",
+                "lead": "Maslahatlar endi sizga qarab beriladi. Tugmani bosing, ismini yozing — o'zi to'g'ri joyga tushadi."}
     if people_count <= 1:
         return {"kicker": "1-qadam", "title": "Ajoyib boshlanish! Endi ota-onangizni qo'shamiz",
                 "lead": "Shajara ildizdan o'sadi. Bir tugmani bosing, ismini yozing — o'zi saqlanadi."}

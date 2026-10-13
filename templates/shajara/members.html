@@ -147,7 +147,7 @@
         {% endif %}
         <div class="pf-actions">
           <a class="pf-btn pf-btn-primary pf-btn-sm" href="{% url 'index' tree.url_key %}">{% include "shajara/_icon.html" with name="map" %}Xarita</a>
-          <a class="pf-btn pf-btn-edu pf-btn-sm" href="{% url 'tree_quiz' tree.url_key %}">{% include "shajara/_icon.html" with name="quiz" %}Test</a>
+          {% if tree.is_learning %}<a class="pf-btn pf-btn-edu pf-btn-sm" href="{% url 'tree_quiz' tree.url_key %}">{% include "shajara/_icon.html" with name="quiz" %}Test</a>{% endif %}
         </div>
       </section>
       {% endif %}

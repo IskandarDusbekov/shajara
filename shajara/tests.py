@@ -557,6 +557,66 @@ class SharedTreeTests(TestCase):
         })
         self.assertRedirects(r, reverse("my_trees"))
 
+    def test_member_says_who_they_are_and_the_guide_follows(self):
+        from .models import Family, Person, TreeMember
+        member = TreeMember.objects.create(tree=self.tree, user=self.relative, role="muharrir")
+        # a cousin: grandpa's other son's son
+        uncle = Person.objects.create(first_name="Rahim", gender="erkak", child_family=self.me.child_family)
+        ufam = Family.objects.create(father=uncle)
+        cousin = Person.objects.create(first_name="Jasur", gender="erkak", child_family=ufam)
+        self.client.force_login(self.relative)
+        index = reverse("index", args=[self.key])
+        page = self.client.get(index)
+        self.assertContains(page, "Shajarada siz kimsiz?")
+        self.assertNotContains(page, 'data-tour="start-next"')
+
+        whoami = reverse("tree_whoami", args=[self.key])
+        # the root belongs to the owner; outsiders' people are refused
+        self.client.post(whoami, {"person": self.me.id})
+        stranger = Person.objects.create(first_name="Begona", gender="erkak")
+        self.client.post(whoami, {"person": stranger.id})
+        member.refresh_from_db()
+        self.assertIsNone(member.person_id)
+
+        self.assertRedirects(self.client.post(whoami, {"person": cousin.id}), index, fetch_redirect_response=False)
+        member.refresh_from_db()
+        self.assertEqual(member.person_id, cousin.id)
+        page = self.client.get(index)
+        self.assertContains(page, "Jasur, o&#x27;z oilangizni qo&#x27;shing")
+        self.assertContains(page, f"anchor={cousin.id}&amp;relation=akauka")
+        self.assertContains(page, 'class="leaf-me"')
+        # «Otangizni qo'shamiz» on the form now means the cousin's own father
+        form = self.client.get(reverse("add_relative", args=[self.key]) + f"?anchor={cousin.id}&relation=turmush")
+        self.assertContains(form, "Turmush o&#x27;rtog&#x27;ingizni qo&#x27;shamiz")
+
+    def test_member_missing_from_tree_adds_themselves(self):
+        from .models import Person, TreeMember
+        member = TreeMember.objects.create(tree=self.tree, user=self.relative, role="muharrir")
+        self.client.force_login(self.relative)
+        r = self.client.post(reverse("tree_whoami", args=[self.key]), {"person": self.grandpa.id, "action": "child"})
+        add = reverse("add_relative", args=[self.key])
+        self.assertRedirects(r, f"{add}?anchor={self.grandpa.id}&relation=farzand&men=1", fetch_redirect_response=False)
+        self.assertContains(self.client.get(r["Location"]), "O&#x27;zingizni qo&#x27;shamiz")
+        self.client.post(add, {"anchor": self.grandpa.id, "relation": "farzand", "men": "1",
+                               "first_name": "Nodir", "gender": "erkak"})
+        member.refresh_from_db()
+        nodir = Person.objects.get(first_name="Nodir")
+        self.assertEqual(member.person_id, nodir.id)
+        self.assertEqual(nodir.child_family.father_id, self.grandpa.id)
+        # a viewer may name their card but not add people
+        viewer = User.objects.create_user("sh_viewer", password="pw-12345678")
+        TreeMember.objects.create(tree=self.tree, user=viewer, role="kuzatuvchi")
+        self.client.force_login(viewer)
+        self.client.post(reverse("tree_whoami", args=[self.key]), {"person": self.grandpa.id, "action": "child"})
+        self.assertFalse(Person.objects.filter(added_by=viewer).exists())
+
+    def test_family_tree_has_book_instead_of_test(self):
+        self.client.force_login(self.owner)
+        page = self.client.get(reverse("index", args=[self.key]))
+        self.assertNotContains(page, reverse("tree_quiz", args=[self.key]))
+        self.assertContains(page, "Oila kitobi (PDF)")
+        self.assertContains(page, f'href="{reverse("tree_pdf", args=[self.key])}"')
+
 
 class LearningTreeTests(TestCase):
     """Learning trees: kind and subject, the library, and the self-test."""

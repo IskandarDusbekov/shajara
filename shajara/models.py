@@ -404,6 +404,12 @@ class TreeMember(models.Model):
     invited_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
     )
+    # Who this member is on the map, so the «what to add next» guide speaks
+    # to them («Otangizni qo'shing») rather than to the tree's root person.
+    person = models.ForeignKey(
+        Person, null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
+        verbose_name="Shajaradagi o'zi",
+    )
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -707,6 +713,7 @@ ACTIVITY_CHOICES = [
     ("invite_create", "Taklif havolasi yaratdi"),
     ("invite_revoke", "Taklif havolasini bekor qildi"),
     ("member_join", "Shajaraga qo'shildi"),
+    ("member_whoami", "Shajarada o'zini belgiladi"),
     ("member_role", "A'zo huquqini o'zgartirdi"),
     ("member_remove", "A'zoni chiqarib yubordi"),
     ("member_leave", "Shajaradan chiqdi"),

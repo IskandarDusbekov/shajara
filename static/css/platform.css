@@ -375,6 +375,23 @@ html.app-light {
 .export-menu.is-busy .export-item, .export-menu.is-busy .export-go { opacity: 0.55; pointer-events: none; }
 .export-menu { width: min(390px, calc(100% - 96px)); max-height: calc(100% - 32px); overflow-y: auto; overscroll-behavior: contain; }
 .export-sep { height: 1px; margin: 8px 6px 12px; background: var(--pf-line); }
+/* The family book: the first and biggest thing in the menu */
+.export-book { display: flex; gap: 14px; align-items: stretch; margin: 0 6px; padding: 14px; border-radius: 16px; text-decoration: none; color: var(--pf-ink);
+  background: linear-gradient(135deg, var(--pf-soft), transparent 75%); border: 1.5px solid var(--pf-line-strong); transition: border-color .15s, transform .15s; }
+.export-book:hover, .export-book:focus-visible { border-color: var(--pf-accent); transform: translateY(-1px); outline: none; }
+.export-book-cover { position: relative; flex-shrink: 0; width: 70px; min-height: 96px; border-radius: 3px 8px 8px 3px; padding: 14px 6px 8px 12px; box-sizing: border-box;
+  display: flex; flex-direction: column; justify-content: space-between; background: linear-gradient(160deg, #7a2f26, #4e1b15); color: #f3dfae;
+  box-shadow: 0 8px 16px rgba(0,0,0,.28), inset 0 0 0 2px rgba(214,178,94,.45); font-family: Georgia, "Times New Roman", serif; }
+.export-book-cover i { position: absolute; left: 5px; top: 0; bottom: 0; width: 2px; background: rgba(0,0,0,.25); }
+.export-book-cover b { font-size: 10.5px; line-height: 1.25; overflow-wrap: anywhere; }
+.export-book-cover em { font-style: normal; font-size: 7.5px; letter-spacing: .18em; color: #d6b25e; }
+.export-book-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.export-book-text > b { font-size: 15.5px; }
+.export-book-text small { font-size: 12.5px; line-height: 1.4; color: var(--pf-muted); }
+.export-book-go { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; margin-top: 4px; padding: 7px 12px; border-radius: 10px;
+  background: var(--pf-accent); color: var(--pf-on-accent); font-size: 13px; font-weight: 700; }
+.export-book-go svg { width: 16px; height: 16px; }
+.export-book.is-busy { pointer-events: none; opacity: .75; }
 .export-preview { display: flex; align-items: center; justify-content: center; height: 178px; margin: 0 6px 12px; padding: 12px; box-sizing: border-box;
   border-radius: 14px; border: 1px solid var(--pf-line); background: repeating-linear-gradient(45deg, var(--pf-soft) 0 10px, transparent 10px 20px); overflow: hidden; }
 .export-preview img { display: block; max-width: 100%; max-height: 100%; box-shadow: 0 8px 22px rgba(0,0,0,0.22); }
