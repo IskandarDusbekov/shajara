@@ -740,6 +740,8 @@
       if (addBtn) addBtn.setAttribute("aria-expanded", "false");
       relations.querySelectorAll("a[data-relation]").forEach(function (a) {
         a.setAttribute("href", addUrl + "?anchor=" + el.dataset.person + "&relation=" + a.dataset.relation);
+        // a person the owner locked keeps their parents and spouse as written
+        a.hidden = !!el.dataset.locked && ["ota", "ona", "turmush"].indexOf(a.dataset.relation) !== -1;
       });
     }
 

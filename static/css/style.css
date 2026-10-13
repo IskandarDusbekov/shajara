@@ -679,6 +679,15 @@ body.map-page .content.is-rearranging .lines-svg { opacity: 0; }
 .icon-btn svg { width: 16px; height: 16px; }
 .icon-btn:hover { background: rgba(201,162,39,0.15); }
 .icon-btn-danger { border-color: #6b4a4a; color: #d99; }
+.icon-btn-on { border-color: #c9a227; color: #e9c869; background: rgba(201,162,39,0.14); }
+.lock-badge { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; padding: 2px 8px; border-radius: 999px; vertical-align: middle;
+  font: 700 11px/1.5 system-ui, sans-serif; background: rgba(201,162,39,0.16); color: #c9a227; border: 1px solid rgba(201,162,39,0.4); }
+.lock-badge svg { width: 12px; height: 12px; }
+.lock-note { margin: 10px 0 0; padding: 9px 12px; border-radius: 12px; font: 13px/1.45 system-ui, sans-serif;
+  background: rgba(201,162,39,0.10); color: #d9c49a; border: 1px solid rgba(201,162,39,0.3); }
+html.app-light .icon-btn-on { border-color: #c99a2e; color: #8a6514; background: #fbf3dc; }
+html.app-light .lock-badge { background: #fbf3dc; color: #8a6514; border-color: #ead7a4; }
+html.app-light .lock-note { background: #fbf6e6; color: #6f5418; border-color: #ead7a4; }
 .icon-btn-danger:hover { background: rgba(107,74,74,0.2); }
 
 /* facts under header */

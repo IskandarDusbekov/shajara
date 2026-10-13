@@ -239,10 +239,19 @@ def can_edit_in_tree(user, tree, person):
     return person.id in person_ids_in_tree(tree.root_person)
 
 
+def can_change_person(user, tree, person):
+    """Editing a person's own record, their parents or spouse. A person the
+    owner locked stays as the owner wrote it; editors may still add children
+    under them and write memories."""
+    if not can_edit_in_tree(user, tree, person):
+        return False
+    return not person.locked or tree_role(user, tree) == "owner"
+
+
 def can_delete_in_tree(user, tree, person):
     """Removing someone is the owner's call; an editor may only take back
-    a person they added themselves."""
-    if not can_edit_in_tree(user, tree, person):
+    a person they added themselves (and not once the owner locked it)."""
+    if not can_change_person(user, tree, person):
         return False
     return tree_role(user, tree) == "owner" or person.added_by_id == user.id
 

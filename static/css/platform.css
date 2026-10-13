@@ -384,7 +384,9 @@ html.app-light {
   box-shadow: 0 8px 16px rgba(0,0,0,.28), inset 0 0 0 2px rgba(214,178,94,.45); font-family: Georgia, "Times New Roman", serif; }
 .export-book-cover i { position: absolute; left: 5px; top: 0; bottom: 0; width: 2px; background: rgba(0,0,0,.25); }
 .export-book-cover b { font-size: 10.5px; line-height: 1.25; overflow-wrap: anywhere; }
-.export-book-cover em { font-style: normal; font-size: 7.5px; letter-spacing: .18em; color: #d6b25e; }
+.export-book-cover em { font-style: normal; font-size: 7.5px; letter-spacing: .18em; color: var(--cover-accent, #d6b25e); }
+.export-book + .export-sep { margin-top: 12px; }
+#export-themes { margin-bottom: 10px; }
 .export-book-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .export-book-text > b { font-size: 15.5px; }
 .export-book-text small { font-size: 12.5px; line-height: 1.4; color: var(--pf-muted); }

@@ -108,6 +108,10 @@ class Person(models.Model):
         settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL,
         related_name="added_people",
     )
+    # Set by the tree's owner: relatives who joined later can still add
+    # children and write memories, but can no longer edit or delete this
+    # person or change their parents and spouse.
+    locked = models.BooleanField("Qulflangan", default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -714,6 +718,7 @@ ACTIVITY_CHOICES = [
     ("invite_revoke", "Taklif havolasini bekor qildi"),
     ("member_join", "Shajaraga qo'shildi"),
     ("member_whoami", "Shajarada o'zini belgiladi"),
+    ("person_lock", "Shaxsni qulfladi yoki qulfini ochdi"),
     ("member_role", "A'zo huquqini o'zgartirdi"),
     ("member_remove", "A'zoni chiqarib yubordi"),
     ("member_leave", "Shajaradan chiqdi"),

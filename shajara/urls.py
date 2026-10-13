@@ -59,6 +59,8 @@ urlpatterns = [
     path("shajara/<treekey:tree_key>/shaxs/<int:pk>/", views.person_detail_view, name="person_detail"),
     path("shajara/<treekey:tree_key>/shaxs/<int:pk>/tahrirlash/", views.person_edit_view, name="person_edit"),
     path("shajara/<treekey:tree_key>/shaxs/<int:pk>/ochirish/", views.person_delete_view, name="person_delete"),
+    path("shajara/<treekey:tree_key>/shaxs/<int:pk>/qulf/", views.person_lock_view, name="person_lock"),
+    path("shajara/<treekey:tree_key>/qulf/", views.person_lock_view, {"pk": 0}, name="tree_lock"),
     path("shajara/<treekey:tree_key>/shaxs/<int:pk>/hikoya/", views.add_story_view, name="add_story"),
 
     path("taklif/<str:token>/", collab_views.invite_accept_view, name="invite_accept"),

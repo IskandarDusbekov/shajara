@@ -30,7 +30,8 @@ from .models import (
     ConnectionRequest, EmailOTP, Family, Person, QuizAttempt, Tree, TreeGratitude, TreeMember, UserProfile,
 )
 from .tree import (
-    attach_existing, can_delete_in_tree, can_edit_in_tree, can_edit_tree, can_view_tree, compute_levels,
+    attach_existing, can_change_person, can_delete_in_tree, can_edit_in_tree, can_edit_tree, can_view_tree,
+    compute_levels,
     tree_role,
     export_tree_json, get_or_create_child_family, get_or_create_spouse_family,
     group_people_by_level, import_tree_json, level_label, my_person_id, next_intro, next_steps, person_ids_in_tree,
@@ -450,7 +451,11 @@ def tree_settings_view(request, tree_key):
                      detail=f"{tree.name} ({tree.get_visibility_display()})")
         messages.success(request, "Shajara sozlamalari saqlandi.")
         return redirect("tree_overview", tree_key=tree.url_key)
-    return render(request, "shajara/tree_settings.html", {"form": form, "tree": tree})
+    in_tree = person_ids_in_tree(tree.root_person)
+    return render(request, "shajara/tree_settings.html", {
+        "form": form, "tree": tree, "people_count": len(in_tree),
+        "locked_count": Person.objects.filter(pk__in=in_tree, locked=True).count(),
+    })
 
 
 @require_POST
@@ -619,7 +624,7 @@ def index_view(request, tree_key):
     return private_response(render(request, "shajara/tree.html", {
         "tree": tree, "root": root, "rows": rows_list,
         "families_json": families_json_for(families),
-        "can_edit": can_edit, "me_id": me_id if me_id != root.id else None,
+        "can_edit": can_edit, "me_id": me_id if me_id != root.id else None, "is_owner": role == "owner",
         "saved_layout": tree.layout or {},
         **guide,
     }))
@@ -717,12 +722,13 @@ def record_export(request, tree, kind, people_count=0, generations=0):
 def tree_pdf_view(request, tree_key):
     """The tree as a printable book (see book.py). Anyone who can see the
     tree may take it home; each copy gets its own check code."""
-    from .book import build_book
+    from .book import BOOK_THEMES, build_book
 
     tree = get_viewable_tree(request, tree_key)
     if not tree:
         return HttpResponseForbidden("Bu shajara sizga ko'rinmaydi.")
     note_staff_view(request, tree)
+    style = request.GET.get("uslub") if request.GET.get("uslub") in BOOK_THEMES else "classic"
 
     levels, _, _ = compute_levels(tree.root_person)
     record = record_export(request, tree, "pdf", len(levels), len(set(levels.values())))
@@ -734,13 +740,14 @@ def tree_pdf_view(request, tree_key):
         tree, code=record.pretty_code,
         verify_url=request.build_absolute_uri(reverse("verify_export", args=[record.code])),
         tree_url=request.build_absolute_uri(reverse("tree_overview", args=[tree.url_key])),
-        contributors=contributors, sources=tree.source_list,
+        contributors=contributors, sources=tree.source_list, style=style,
     )
     response = HttpResponse(pdf, content_type="application/pdf")
     slug = slugify(tree.name) or "shajara"
     disposition = "inline" if request.GET.get("korish") else "attachment"
     response["Content-Disposition"] = f'{disposition}; filename="{slug}-kitob.pdf"'
-    log_activity(request, "tree_export", tree=tree, detail=f"PDF kitob: {tree.name} ({record.pretty_code})")
+    log_activity(request, "tree_export", tree=tree,
+                 detail=f"PDF kitob ({BOOK_THEMES[style]['label']}): {tree.name} ({record.pretty_code})")
     return private_response(response)
 
 
@@ -791,6 +798,8 @@ def person_detail_view(request, tree_key, pk):
         "tree": tree, "root": tree.root_person, "person": person,
         "person_level": level_label(levels.get(pk, 0), tree.root_person.full_name),
         "can_edit": can_edit,
+        "can_change": can_change_person(request.user, tree, person),
+        "can_lock": tree_role(request.user, tree) == "owner",
         "can_delete": can_delete_in_tree(request.user, tree, person) and not person.rooted_trees.exists(),
         "father": father, "mother": mother,
         "marriages": marriages,
@@ -816,14 +825,44 @@ def add_story_view(request, tree_key, pk):
     return redirect("person_detail", tree_key=tree.url_key, pk=pk)
 
 
+LOCKED_TEXT = "Bu shaxs shajara egasi tomonidan qulflangan — uni faqat shajara egasi o'zgartira oladi."
+
+
+@require_POST
+@login_required
+def person_lock_view(request, tree_key, pk):
+    """The owner locks a person (or unlocks); «hammasi» locks or unlocks the whole tree at once."""
+    tree = get_owned_tree(request, tree_key)
+    if not tree:
+        return HttpResponseForbidden("Faqat shajara egasi qulflay oladi.")
+    lock = request.POST.get("lock") == "1"
+    in_tree = person_ids_in_tree(tree.root_person)
+    if request.POST.get("scope") == "hammasi":
+        count = Person.objects.filter(pk__in=in_tree).update(locked=lock)
+        log_activity(request, "person_lock", tree=tree, detail=f"{'Qulflandi' if lock else 'Ochildi'}: hammasi ({count})")
+        messages.success(request, f"{count} kishi qulflandi — endi ularni faqat siz o'zgartira olasiz." if lock
+                         else f"{count} kishining qulfi ochildi.")
+        return redirect("tree_settings", tree_key=tree.url_key)
+    if pk not in in_tree:
+        return HttpResponseForbidden("Bu shaxs bu shajaraga tegishli emas.")
+    person = get_object_or_404(Person, pk=pk)
+    person.locked = lock
+    person.save(update_fields=["locked"])
+    log_activity(request, "person_lock", tree=tree, person=person,
+                 detail=f"{'Qulflandi' if lock else 'Ochildi'}: {person.full_name}")
+    messages.success(request, f"{person.first_name} qulflandi — endi uni faqat siz o'zgartira olasiz." if lock
+                     else f"{person.first_name} qulfi ochildi.")
+    return redirect("person_detail", tree_key=tree.url_key, pk=pk)
+
+
 @login_required
 def person_edit_view(request, tree_key, pk):
     tree = get_editable_tree(request, tree_key)
     if not tree:
         return HttpResponseForbidden("Sizda bu shaxsni tahrirlash huquqi yo'q.")
     person = get_object_or_404(Person, pk=pk)
-    if not can_edit_in_tree(request.user, tree, person):
-        return HttpResponseForbidden("Sizda bu shaxsni tahrirlash huquqi yo'q.")
+    if not can_change_person(request.user, tree, person):
+        return HttpResponseForbidden(LOCKED_TEXT if person.locked else "Sizda bu shaxsni tahrirlash huquqi yo'q.")
 
     form = PersonForm(request.POST or None, request.FILES or None, instance=person)
     if request.method == "POST" and form.is_valid():
@@ -892,6 +931,9 @@ def add_relative_view(request, tree_key):
     relation = request.GET.get("relation") or request.POST.get("relation")
     if relation not in RELATION_TITLES:
         return HttpResponseForbidden("Noto'g'ri so'rov.")
+    # Parents and spouse are part of who a locked person is.
+    if relation in ("ota", "ona", "turmush") and not can_change_person(request.user, tree, anchor):
+        return HttpResponseForbidden(LOCKED_TEXT)
 
     family_raw = request.GET.get("family") or request.POST.get("family") or ""
     family_id = int(family_raw) if family_raw.isdigit() else None

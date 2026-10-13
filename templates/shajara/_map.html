@@ -23,7 +23,7 @@ because a caption would stay behind when a card is dragged away from it.
                 {% for p in group.persons %}
                 <div id="node-{{ p.id }}"
                      class="leaf-node preview-node{% if p.id == root.id %} leaf-node-root{% elif p.gender == 'ayol' %} leaf-node-ayol{% endif %}"
-                     data-person="{{ p.id }}"
+                     data-person="{{ p.id }}"{% if p.locked and not is_owner %} data-locked="1"{% endif %}
                      data-name="{{ p.full_name }}"
                      data-year="{{ p.display_year }}"
                      data-level="{{ row.label }}"
@@ -191,7 +191,9 @@ because a caption would stay behind when a card is dragged away from it.
   {% if tree %}
   <div class="export-menu" id="export-menu" role="dialog" aria-label="Yuklab olish" hidden>
     <p class="export-title">Yuklab olish</p>
-    <a class="export-book" id="export-book" href="{% url 'tree_pdf' tree.url_key %}">
+    <p class="export-label" id="export-themes-label">Uslub — kitob va rasm uchun</p>
+    <div class="export-themes" id="export-themes" role="radiogroup" aria-labelledby="export-themes-label"></div>
+    <a class="export-book" id="export-book" href="{% url 'tree_pdf' tree.url_key %}" data-base="{% url 'tree_pdf' tree.url_key %}">
       <span class="export-book-cover" aria-hidden="true">
         <i></i><b>{{ tree.name|truncatechars:22 }}</b><em>SHAJARA</em>
       </span>
@@ -207,8 +209,6 @@ because a caption would stay behind when a card is dragged away from it.
     <div class="export-sep"></div>
     <p class="export-title">Rasm — chop etish va ramka uchun</p>
     <div class="export-preview"><img id="export-preview" alt="Rasm qanday chiqishi"></div>
-    <p class="export-label" id="export-themes-label">Uslub</p>
-    <div class="export-themes" id="export-themes" role="radiogroup" aria-labelledby="export-themes-label"></div>
     <p class="export-label" id="export-paper-label">O'lcham</p>
     <div class="export-seg" id="export-paper" role="radiogroup" aria-labelledby="export-paper-label"></div>
     <p class="export-hint" id="export-paper-hint"></p>

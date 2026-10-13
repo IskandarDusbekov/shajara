@@ -610,6 +610,53 @@ class SharedTreeTests(TestCase):
         self.client.post(reverse("tree_whoami", args=[self.key]), {"person": self.grandpa.id, "action": "child"})
         self.assertFalse(Person.objects.filter(added_by=viewer).exists())
 
+    def test_owner_locks_people_editors_cannot_change_them(self):
+        from .models import Person, TreeMember
+        TreeMember.objects.create(tree=self.tree, user=self.relative, role="muharrir")
+        lock_url = reverse("person_lock", args=[self.key, self.grandpa.id])
+        # only the owner locks
+        self.client.force_login(self.relative)
+        self.assertEqual(self.client.post(lock_url, {"lock": "1"}).status_code, 403)
+        self.client.force_login(self.owner)
+        self.client.post(lock_url, {"lock": "1"})
+        self.grandpa.refresh_from_db()
+        self.assertTrue(self.grandpa.locked)
+
+        self.client.force_login(self.relative)
+        edit = reverse("person_edit", args=[self.key, self.grandpa.id])
+        self.assertEqual(self.client.get(edit).status_code, 403)
+        self.assertEqual(self.client.post(edit, {"first_name": "Buzilgan", "gender": "erkak"}).status_code, 403)
+        self.grandpa.refresh_from_db()
+        self.assertEqual(self.grandpa.first_name, "Karim")
+        add = reverse("add_relative", args=[self.key])
+        self.assertEqual(self.client.get(f"{add}?anchor={self.grandpa.id}&relation=ota").status_code, 403)
+        self.assertEqual(self.client.get(f"{add}?anchor={self.grandpa.id}&relation=turmush").status_code, 403)
+        # children and memories are still welcome
+        self.assertEqual(self.client.get(f"{add}?anchor={self.grandpa.id}&relation=farzand").status_code, 200)
+        page = self.client.get(reverse("person_detail", args=[self.key, self.grandpa.id]))
+        self.assertContains(page, "qulflangan")
+        self.assertNotContains(page, edit)
+        # an editor's own addition, once locked, cannot be deleted by them either
+        mine = Person.objects.create(first_name="Meniki", gender="erkak", added_by=self.relative,
+                                     child_family=self.me.child_family, locked=True)
+        self.client.post(reverse("person_delete", args=[self.key, mine.id]))
+        self.assertTrue(Person.objects.filter(pk=mine.pk).exists())
+        # the owner still edits freely
+        self.client.force_login(self.owner)
+        self.assertEqual(self.client.get(edit).status_code, 200)
+
+    def test_owner_locks_whole_tree_at_once(self):
+        from .models import Person
+        self.client.force_login(self.owner)
+        self.client.post(reverse("tree_lock", args=[self.key]), {"scope": "hammasi", "lock": "1"})
+        self.assertEqual(Person.objects.filter(pk__in=[self.me.id, self.grandpa.id], locked=True).count(), 2)
+        self.assertContains(self.client.get(reverse("tree_settings", args=[self.key])), "<b>2</b> / 2")
+        self.client.post(reverse("tree_lock", args=[self.key]), {"scope": "hammasi", "lock": "0"})
+        self.assertFalse(Person.objects.filter(locked=True).exists())
+        self.client.force_login(self.relative)
+        self.assertEqual(self.client.post(reverse("tree_lock", args=[self.key]),
+                                         {"scope": "hammasi", "lock": "1"}).status_code, 403)
+
     def test_family_tree_has_book_instead_of_test(self):
         self.client.force_login(self.owner)
         page = self.client.get(reverse("index", args=[self.key]))
@@ -839,6 +886,23 @@ class BookAndPictureExportTests(TestCase):
         self.assertEqual(numbers["Aziz"], "1.1.1")
         self.assertNotIn("Ro'zigul", numbers)       # she appears beside her husband
         self.assertIn("1 ning turmush", lin.label_for(next(p for p in lin.people if lin.people[p].first_name == "Ro'zigul")))
+
+    def test_pdf_book_in_every_style_with_tree_drawing(self):
+        from pypdf import PdfReader
+        from io import BytesIO
+        from . import book
+        from .book import BOOK_STYLE_ORDER, BOOK_THEMES
+        self.client.force_login(self.owner)
+        for style in BOOK_STYLE_ORDER + ["nonsense"]:
+            r = self.client.get(reverse("tree_pdf", args=[self.key]) + f"?uslub={style}")
+            self.assertEqual(r.status_code, 200, style)
+            reader = PdfReader(BytesIO(r.content))
+            text = "".join(p.extract_text() or "" for p in reader.pages[:6])
+            self.assertIn("Shajara chizmasi", text, style)
+            # the overview sheet is landscape
+            self.assertTrue(any(float(p.mediabox.width) > float(p.mediabox.height) for p in reader.pages), style)
+        # the drawing colours go back to the default after each build
+        self.assertIs(book.THEME, BOOK_THEMES["classic"])
 
     def test_pdf_book_for_members_with_check_record(self):
         from .models import ExportRecord

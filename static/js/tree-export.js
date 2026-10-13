@@ -559,6 +559,24 @@
     });
   }
 
+  // The book is made on the server in the same style; its little cover follows the choice.
+  var BOOK_COVERS = {
+    classic: ["#7a2f26", "#4e1b15", "#f3dfae", "#d6b25e"], emerald: ["#1d5640", "#0b2219", "#f3e3b5", "#d6b25e"],
+    samarkand: ["#2a4fa6", "#1f3c88", "#f8f4ea", "#3aa7a3"], modern: ["#1f8a51", "#14653a", "#ffffff", "#c99a2e"],
+    ink: ["#3a3a3a", "#151515", "#ffffff", "#bbbbbb"]
+  };
+  function syncBook() {
+    var link = document.getElementById("export-book");
+    if (!link) return;
+    link.href = link.getAttribute("data-base") + (choice.theme === "classic" ? "" : "?uslub=" + choice.theme);
+    var cv = BOOK_COVERS[choice.theme] || BOOK_COVERS.classic, cover = link.querySelector(".export-book-cover");
+    if (cover) {
+      cover.style.background = "linear-gradient(160deg," + cv[0] + "," + cv[1] + ")";
+      cover.style.color = cv[2];
+      cover.style.setProperty("--cover-accent", cv[3]);
+    }
+  }
+
   function buildPicker() {
     if (themeBox) {
       THEME_ORDER.forEach(function (id) {
@@ -567,10 +585,11 @@
         b.setAttribute("role", "radio");
         b.innerHTML = '<span class="export-sw" style="background:linear-gradient(135deg,' + T.swatch[0] + " 0 48%," + T.swatch[1] + " 48% 70%," +
           T.swatch[2] + ' 70%)"></span><span>' + esc(T.label) + "</span>";
-        b.addEventListener("click", function () { choice.theme = id; remember(); radio(themeBox, id); renderPreview(); });
+        b.addEventListener("click", function () { choice.theme = id; remember(); radio(themeBox, id); syncBook(); renderPreview(); });
         themeBox.appendChild(b);
       });
       radio(themeBox, choice.theme);
+      syncBook();
     }
     if (paperBox) {
       Object.keys(PAPERS).forEach(function (id) {

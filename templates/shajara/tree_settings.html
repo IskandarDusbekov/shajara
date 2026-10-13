@@ -52,6 +52,25 @@
     </div>
   </form>
 
+  {% if messages %}{% for message in messages %}<p class="pf-alert {% if message.tags == 'error' %}pf-alert-bad{% else %}pf-alert-good{% endif %}" style="margin:16px 0 0;">{{ message }}</p>{% endfor %}{% endif %}
+  <section class="pf-card" style="margin-top:16px;" id="qulf">
+    <h2 class="pf-h2">{% include "shajara/_icon.html" with name="shield" %}Yozganlaringizni qulflash</h2>
+    <p class="pf-help" style="margin:0 0 6px;">Qulflangan kishini taklif bilan kirgan qarindoshlar <b>tahrirlay, o'chira, ota-onasi yoki turmush o'rtog'ini o'zgartira olmaydi</b>. Ular faqat farzand qo'shishi va xotira yozishi mumkin. Qulfni faqat siz ochasiz.</p>
+    <p class="pf-help" style="margin:0 0 12px;">Hozir: <b>{{ locked_count }}</b> / {{ people_count }} kishi qulflangan. Bitta kishini uning sahifasidagi qulf tugmasi bilan ham qulflash mumkin.</p>
+    <div class="pf-actions" style="margin-top:0;">
+      <form method="post" action="{% url 'tree_lock' tree.url_key %}">
+        {% csrf_token %}<input type="hidden" name="scope" value="hammasi"><input type="hidden" name="lock" value="1">
+        <button class="pf-btn pf-btn-primary pf-btn-sm" type="submit">{% include "shajara/_icon.html" with name="shield" %}Hozirgi hammasini qulflash</button>
+      </form>
+      {% if locked_count %}
+      <form method="post" action="{% url 'tree_lock' tree.url_key %}">
+        {% csrf_token %}<input type="hidden" name="scope" value="hammasi"><input type="hidden" name="lock" value="0">
+        <button class="pf-btn pf-btn-sm" type="submit">Hammasining qulfini ochish</button>
+      </form>
+      {% endif %}
+    </div>
+  </section>
+
   <section class="pf-card" style="margin-top:16px;">
     <h2 class="pf-h2">Xavfli hudud</h2>
     <p class="pf-help" style="margin:0 0 12px;">Shajara o'chirilsa, undagi barcha shaxslar, hikoyalar va a'zoliklar ham yo'qoladi. Avval JSON zaxira yuklab olishni maslahat beramiz.</p>
