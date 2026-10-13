@@ -6,7 +6,8 @@ because a caption would stay behind when a card is dragged away from it.
 {% endcomment %}
 <div class="map-shell" data-tree-key="{% firstof board_key tree.url_key %}"{% if clear_right %} data-clear-right="{{ clear_right }}"{% endif %}
      data-csrf="{{ csrf_token }}"
-     {% if tree %}data-tree-name="{{ tree.name }}" data-record-url="{% url 'picture_record' tree.url_key %}"{% endif %}
+     {% if tree %}data-tree-name="{{ tree.name }}" data-record-url="{% url 'picture_record' tree.url_key %}"
+     data-compiler="{% firstof tree.owner.get_full_name tree.owner.username %}" data-kind-label="{% if tree.is_learning %}TA‘LIMIY SHAJARA{% else %}OILAVIY SHAJARA{% endif %}"{% endif %}
      {% if can_edit %}data-add-url="{% url 'add_relative' tree.url_key %}" data-layout-url="{% url 'tree_layout' tree.url_key %}" data-preview-url="{% url 'preview_upload' tree.url_key %}"{% endif %}>
   <div class="map-viewport" id="map-viewport" tabindex="0"
        role="application" aria-label="{% firstof board_title tree.name %} shajara xaritasi">
@@ -154,14 +155,21 @@ because a caption would stay behind when a card is dragged away from it.
       <span class="export-ic export-ic-book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 11h6"/></svg></span>
       <span class="export-text"><b>PDF kitob</b><small>Muqova, mundarija, har bir inson haqida maqola — chop etish uchun</small></span>
     </a>
-    <button type="button" class="export-item" data-export="png">
-      <span class="export-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg></span>
-      <span class="export-text"><b>Rasm (PNG)</b><small>Yuqori sifatli — Telegram'da ulashish va chop etish uchun</small></span>
-    </button>
-    <button type="button" class="export-item" data-export="svg">
-      <span class="export-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 10 4 4M4 9V4h5"/><path d="m14 14 6 6M20 15v5h-5"/></svg></span>
-      <span class="export-text"><b>Vektor rasm (SVG)</b><small>Cheksiz kattalashtiriladi, har bir ism tiniq qoladi</small></span>
-    </button>
+    <div class="export-sep"></div>
+    <p class="export-title">Rasm — chop etish va ramka uchun</p>
+    <div class="export-preview"><img id="export-preview" alt="Rasm qanday chiqishi"></div>
+    <p class="export-label" id="export-themes-label">Uslub</p>
+    <div class="export-themes" id="export-themes" role="radiogroup" aria-labelledby="export-themes-label"></div>
+    <p class="export-label" id="export-paper-label">O'lcham</p>
+    <div class="export-seg" id="export-paper" role="radiogroup" aria-labelledby="export-paper-label"></div>
+    <p class="export-hint" id="export-paper-hint"></p>
+    <div class="export-actions">
+      <button type="button" class="export-go export-go-main" data-export="png" title="Yuqori sifatli rasm — Telegram va chop etish uchun">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>
+        PNG rasm
+      </button>
+      <button type="button" class="export-go" data-export="svg" title="Vektor rasm: cheksiz kattalashtiriladi, har bir ism tiniq qoladi">SVG vektor</button>
+    </div>
     <p class="export-note">Har bir nusxada tekshirish kodi va QR bo'ladi — uni ochgan kishi hujjat haqiqiyligini tekshira oladi.{% if can_edit %} Rasm taklif havolasini ulashganda ko'rinish sifatida ham saqlanadi.{% endif %}</p>
     <p class="export-status" id="export-status" role="status" hidden></p>
   </div>

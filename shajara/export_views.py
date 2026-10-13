@@ -30,6 +30,10 @@ from .views import record_export
 MAX_PREVIEW_BYTES = 5 * 1024 * 1024
 MAX_PREVIEW_SIDE = 4000
 
+# The poster styles and sheet sizes tree-export.js offers (for the activity log).
+PICTURE_STYLES = ("classic", "emerald", "samarkand", "modern", "ink")
+PICTURE_PAPERS = ("auto", "a4", "a3", "a2")
+
 
 def qr_svg(url, size=120):
     """A QR code as an inline <svg> element (no XML prolog)."""
@@ -45,16 +49,21 @@ def picture_record_view(request, tree_key):
     if not can_view_tree(request.user, tree):
         return JsonResponse({"error": "Bu shajara sizga ko'rinmaydi."}, status=403)
     try:
-        kind = json.loads(request.body.decode("utf-8") or "{}").get("kind")
+        body = json.loads(request.body.decode("utf-8") or "{}")
+        kind = body.get("kind")
     except (ValueError, UnicodeDecodeError, AttributeError):
-        kind = None
+        body, kind = {}, None
     if kind not in ("png", "svg"):
         return JsonResponse({"error": "Noto'g'ri format."}, status=400)
+    style = body.get("style") if body.get("style") in PICTURE_STYLES else ""
+    paper = body.get("paper") if body.get("paper") in PICTURE_PAPERS else ""
 
     levels, _, _ = compute_levels(tree.root_person)
     record = record_export(request, tree, kind, len(levels), len(set(levels.values())))
     verify_url = request.build_absolute_uri(reverse("verify_export", args=[record.code]))
-    log_activity(request, "tree_export", tree=tree, detail=f"{kind.upper()} rasm: {tree.name} ({record.pretty_code})")
+    how = ", ".join(x for x in (style, paper.upper() if paper != "auto" else "") if x)
+    log_activity(request, "tree_export", tree=tree,
+                 detail=f"{kind.upper()} rasm{f' ({how})' if how else ''}: {tree.name} ({record.pretty_code})")
     return JsonResponse({
         "code": record.pretty_code,
         "verify_url": verify_url,
