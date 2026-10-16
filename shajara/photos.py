@@ -14,6 +14,8 @@ may see the tree, so a copied link is useless to anyone outside the family.
 """
 
 from io import BytesIO
+import pillow_heif
+pillow_heif.register_heif_opener() # HEIC formatini qo'shib beradi
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
