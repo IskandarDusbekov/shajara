@@ -1448,7 +1448,7 @@ def named_kin(fam, ref, path, side=True):
     return {
         "S": "eri" if m else "xotini",
         "SP": "qaynotasi" if m else "qaynonasi",
-        "CS": "kuyovi" if m else "kelini",
+        "CS": "kelini" if m else "kuyovi",
         "CCS": "nevara kuyovi" if m else "nevara kelini",
         "PCS": "pochchasi" if m else "yangasi",
         "PS": "o‘gay otasi" if m else "o‘gay onasi",
