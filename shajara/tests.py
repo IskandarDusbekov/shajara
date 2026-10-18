@@ -370,7 +370,7 @@ class UnifiedTreeTests(MergeTests):
     def test_user_region_is_saved_from_registration(self):
         self.client.post(reverse("register"), {
             "first_name": "Ali", "username": "ali_uz", "region": "Andijon viloyati",
-            "password1": "parol123", "password2": "parol123",
+            "password1": "kuchli-parol9", "password2": "kuchli-parol9",
         })
         from .models import UserProfile
         self.assertEqual(UserProfile.objects.get(user__username="ali_uz").region, "Andijon viloyati")
@@ -1385,7 +1385,7 @@ class PresenceAndTourTests(TestCase):
     def test_guide_runs_for_new_accounts_until_finished(self):
         from .models import UserProfile
         self.client.post(reverse("register"), {
-            "first_name": "Yangi", "username": "yangi_user", "password1": "parol123", "password2": "parol123",
+            "first_name": "Yangi", "username": "yangi_user", "password1": "kuchli-parol9", "password2": "kuchli-parol9",
         })
         user = User.objects.get(username="yangi_user")
         self.client.force_login(user)

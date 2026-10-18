@@ -1,0 +1,51 @@
+{% extends "shajara/site/_base.html" %}
+{% block title %}Foydalanish shartnomasi — e-Shajara{% endblock %}
+{% block robots %}index, follow{% endblock %}
+{% block main %}
+<section class="section">
+  <div class="wrap legal">
+    <p class="eyebrow">Huquqiy</p>
+    <h1 class="h2">Foydalanish shartnomasi</h1>
+    <p class="legal-updated">Oxirgi yangilanish: {% now "d.m.Y" %}</p>
+
+    <p>Ushbu shartnoma e-Shajara platformasidan («Platforma») foydalanish shartlarini belgilaydi.
+      Platformadan <b>ro'yxatdan o'tish va foydalanish orqali siz ushbu shartlarga va
+      <a href="{% url 'privacy' %}">Maxfiylik siyosati</a>ga roziligingizni bildirasiz.</b></p>
+
+    <h2>1. Foydalanuvchi javobgarligi</h2>
+    <p>Siz Platformaga kiritgan barcha ma'lumotlarning (ismlar, sanalar, suratlar, hikoyalar va qarindoshlik
+      aloqalari) to'g'riligi va qonuniyligi uchun shaxsan javobgarsiz. Siz boshqa shaxslar haqidagi ma'lumotni
+      <b>o'z xohishingiz bilan va o'sha shaxslarning roziligi bilan</b> kiritayotganingizni tasdiqlaysiz.</p>
+
+    <h2>2. Roziliksiz ma'lumot kiritmaslik</h2>
+    <p>Boshqa shaxsning roziligisiz uning shaxsiy ma'lumotlari yoki suratlarini kiritish taqiqlanadi. Bunday holatda
+      yuzaga keladigan har qanday nizo va da'volar uchun javobgarlik ma'lumotni kiritgan foydalanuvchi zimmasida
+      bo'ladi.</p>
+
+    <h2>3. Platforma javobgarligining chegarasi</h2>
+    <p>Platforma — foydalanuvchilar ma'lumot kiritadigan vosita. Platforma foydalanuvchilar kiritgan ma'lumot mazmuni,
+      uning to'g'riligi yoki qonuniyligi uchun javobgar emas. Platforma xizmatni «bor holicha» taqdim etadi va uzluksiz
+      yoki xatosiz ishlashni kafolatlamaydi. Qonun ruxsat bergan maksimal darajada, Platforma foydalanuvchi kiritgan
+      ma'lumot yoki yuklab olingan fayllar bilan bog'liq har qanday to'g'ridan-to'g'ri yoki bilvosita zarar uchun
+      javobgarlikni o'z zimmasiga olmaydi.</p>
+
+    <h2>4. Yuklab olingan fayllar</h2>
+    <p>Shajarani PDF yoki rasm ko'rinishida yuklab olsangiz, o'sha fayllarning saqlanishi, ishlatilishi va
+      tarqatilishi uchun to'liq javobgarlik sizga tegishli bo'ladi.</p>
+
+    <h2>5. Tarixiy va ta'limiy shajaralar</h2>
+    <p>Tarixiy va ta'limiy shajaralarga ham xuddi shu shartlar amal qiladi. Ularda keltirilgan dalillar uchun
+      ishonchli manbalarga tayanish va ularni ko'rsatish tavsiya etiladi; ma'lumot to'g'riligi uchun javobgarlik uni
+      kiritgan foydalanuvchiga tegishli.</p>
+
+    <h2>6. Hisobni to'xtatish</h2>
+    <p>Ushbu shartlarni yoki qonunlarni buzgan hisoblar ogohlantirishsiz to'xtatilishi yoki o'chirilishi mumkin.</p>
+
+    <h2>7. O'zgartirishlar</h2>
+    <p>Platforma ushbu shartlarni vaqti-vaqti bilan yangilashi mumkin. Yangilangandan so'ng xizmatdan foydalanishni
+      davom ettirish yangi shartlarga rozilik hisoblanadi.</p>
+
+    <p class="legal-foot"><a href="{% url 'privacy' %}">Maxfiylik siyosati →</a></p>
+  </div>
+</section>
+{% endblock %}

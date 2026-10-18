@@ -34,6 +34,23 @@ def unique_username(first, last=""):
     return candidate
 
 
+COMMON_PASSWORDS = {
+    "parol", "parol123", "password", "password1", "12345678", "123456789", "1234567890",
+    "qwerty123", "11111111", "00000000", "abc12345", "iloveyou", "admin123", "qwertyuiop",
+}
+
+
+def check_password_strength(pw):
+    """A few plain rules so weak passwords can't be chosen (messages in Uzbek)."""
+    if len(pw) < 8:
+        raise forms.ValidationError("Parol kamida 8 ta belgidan iborat bo'lsin.")
+    if pw.isdigit():
+        raise forms.ValidationError("Parol faqat raqamlardan iborat bo'lmasin — harf ham qo'shing.")
+    if pw.lower() in COMMON_PASSWORDS:
+        raise forms.ValidationError("Bu parol juda oddiy va ko'p ishlatiladi — boshqasini tanlang.")
+    return pw
+
+
 def _validate_unique_email(email, exclude_user=None):
     email = email.strip().lower()
     qs = User.objects.filter(email__iexact=email)
@@ -54,8 +71,11 @@ class RegisterForm(forms.Form):
     district = forms.CharField(label="Tuman", max_length=100, required=False)
     role = forms.ChoiceField(label="Platformadan nima uchun foydalanasiz?", choices=USER_ROLE_CHOICES,
                              required=False)
-    password1 = forms.CharField(label="Parol", widget=forms.PasswordInput, min_length=6)
+    password1 = forms.CharField(label="Parol", widget=forms.PasswordInput, min_length=8)
     password2 = forms.CharField(label="Parolni takrorlang", widget=forms.PasswordInput)
+
+    def clean_password1(self):
+        return check_password_strength(self.cleaned_data["password1"])
 
     def clean_username(self):
         username = self.cleaned_data["username"].strip().lower()
@@ -132,12 +152,15 @@ class PasswordResetRequestForm(forms.Form):
 
 
 class SetNewPasswordForm(forms.Form):
-    password1 = forms.CharField(label="Yangi parol", min_length=6, widget=forms.PasswordInput(attrs={
+    password1 = forms.CharField(label="Yangi parol", min_length=8, widget=forms.PasswordInput(attrs={
         "class": "stack-input", "placeholder": "Yangi parol",
     }))
     password2 = forms.CharField(label="Yangi parolni takrorlang", widget=forms.PasswordInput(attrs={
         "class": "stack-input", "placeholder": "Yangi parolni takrorlang",
     }))
+
+    def clean_password1(self):
+        return check_password_strength(self.cleaned_data["password1"])
 
     def clean(self):
         cleaned = super().clean()

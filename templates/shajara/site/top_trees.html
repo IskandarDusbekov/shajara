@@ -1,0 +1,43 @@
+{% extends "shajara/site/_base.html" %}
+{% block title %}Eng katta shajaralar — e-Shajara{% endblock %}
+{% comment %}A promotional leaderboard. Family-tree names appear here but with no
+personal data and the page is kept out of search engines.{% endcomment %}
+{% block robots %}noindex, follow{% endblock %}
+{% block main %}
+<section class="section">
+  <div class="wrap">
+    <header class="section-head" style="text-align:center;">
+      <p class="eyebrow">e-Shajara jamoasi</p>
+      <h1 class="h2">Eng katta shajaralar</h1>
+      <p class="lead">Platformada tuzilgan eng yirik shajaralar — har birida nechta oila borligi bilan.
+        {% if totals.family %}Jami {{ totals.family }} ta oilaviy{% endif %}{% if totals.learning %} va {{ totals.learning }} ta ochiq tarixiy shajara.{% else %}.{% endif %}</p>
+    </header>
+
+    <nav class="pf-tabs" aria-label="Tur" style="justify-content:center; display:flex; gap:6px; margin:0 auto 22px; max-width:360px;">
+      <a class="pf-tab{% if kind == 'oilaviy' %} is-on{% endif %}" href="?tur=oilaviy">Oilaviy</a>
+      <a class="pf-tab{% if kind == 'talimiy' %} is-on{% endif %}" href="?tur=talimiy">Tarixiy</a>
+    </nav>
+
+    {% if rows %}
+    <ol class="top-list">
+      {% for r in rows %}
+      <li class="top-row">
+        <span class="top-rank">{{ forloop.counter }}</span>
+        <span class="top-main">
+          {% if r.url %}<a class="top-name" href="{{ r.url }}">{{ r.name }}</a>{% else %}<span class="top-name">{{ r.name }}</span>{% endif %}
+          <span class="top-sub">{{ r.generations }} avlod · {{ r.people }} kishi</span>
+        </span>
+        <span class="top-count"><b>{{ r.families }}</b> oila</span>
+      </li>
+      {% endfor %}
+    </ol>
+    {% if kind == 'oilaviy' %}
+    <p class="legal-updated" style="text-align:center; margin-top:16px;">Maxfiylik uchun bu yerda faqat shajara nomi va
+      oilalar soni ko'rsatiladi — hech qanday shaxsiy ma'lumot chiqmaydi.</p>
+    {% endif %}
+    {% else %}
+    <p class="lead" style="text-align:center;">Hali shajaralar yetarli emas. <a href="{% url 'register' %}">Birinchi bo'ling →</a></p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

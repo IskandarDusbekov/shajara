@@ -475,3 +475,32 @@ body.site { margin: 0; background: var(--paper); color: var(--text); font-family
   .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .faq details p { padding-right: 0; }
 }
+
+/* ---- legal pages (privacy / terms) ---- */
+.legal { max-width: 760px; margin: 0 auto; }
+.legal h1.h2 { margin: 6px 0 4px; }
+.legal-updated { color: var(--muted); font-size: 0.9rem; margin: 0 0 22px; }
+.legal h2 { font-size: 1.15rem; margin: 26px 0 8px; color: var(--ink); }
+.legal p { line-height: 1.7; margin: 0 0 12px; color: var(--ink-2, #33423b); }
+.legal a { color: var(--brand, #1a7a46); font-weight: 600; }
+.legal-foot { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line, #e3ece6); }
+
+/* ---- biggest-trees leaderboard ---- */
+.top-list { max-width: 640px; margin: 0 auto; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.top-row { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border: 1px solid var(--line, #e3ece6);
+  border-radius: 14px; background: var(--card, #fff); }
+.top-rank { flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-weight: 800; font-size: 0.95rem; background: #e4f5ea; color: #1a7a46; }
+.top-row:nth-child(1) .top-rank { background: #f6e6b8; color: #8a6a1f; }
+.top-row:nth-child(2) .top-rank { background: #e9edf0; color: #5a6b76; }
+.top-row:nth-child(3) .top-rank { background: #f3e0cf; color: #8a5a30; }
+.top-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.top-name { font-weight: 700; color: var(--ink); text-decoration: none; }
+a.top-name:hover { color: var(--brand, #1a7a46); }
+.top-sub { font-size: 0.85rem; color: var(--muted); }
+.top-count { flex-shrink: 0; font-size: 0.95rem; color: var(--ink-2, #33423b); }
+.top-count b { font-size: 1.15rem; color: #1a7a46; }
+
+.footer-legal { display: inline-flex; flex-wrap: wrap; gap: 14px; }
+.footer-legal a { color: inherit; opacity: 0.85; text-decoration: none; }
+.footer-legal a:hover { opacity: 1; text-decoration: underline; }

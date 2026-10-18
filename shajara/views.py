@@ -282,6 +282,38 @@ class ShajaraLoginView(LoginView):
     authentication_form = LoginForm
     redirect_authenticated_user = True
 
+    # Brute-force guard: after 5 wrong tries for the same IP + username, the
+    # account is held for 15 minutes. Counters live in the cache, so a restart
+    # or the window passing clears them on its own.
+    MAX_TRIES = 5
+    BLOCK_SECONDS = 15 * 60
+
+    def _key(self):
+        ip = self.request.META.get("REMOTE_ADDR", "")
+        uname = (self.request.POST.get("username") or "").strip().lower()[:150]
+        return f"login_fails:{ip}:{uname}"
+
+    def post(self, request, *args, **kwargs):
+        from django.core.cache import cache
+        self._block_key = self._key()
+        if (cache.get(self._block_key) or 0) >= self.MAX_TRIES:
+            form = self.get_form()
+            form.add_error(None, "Juda ko'p marta noto'g'ri urinish bo'ldi. Xavfsizlik uchun "
+                                 "15 daqiqa kuting yoki parolingizni tiklang.")
+            return self.render_to_response(self.get_context_data(form=form))
+        return super().post(request, *args, **kwargs)
+
+    def form_invalid(self, form):
+        from django.core.cache import cache
+        key = getattr(self, "_block_key", None) or self._key()
+        cache.set(key, (cache.get(key) or 0) + 1, self.BLOCK_SECONDS)
+        return super().form_invalid(form)
+
+    def form_valid(self, form):
+        from django.core.cache import cache
+        cache.delete(getattr(self, "_block_key", None) or self._key())
+        return super().form_valid(form)
+
 
 @require_POST
 def logout_view(request):

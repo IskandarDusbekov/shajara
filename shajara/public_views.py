@@ -29,6 +29,55 @@ OPEN_CACHE_SECONDS = 600
 REGION_LABELS = dict(REGION_CHOICES)
 
 
+def legal_view(request, page):
+    """The privacy policy and the terms of use — plain pages anyone can read."""
+    template = {"maxfiylik": "shajara/site/privacy.html",
+                "shartnoma": "shajara/site/terms.html"}.get(page)
+    if not template:
+        raise Http404()
+    return render(request, template, {})
+
+
+def _tree_sizes(trees):
+    """How big each tree is — people, families (oila) and generations — worked
+    out from the links, biggest first."""
+    out = []
+    for t in trees:
+        try:
+            levels, people, families = compute_levels(t.root_person)
+        except Exception:
+            continue
+        out.append({"name": t.name, "people": len(people), "families": len(families),
+                    "generations": len(set(levels.values())),
+                    "url": reverse("open_tree", args=[t.slug]) if t.is_open_page else ""})
+    out.sort(key=lambda r: (r["families"], r["people"]), reverse=True)
+    return out
+
+
+def top_trees_view(request):
+    """A promotional leaderboard: the biggest trees by number of families.
+    Family trees show only their name and counts — never any personal data —
+    and the page is kept out of search engines."""
+    kind = request.GET.get("tur", "oilaviy")
+    if kind not in ("oilaviy", "talimiy"):
+        kind = "oilaviy"
+    cache_key = f"top_trees:{kind}"
+    rows = cache.get(cache_key)
+    if rows is None:
+        if kind == "talimiy":
+            qs = Tree.objects.filter(visibility="public", kind="talimiy")
+        else:
+            qs = Tree.objects.filter(kind="oilaviy")
+        rows = _tree_sizes(list(qs.select_related("root_person"))[:200])[:30]
+        cache.set(cache_key, rows, OPEN_CACHE_SECONDS)
+    totals = {
+        "family": Tree.objects.filter(kind="oilaviy").count(),
+        "learning": Tree.objects.filter(visibility="public", kind="talimiy").count(),
+    }
+    return render(request, "shajara/site/top_trees.html",
+                  {"rows": rows, "kind": kind, "totals": totals})
+
+
 # ---------------------------------------------------------------- helpers --
 
 def site_url(request):

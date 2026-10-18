@@ -88,11 +88,15 @@
              value="{{ form.phone.value|default:'' }}" autocomplete="tel">
       {% if form.phone.errors %}<div class="form-error">{{ form.phone.errors|join:" " }}</div>{% endif %}
       <p class="reg-hint">Email yoki telefon majburiy emas. Email kiritsangiz, parolni unutganda uni tiklash oson bo'ladi.</p>
-      <input class="stack-input" type="password" name="password1" placeholder="Parol (kamida 6 ta belgi)" autocomplete="new-password" data-required>
+      <input class="stack-input" type="password" name="password1" placeholder="Parol (kamida 8 ta belgi)" autocomplete="new-password" data-required>
       {% if form.password1.errors %}<div class="form-error">{{ form.password1.errors|join:" " }}</div>{% endif %}
       <input class="stack-input" type="password" name="password2" placeholder="Parolni takrorlang" autocomplete="new-password" data-required>
       {% if form.password2.errors %}<div class="form-error">{{ form.password2.errors|join:" " }}</div>{% endif %}
     </fieldset>
+
+    <p class="reg-consent">Ro'yxatdan o'tish orqali siz <a href="{% url 'privacy' %}" target="_blank">Maxfiylik siyosati</a>
+      va <a href="{% url 'terms' %}" target="_blank">Foydalanish shartnomasi</a>ga roziligingizni bildirasiz —
+      jumladan qarindoshlar ma'lumotini ularning roziligi bilan kiritayotganingizni tasdiqlaysiz.</p>
 
     <div class="reg-nav">
       <button class="btn-ghost reg-back" type="button" id="reg-back">← Orqaga</button>
@@ -143,7 +147,7 @@
     // password confirmation, checked on the last step
     var p1 = step.querySelector('[name="password1"]'), p2 = step.querySelector('[name="password2"]');
     if (p1 && p2 && p1.value && p2.value && p1.value !== p2.value) { markError(p2, "Parollar mos kelmadi."); ok = false; }
-    if (p1 && p1.value && p1.value.length < 6) { markError(p1, "Parol kamida 6 ta belgidan iborat bo'lsin."); ok = false; }
+    if (p1 && p1.value && p1.value.length < 8) { markError(p1, "Parol kamida 8 ta belgidan iborat bo'lsin."); ok = false; }
     if (usernameState === "taken" && step.dataset.step === "username") { ok = false; }
     return ok;
   }

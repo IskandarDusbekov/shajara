@@ -1,0 +1,56 @@
+{% extends "shajara/site/_base.html" %}
+{% block title %}Maxfiylik siyosati — e-Shajara{% endblock %}
+{% block robots %}index, follow{% endblock %}
+{% block main %}
+<section class="section">
+  <div class="wrap legal">
+    <p class="eyebrow">Huquqiy</p>
+    <h1 class="h2">Maxfiylik siyosati</h1>
+    <p class="legal-updated">Oxirgi yangilanish: {% now "d.m.Y" %}</p>
+
+    <p>e-Shajara (keyingi o'rinlarda «Platforma») oilaviy va tarixiy shajaralarni tuzish uchun xizmat ko'rsatadi.
+      Ushbu siyosat qanday ma'lumot to'planishi va qanday himoyalanishini tushuntiradi.</p>
+
+    <h2>1. Qanday ma'lumot kiritiladi</h2>
+    <p>Platformaga ma'lumotni foydalanuvchining o'zi kiritadi: shaxslarning ismi, tug'ilgan va vafot etgan yillari,
+      joylari, kasbi, suratlari, hikoyalari va qarindoshlik aloqalari. Hisob uchun esa foydalanuvchi nomi,
+      (ixtiyoriy) email yoki telefon, viloyat va tuman kiritiladi.</p>
+
+    <h2>2. Qarindoshlar ma'lumoti va rozilik</h2>
+    <p>Foydalanuvchi boshqa shaxslar (qarindoshlar) haqidagi ma'lumotni <b>o'z xohishi bilan va o'sha shaxslarning
+      roziligi asosida</b> kiritadi. Shaxslar ma'lumotini kiritish, uning to'g'riligi va qonuniyligi uchun javobgarlik
+      to'liq ma'lumotni kiritgan foydalanuvchi zimmasida. Platforma bu ma'lumotni foydalanuvchi nomidan saqlaydi,
+      lekin uning mazmuni uchun javobgar emas.</p>
+
+    <h2>3. Oila shajaralari — yopiq</h2>
+    <p>Oilaviy shajaralar standart holatda <b>shaxsiy</b> bo'ladi: ularni faqat shajara egasi va u taklif qilgan
+      qarindoshlar ko'radi. Oila shajaralari qidiruv tizimlariga (Google va boshqalar) chiqarilmaydi. Har bir shajara
+      tasodifiy, taxmin qilib bo'lmaydigan havola kaliti bilan himoyalanadi.</p>
+
+    <h2>4. Tarixiy va ta'limiy shajaralar</h2>
+    <p>Tarixiy va ta'limiy shajaralar ommaviy qilinishi mumkin — ular o'rganish va o'rgatish uchun mo'ljallangan.
+      Ularga ham ushbu siyosat va foydalanish shartlari to'liq tatbiq etiladi.</p>
+
+    <h2>5. Yuklab olingan fayllar (PDF va rasmlar)</h2>
+    <p>Foydalanuvchi shajarani PDF kitob yoki rasm ko'rinishida yuklab olishi mumkin. <b>Yuklab olingan fayllarning
+      saqlanishi, ulardan foydalanish va tarqatilishi uchun javobgarlik to'liq o'sha faylni yuklab olgan
+      foydalanuvchiga tegishli.</b> Platforma fayl qurilmaga yuklab olingandan so'ng uning qayerda saqlanishi yoki
+      kimga berilishini nazorat qila olmaydi.</p>
+
+    <h2>6. Ma'lumot xavfsizligi</h2>
+    <p>Suratlar va fayllar tasodifiy nomlar bilan saqlanadi va faqat kirish huquqini tekshiradigan sahifalar orqali
+      beriladi. Hisobga kirish paroli shifrlangan holda saqlanadi. Shunga qaramay, hech bir internet xizmati 100%
+      xavfsizlikni kafolatlay olmaydi.</p>
+
+    <h2>7. Ma'lumotni boshqarish va o'chirish</h2>
+    <p>Foydalanuvchi o'z shajarasini istalgan vaqtda arxivlab, faylini yuklab olishi yoki o'chirishi mumkin.
+      Hisobni o'chirish bo'yicha so'rovlar quyidagi aloqa orqali qabul qilinadi.</p>
+
+    <h2>8. Rozilik</h2>
+    <p>Platformadan ro'yxatdan o'tish va undan foydalanish orqali foydalanuvchi ushbu Maxfiylik siyosatini va
+      <a href="{% url 'terms' %}">Foydalanish shartnomasi</a>ni o'qib chiqqanini va ularga rozi ekanini tasdiqlaydi.</p>
+
+    <p class="legal-foot"><a href="{% url 'terms' %}">Foydalanish shartnomasi →</a></p>
+  </div>
+</section>
+{% endblock %}

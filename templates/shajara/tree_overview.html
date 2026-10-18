@@ -65,6 +65,17 @@
         </form>
       </section>
 
+      {% if is_owner %}
+      <section class="invite-banner">
+        <span class="invite-banner-ic">{% include "shajara/_icon.html" with name="users" %}</span>
+        <div class="invite-banner-text">
+          <b>{% if tree.is_learning %}Birga to'ldiring{% else %}Shajarani yolg'iz emas — birga to'ldiring{% endif %}</b>
+          <span>{% if tree.is_learning %}O'quvchilar yoki hamkasblaringizni havola orqali taklif qiling — har kim o'z hissasini qo'shadi.{% else %}Hech kim butun oila tarixini yolg'iz bilmaydi. Havola yuboring: amakingiz o'z shoxini, xolangiz o'z nevaralarini qo'shadi.{% endif %}</span>
+        </div>
+        <a class="pf-btn pf-btn-primary" href="{% url 'tree_members' tree.url_key %}">{% include "shajara/_icon.html" with name="link" %}Qarindoshlarni taklif qilish</a>
+      </section>
+      {% endif %}
+
       <section class="comments-block pf-card" style="margin-top:16px;">
         <h3 class="comments-title">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
