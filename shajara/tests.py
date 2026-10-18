@@ -764,9 +764,13 @@ class SharedTreeTests(TestCase):
         r = self.client.get(reverse("tree_pdf", args=[tree.url_key]) + "?uslub=vintage")
         self.assertEqual(r.status_code, 200)
         text = "".join(p.extract_text() or "" for p in PdfReader(BytesIO(r.content)).pages)
-        # kinship under each name, the chronicle and the index of names
-        for expected in ("Jasurning bobosi", "Jasurning amakisi", "Yilnoma", "ko‘rsatkichi", "Vali"):
+        # Each person is described by their own immediate family (self-contained,
+        # not framed around one "main person"), plus the chronicle and index of names.
+        for expected in ("Otasi — Karim", "Otasi — Ali", "Yilnoma", "ko‘rsatkichi", "Vali"):
             self.assertIn(expected, text.replace("ʻ", "‘"))
+        # the book no longer ties everyone to a single root person
+        for absent in ("Jasurning bobosi", "ga nisbatan", "bosh shaxs"):
+            self.assertNotIn(absent, text.replace("ʻ", "‘"))
         # (the pictures are alike, and the PDF stores alike pictures once)
         self.assertGreaterEqual(r.content.count(b"/Subtype /Image"), 2)
 

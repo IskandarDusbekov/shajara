@@ -816,8 +816,10 @@
     ppOpen.setAttribute("href", el.dataset.url);
 
     if (relations) {
-      relations.hidden = true;
-      if (addBtn) addBtn.setAttribute("aria-expanded", "false");
+      // Show «Kimni qo'shasiz?» straight away so adding a relative is obvious,
+      // not hidden behind the small + button.
+      relations.hidden = false;
+      if (addBtn) addBtn.setAttribute("aria-expanded", "true");
       relations.querySelectorAll("a[data-relation]").forEach(function (a) {
         a.setAttribute("href", addUrl + "?anchor=" + el.dataset.person + "&relation=" + a.dataset.relation);
         // a person the owner locked keeps their parents and spouse as written

@@ -142,7 +142,8 @@ def register_view(request):
         )
         user.set_password(cd["password1"])
         user.save()
-        UserProfile.objects.create(user=user, region=cd.get("region", ""), role=cd.get("role", ""))
+        UserProfile.objects.create(user=user, region=cd.get("region", ""), district=cd.get("district", ""),
+                                   phone=cd.get("phone", ""), role=cd.get("role", ""))
         log_activity(request, "register", user=user,
                      detail=f"{user.get_full_name()} ({user.email or 'emailsiz'}){' · ' + cd['role'] if cd.get('role') else ''}")
         login(request, user, backend="django.contrib.auth.backends.ModelBackend")
@@ -158,6 +159,25 @@ def register_view(request):
             return redirect("email_verify")
         return redirect(next_url or "my_trees")
     return render(request, "shajara/register.html", {"form": form, "next": next_url})
+
+
+def username_suggest_view(request):
+    """Used by the sign-up wizard: given a name, return a free username; given a
+    typed username, say whether it is available. No account needed."""
+    from .forms import slugify_username, unique_username
+
+    typed = (request.GET.get("u") or "").strip().lower()
+    if typed:
+        valid = typed.replace("_", "").replace("-", "").isalnum()
+        available = valid and not User.objects.filter(username__iexact=typed).exists()
+        suggestion = typed if available else unique_username(typed)
+        return JsonResponse({"username": typed, "valid": valid, "available": bool(available),
+                             "suggestion": suggestion})
+    first = (request.GET.get("first") or "").strip()
+    last = (request.GET.get("last") or "").strip()
+    if not first:
+        return JsonResponse({"suggestion": ""})
+    return JsonResponse({"suggestion": unique_username(first, last), "available": True, "valid": True})
 
 
 # ------------------------------------------------- email verification (OTP) --
@@ -571,11 +591,14 @@ def public_trees_view(request):
 def profile_view(request):
     trees = Tree.objects.filter(owner=request.user)
     profile = _get_profile(request.user)
-    region_form = RegionForm(request.POST or None, initial={"region": profile.region, "role": profile.role})
+    region_form = RegionForm(request.POST or None, initial={
+        "region": profile.region, "district": profile.district, "phone": profile.phone, "role": profile.role})
     if request.method == "POST" and region_form.is_valid():
         profile.region = region_form.cleaned_data["region"]
+        profile.district = region_form.cleaned_data["district"]
+        profile.phone = region_form.cleaned_data["phone"]
         profile.role = region_form.cleaned_data["role"]
-        profile.save(update_fields=["region", "role"])
+        profile.save(update_fields=["region", "district", "phone", "role"])
         messages.success(request, "Profilingiz saqlandi.")
         return redirect("profile")
     return render(request, "shajara/profile.html", {

@@ -14,6 +14,26 @@ from .models import (
 User = get_user_model()
 
 
+def slugify_username(first, last=""):
+    """Turn a name into a clean username base: lower-case latin, digits, _ and -."""
+    base = f"{first} {last}".strip() if last else (first or "")
+    base = re.sub(r"[ʻʼ'`‘’]", "", base.lower())
+    base = re.sub(r"\s+", "_", base.strip())
+    base = re.sub(r"[^a-z0-9_-]", "", base).strip("_-")
+    return base or "foydalanuvchi"
+
+
+def unique_username(first, last=""):
+    """A username made from the name that is guaranteed free in the database:
+    «aziz_karimov», then «aziz_karimov2», «aziz_karimov3» … if taken."""
+    base = slugify_username(first, last)
+    candidate, i = base, 2
+    while User.objects.filter(username__iexact=candidate).exists():
+        candidate = f"{base}{i}"
+        i += 1
+    return candidate
+
+
 def _validate_unique_email(email, exclude_user=None):
     email = email.strip().lower()
     qs = User.objects.filter(email__iexact=email)
@@ -29,7 +49,9 @@ class RegisterForm(forms.Form):
     last_name = forms.CharField(label="Familyangiz", max_length=100, required=False)
     username = forms.CharField(label="Foydalanuvchi nomi", max_length=150)
     email = forms.EmailField(label="Email (ixtiyoriy)", required=False)
+    phone = forms.CharField(label="Telefon (ixtiyoriy)", max_length=30, required=False)
     region = forms.ChoiceField(label="Qaysi viloyatdansiz?", choices=REGION_CHOICES, required=False)
+    district = forms.CharField(label="Tuman", max_length=100, required=False)
     role = forms.ChoiceField(label="Platformadan nima uchun foydalanasiz?", choices=USER_ROLE_CHOICES,
                              required=False)
     password1 = forms.CharField(label="Parol", widget=forms.PasswordInput, min_length=6)
@@ -51,6 +73,16 @@ class RegisterForm(forms.Form):
             return ""
         return _validate_unique_email(email)
 
+    def clean_phone(self):
+        """Keep only a tidy, dialable form: digits with an optional leading +."""
+        raw = (self.cleaned_data.get("phone") or "").strip()
+        if not raw:
+            return ""
+        cleaned = re.sub(r"[\s()\-.]", "", raw)
+        if not re.fullmatch(r"\+?\d{7,15}", cleaned):
+            raise forms.ValidationError("Telefon raqamini to'g'ri kiriting, masalan: +998901234567")
+        return cleaned
+
     def clean(self):
         cleaned = super().clean()
         p1, p2 = cleaned.get("password1"), cleaned.get("password2")
@@ -61,8 +93,12 @@ class RegisterForm(forms.Form):
 
 class RegionForm(forms.Form):
     region = forms.ChoiceField(label="Viloyatingiz", choices=REGION_CHOICES, required=False)
+    district = forms.CharField(label="Tuman", max_length=100, required=False)
+    phone = forms.CharField(label="Telefon", max_length=30, required=False)
     role = forms.ChoiceField(label="Kimsiz", choices=[("", "— tanlanmagan —")] + USER_ROLE_CHOICES,
                              required=False)
+
+    clean_phone = RegisterForm.clean_phone
 
 
 class EmailForm(forms.Form):

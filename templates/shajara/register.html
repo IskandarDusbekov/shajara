@@ -5,15 +5,20 @@
 <div class="center-screen">
   <div class="big-leaf">{% include "shajara/_logo.html" %}</div>
   <h1>e-Shajara</h1>
-  <p class="sub">{% if next and "/taklif/" in next %}Taklifni qabul qilish uchun qisqa ro'yxatdan o'ting — so'ng shajaraga bir bosishda qo'shilasiz.{% else %}Oilangiz shajarasini qarindoshlar bilan birga tuzing yoki tarixiy shaxslar shajarasi orqali o'rganing va o'rgating.{% endif %}</p>
+  <p class="sub">{% if next and "/taklif/" in next %}Taklifni qabul qilish uchun qisqa ro'yxatdan o'ting — so'ng shajaraga bir bosishda qo'shilasiz.{% else %}Bir necha qadam — va oilangiz shajarasini boshlaysiz.{% endif %}</p>
 
-  <form method="post" novalidate class="register-form" style="width:100%; max-width:380px;">
+  <form method="post" novalidate class="register-form reg-wizard" style="width:100%; max-width:400px;"
+        data-suggest-url="{% url 'username_suggest' %}">
     {% csrf_token %}
     {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
     {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
 
-    <fieldset class="register-roles">
-      <legend class="pf-label" style="margin-top:0;">Platformadan nima uchun foydalanasiz?</legend>
+    <div class="reg-progress"><span class="reg-progress-bar" id="reg-bar"></span></div>
+    <p class="reg-step-count" id="reg-count"></p>
+
+    {# ---- Step: role (skipped automatically if already chosen on the landing page) ---- #}
+    <fieldset class="reg-step register-roles" data-step="rol">
+      <legend class="reg-q">Platformadan nima uchun foydalanasiz?</legend>
       <div class="pf-choices pf-choices-4">
         {% with current=form.role.value|default:"" %}
         <label class="pf-choice pf-choice-compact is-fam">
@@ -40,67 +45,190 @@
       </div>
     </fieldset>
 
-    <input class="stack-input" type="text" name="first_name" placeholder="Ismingiz" value="{{ form.first_name.value|default:'' }}" required>
-    {% if form.first_name.errors %}<div class="form-error">{{ form.first_name.errors|join:" " }}</div>{% endif %}
+    {# ---- Step 1: name ---- #}
+    <fieldset class="reg-step" data-step="ism">
+      <legend class="reg-q">Ismingiz va familyangiz</legend>
+      <input class="stack-input" type="text" name="first_name" id="reg-first" placeholder="Ismingiz"
+             value="{{ form.first_name.value|default:'' }}" autocomplete="given-name" data-required>
+      {% if form.first_name.errors %}<div class="form-error">{{ form.first_name.errors|join:" " }}</div>{% endif %}
+      <input class="stack-input" type="text" name="last_name" id="reg-last" placeholder="Familyangiz (ixtiyoriy)"
+             value="{{ form.last_name.value|default:'' }}" autocomplete="family-name">
+      <p class="reg-hint">Faqat ism majburiy. Familyani keyin ham qo'shishingiz mumkin.</p>
+    </fieldset>
 
-    <input class="stack-input" type="text" name="last_name" placeholder="Familyangiz (ixtiyoriy)" value="{{ form.last_name.value|default:'' }}">
+    {# ---- Step 2: username (auto-filled, checked against the database) ---- #}
+    <fieldset class="reg-step" data-step="username">
+      <legend class="reg-q">Foydalanuvchi nomingiz</legend>
+      <input class="stack-input" type="text" name="username" id="reg-username"
+             value="{{ form.username.value|default:'' }}" autocomplete="username" autocapitalize="none" spellcheck="false" data-required>
+      <p class="reg-hint" id="reg-username-hint">Ismingizdan avtomatik tanlandi. Xohlasangiz o'zgartiring — lotin harflari, raqamlar, <b>_</b> va <b>-</b>. Masalan: <b>aziz_karimov</b></p>
+      {% if form.username.errors %}<div class="form-error">{{ form.username.errors|join:" " }}</div>{% endif %}
+    </fieldset>
 
-    <input class="stack-input" type="text" name="username" id="reg-username" placeholder="Foydalanuvchi nomi, masalan: aziz_karimov"
-           value="{{ form.username.value|default:'' }}" autocomplete="username" autocapitalize="none" spellcheck="false" required>
-    <p class="reg-hint" id="reg-username-hint">Lotin harflari, raqamlar, <b>_</b> va <b>-</b>. Masalan: <b>aziz_karimov</b>, <b>dilnoza-2008</b></p>
-    {% if form.username.errors %}<div class="form-error">{{ form.username.errors|join:" " }}</div>{% endif %}
+    {# ---- Step 3: region + district ---- #}
+    <fieldset class="reg-step" data-step="joy">
+      <legend class="reg-q">Qayerdansiz? <span class="reg-q-opt">(ixtiyoriy)</span></legend>
+      <select class="stack-input" name="region" id="reg-region" aria-label="Viloyat" data-combo data-combo-placeholder="Viloyatni tanlang">
+        <option value="">Viloyatni tanlang</option>
+        {% for value, label in form.fields.region.choices %}{% if value %}
+        <option value="{{ value }}" {% if form.region.value == value %}selected{% endif %}>{{ label }}</option>
+        {% endif %}{% endfor %}
+      </select>
+      <input class="stack-input" type="text" name="district" placeholder="Tuman yoki shahar"
+             value="{{ form.district.value|default:'' }}">
+      <p class="reg-hint">Bu qarindoshlar sizni topishiga yordam beradi.</p>
+    </fieldset>
 
-    <input class="stack-input" type="email" name="email" placeholder="Email (ixtiyoriy), masalan: aziz@gmail.com" value="{{ form.email.value|default:'' }}" autocomplete="email">
-    <p class="reg-hint">Email kiritsangiz, unga 6 xonali tasdiqlash kodi yuboriladi — parolni unutsangiz tiklash uchun kerak.</p>
-    {% if form.email.errors %}<div class="form-error">{{ form.email.errors|join:" " }}</div>{% endif %}
+    {# ---- Step 4: contact (optional) + password ---- #}
+    <fieldset class="reg-step" data-step="aloqa">
+      <legend class="reg-q">Aloqa va parol</legend>
+      <input class="stack-input" type="email" name="email" placeholder="Email (ixtiyoriy)" value="{{ form.email.value|default:'' }}" autocomplete="email">
+      {% if form.email.errors %}<div class="form-error">{{ form.email.errors|join:" " }}</div>{% endif %}
+      <input class="stack-input" type="tel" name="phone" placeholder="Telefon (ixtiyoriy), masalan: +998901234567"
+             value="{{ form.phone.value|default:'' }}" autocomplete="tel">
+      {% if form.phone.errors %}<div class="form-error">{{ form.phone.errors|join:" " }}</div>{% endif %}
+      <p class="reg-hint">Email yoki telefon majburiy emas. Email kiritsangiz, parolni unutganda uni tiklash oson bo'ladi.</p>
+      <input class="stack-input" type="password" name="password1" placeholder="Parol (kamida 6 ta belgi)" autocomplete="new-password" data-required>
+      {% if form.password1.errors %}<div class="form-error">{{ form.password1.errors|join:" " }}</div>{% endif %}
+      <input class="stack-input" type="password" name="password2" placeholder="Parolni takrorlang" autocomplete="new-password" data-required>
+      {% if form.password2.errors %}<div class="form-error">{{ form.password2.errors|join:" " }}</div>{% endif %}
+    </fieldset>
 
-    <select class="stack-input" name="region" aria-label="Qaysi viloyatdansiz?" data-combo data-combo-placeholder="Qaysi viloyatdansiz? (ixtiyoriy)">
-      <option value="">Qaysi viloyatdansiz? (ixtiyoriy)</option>
-      {% for value, label in form.fields.region.choices %}{% if value %}
-      <option value="{{ value }}" {% if form.region.value == value %}selected{% endif %}>{{ label }}</option>
-      {% endif %}{% endfor %}
-    </select>
-
-    <input class="stack-input" type="password" name="password1" placeholder="Parol" required>
-    {% if form.password1.errors %}<div class="form-error">{{ form.password1.errors|join:" " }}</div>{% endif %}
-    <input class="stack-input" type="password" name="password2" placeholder="Parolni takrorlang" required>
-    {% if form.password2.errors %}<div class="form-error">{{ form.password2.errors|join:" " }}</div>{% endif %}
-
-    <button class="btn-primary full" type="submit">Ro'yxatdan o'tish</button>
+    <div class="reg-nav">
+      <button class="btn-ghost reg-back" type="button" id="reg-back">← Orqaga</button>
+      <button class="btn-primary reg-next" type="button" id="reg-next">Davom etish →</button>
+      <button class="btn-primary full reg-submit" type="submit" id="reg-submit" hidden>Ro'yxatdan o'tish</button>
+    </div>
   </form>
 
   <p class="note">Hisobingiz bormi? <a href="{% url 'login' %}{% if next %}?next={{ next|urlencode }}{% endif %}" style="color:#e9c869;">Kirish</a></p>
 </div>
 <script>
-/* Suggest a username from the name as it is typed, until the person writes their own. */
 (function () {
-  var form = document.querySelector(".register-form");
-  var user = document.getElementById("reg-username");
-  var hint = document.getElementById("reg-username-hint");
-  if (!form || !user) return;
-  var touched = !!user.value;
-  user.addEventListener("input", function () {
-    touched = true;
-    var clean = user.value.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
-    if (clean !== user.value) user.value = clean;
+  var form = document.querySelector(".reg-wizard");
+  if (!form) return;
+  var suggestUrl = form.dataset.suggestUrl;
+  var allSteps = Array.prototype.slice.call(form.querySelectorAll(".reg-step"));
+
+  // The role is often already chosen on the landing page (?rol=...). If so,
+  // that step is dropped from the flow so the first question is the name.
+  var roleChosen = !!form.querySelector('input[name="role"]:checked');
+  var steps = allSteps.filter(function (s) { return !(s.dataset.step === "rol" && roleChosen); });
+  // steps dropped from the flow (e.g. a preset role) must not linger on screen
+  allSteps.forEach(function (s) { if (steps.indexOf(s) === -1) s.hidden = true; });
+
+  var bar = document.getElementById("reg-bar"), count = document.getElementById("reg-count");
+  var back = document.getElementById("reg-back"), next = document.getElementById("reg-next"), submit = document.getElementById("reg-submit");
+  var i = 0;
+
+  function show(n) {
+    i = Math.max(0, Math.min(n, steps.length - 1));
+    steps.forEach(function (s, k) { s.hidden = k !== i; });
+    var last = i === steps.length - 1;
+    back.style.visibility = i === 0 ? "hidden" : "visible";
+    next.hidden = last;
+    submit.hidden = !last;
+    bar.style.width = ((i + 1) / steps.length * 100) + "%";
+    count.textContent = "Qadam " + (i + 1) + " / " + steps.length;
+    var focusable = steps[i].querySelector("input:not([type=radio]), select");
+    if (focusable) setTimeout(function () { focusable.focus(); }, 60);
+    if (steps[i].dataset.step === "username") ensureUsername();
+  }
+
+  function stepValid(step) {
+    var ok = true;
+    step.querySelectorAll("[data-required]").forEach(function (el) {
+      if (!el.value.trim()) { markError(el); ok = false; }
+    });
+    // password confirmation, checked on the last step
+    var p1 = step.querySelector('[name="password1"]'), p2 = step.querySelector('[name="password2"]');
+    if (p1 && p2 && p1.value && p2.value && p1.value !== p2.value) { markError(p2, "Parollar mos kelmadi."); ok = false; }
+    if (p1 && p1.value && p1.value.length < 6) { markError(p1, "Parol kamida 6 ta belgidan iborat bo'lsin."); ok = false; }
+    if (usernameState === "taken" && step.dataset.step === "username") { ok = false; }
+    return ok;
+  }
+
+  function markError(el, msg) {
+    el.classList.add("input-bad");
+    el.addEventListener("input", function once() { el.classList.remove("input-bad"); el.removeEventListener("input", once); });
+    if (msg) {
+      var hint = el.parentNode.querySelector(".js-error");
+      if (!hint) { hint = document.createElement("div"); hint.className = "form-error js-error"; el.parentNode.insertBefore(hint, el.nextSibling); }
+      hint.textContent = msg;
+    }
+    if (!document.querySelector(".input-bad:focus")) el.focus();
+  }
+
+  // ---- username: fill from the name, keep it free in the database ----
+  var userInput = document.getElementById("reg-username");
+  var userHint = document.getElementById("reg-username-hint");
+  var touched = !!(userInput && userInput.value);
+  var usernameState = "";
+
+  function clean(s) { return (s || "").toLowerCase().replace(/[ʻʼ'`‘’]/g, "").replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, ""); }
+
+  function ensureUsername() {
+    if (touched || !userInput || userInput.value) { if (userInput.value) checkUsername(); return; }
+    var first = (document.getElementById("reg-first") || {}).value || "";
+    var last = (document.getElementById("reg-last") || {}).value || "";
+    if (!first) return;
+    fetch(suggestUrl + "?first=" + encodeURIComponent(first) + "&last=" + encodeURIComponent(last))
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (!touched && d.suggestion) { userInput.value = d.suggestion; setState("ok"); } })
+      .catch(function () {});
+  }
+
+  function setState(state, msg) {
+    usernameState = state;
+    userHint.classList.remove("is-ok", "is-bad");
+    if (state === "ok") { userHint.classList.add("is-ok"); userHint.textContent = msg || "✓ Bu nom bo'sh — foydalanishingiz mumkin."; }
+    else if (state === "taken") { userHint.classList.add("is-bad"); userHint.textContent = msg || "Bu nom band. Boshqasini tanlang."; }
+    else userHint.innerHTML = "Ismingizdan avtomatik tanlandi. Xohlasangiz o'zgartiring — lotin harflari, raqamlar, <b>_</b> va <b>-</b>.";
+  }
+
+  var checkTimer;
+  function checkUsername() {
+    var v = userInput.value.trim();
+    if (!v) { setState(""); return; }
+    clearTimeout(checkTimer);
+    checkTimer = setTimeout(function () {
+      fetch(suggestUrl + "?u=" + encodeURIComponent(v))
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d.valid) { setState("taken", "Faqat lotin harflari, raqamlar, _ va - ishlatiladi."); return; }
+          if (d.available) setState("ok");
+          else setState("taken", "Bu nom band. Masalan: " + d.suggestion);
+        })
+        .catch(function () { setState(""); });
+    }, 300);
+  }
+
+  if (userInput) {
+    userInput.addEventListener("input", function () {
+      touched = true;
+      var c = clean(userInput.value);
+      if (c !== userInput.value) userInput.value = c;
+      checkUsername();
+    });
+  }
+
+  next.addEventListener("click", function () { if (stepValid(steps[i])) show(i + 1); });
+  back.addEventListener("click", function () { show(i - 1); });
+  form.addEventListener("submit", function (e) {
+    if (!stepValid(steps[i])) e.preventDefault();
   });
-  function slug(s) {
-    return s.toLowerCase().replace(/[ʻʼ‘’'`]/g, "").replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
-  }
-  function suggest() {
-    if (touched) return;
-    var a = slug(form.first_name.value), b = slug(form.last_name.value);
-    var s = [a, b].filter(Boolean).join("_");
-    user.placeholder = s ? "Masalan: " + s : "Foydalanuvchi nomi, masalan: aziz_karimov";
-  }
-  form.first_name.addEventListener("input", suggest);
-  form.last_name.addEventListener("input", suggest);
-  user.addEventListener("focus", function () {
-    if (!user.value && user.placeholder.indexOf("Masalan: ") === 0 && form.first_name.value) {
-      user.value = user.placeholder.slice(9);
-      user.select();
+  form.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && e.target.tagName === "INPUT" && e.target.type !== "submit") {
+      e.preventDefault();
+      if (i < steps.length - 1) { if (stepValid(steps[i])) show(i + 1); }
+      else submit.click();
     }
   });
+
+  // If the server bounced the form back with an error, open the step that holds it.
+  var firstBad = allSteps.filter(function (s) { return !(s.dataset.step === "rol" && roleChosen); })
+    .findIndex(function (s) { return s.querySelector(".form-error"); });
+  show(firstBad > -1 ? firstBad : 0);
 })();
 </script>
 <script src="{% static_v 'js/combobox.js' %}"></script>

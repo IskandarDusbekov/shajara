@@ -404,6 +404,8 @@ class UserProfile(models.Model):
     )
     email_verified = models.BooleanField("Email tasdiqlangan", default=False)
     region = models.CharField("Viloyati", max_length=60, blank=True, choices=REGION_CHOICES)
+    district = models.CharField("Tumani", max_length=100, blank=True)
+    phone = models.CharField("Telefon raqami", max_length=30, blank=True)
     role = models.CharField("Kimsiz", max_length=12, blank=True, choices=USER_ROLE_CHOICES)
     last_seen = models.DateTimeField("Oxirgi faollik", null=True, blank=True, db_index=True)
     tour_done = models.BooleanField("Tanishuv qo'llanmasi ko'rilgan", default=False)

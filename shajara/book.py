@@ -1630,9 +1630,8 @@ def _build_book(tree, *, code, verify_url, tree_url, contributors, sources):
         guide_line("<b>Ismlar yonidagi raqamlar</b> — kitob ichidagi «manzil»: <b>1</b> — nasl boshi, <b>1.2</b> — "
                    "uning ikkinchi farzandi, <b>1.2.1</b> — o‘sha farzandning birinchi farzandi. Raqam bo‘yicha "
                    "kerakli oilani tez topasiz; elektron nusxada uni bossangiz o‘sha sahifa ochiladi."),
-        guide_line(f"<b>Har bir ism ostida</b> u kishi {clean(genitive(root.first_name))} kimi bo‘lishi yozilgan: "
-                   "«bobosi (ota tomondan)», «amakisi», «jiyani» va hokazo — shunda kim kimga qanday qarindosh "
-                   "ekanini o‘ylab o‘tirmaysiz."),
+        guide_line("<b>Har bir shaxs haqida</b> o‘z oilasi yoziladi — ota-onasi, turmush o‘rtog‘i va farzandlari "
+                   "ismlari bilan. Shunda har bir kishining kitobdagi o‘rni, kelib chiqishi va avlodi aniq bo‘ladi."),
         guide_line("<b>«Yilnoma»</b> oilaning tarixini yillar bo‘yicha — kim qachon tug‘ilgan, qachon vafot etgan, "
                    "qaysi voqea qachon bo‘lgan — bir joyda ko‘rsatadi."),
         guide_line("<b>Kitob oxiridagi «Ismlar ko‘rsatkichi»</b>da hamma alifbo tartibida, sahifasi bilan berilgan."),
@@ -1693,12 +1692,11 @@ def _build_book(tree, *, code, verify_url, tree_url, contributors, sources):
         # anyone at this level the register didn't reach and who didn't marry in
         heads += [pid for pid in people if levels[pid] == lvl and pid not in fam.number and pid not in fam.married_to]
         families_here = sum(1 for pid in heads if fam.spouses[pid] or fam.children.get(pid))
-        relative = level_label(lvl, root.full_name)
         title = f"{roman(chapter_no)}. {ordinal_generation(chapter_no)}"
         people_here = sum(1 for pid in people if levels[pid] == lvl)
         story += [
             PageBreak() if chapter_no == 1 or vintage() else CondPageBreak(16 * cm),
-            ChapterMark(f"{title} — {relative}"),
+            ChapterMark(title),
             Spacer(1, 0.6 * cm if not vintage() else 1.4 * cm),
         ] + ([Ornament(2.6 * cm, space=4)] if vintage() else []) + [
             P(roman(chapter_no), st["chapter_no"]),
@@ -1706,9 +1704,7 @@ def _build_book(tree, *, code, verify_url, tree_url, contributors, sources):
         ] + ([Ornament(2.6 * cm, space=2)] if vintage() else []) + [
             P(clean(ordinal_generation(chapter_no)), st["h1"]),
             Ornament(6 * cm),
-            P((f"{clean(root.full_name)}ga nisbatan: {clean(relative)} · " if lvl != 0 else
-               (f"{clean(root.full_name)} avlodi · " if not learning else ""))
-              + f"{people_here} kishi" + (f", {families_here} ta oila" if families_here else ""), st["chapter_intro"]),
+            P(f"{people_here} kishi" + (f", {families_here} ta oila" if families_here else ""), st["chapter_intro"]),
         ]
         # who the chapter is about, in one sentence a reader can take in before turning the page
         named = [clean(people[pid].first_name) for pid in people if levels[pid] == lvl]
@@ -1731,9 +1727,11 @@ def _build_book(tree, *, code, verify_url, tree_url, contributors, sources):
             described = singles
         if described:
             story += [CondPageBreak(6 * cm),
-                      Paragraph("Bu avlod vakillari" if youngest else "Oilasi kiritilmagan shaxslar", st["h2"]),
-                      Paragraph("Ularning oilasi haqida ma’lumot hali kiritilmagan." if youngest else
-                                "Bu avlodning turmush o‘rtog‘i va farzandlari hali kiritilmagan vakillari.", st["small"]),
+                      Paragraph("Bu avlod vakillari" if youngest else "Shu avlodning boshqa a’zolari", st["h2"]),
+                      Paragraph("Ularning o‘z oilasi — turmush o‘rtog‘i va farzandlari — vaqti kelib shu kitobga "
+                                "qo‘shiladi." if youngest else
+                                "Bu kishilarning turmush o‘rtog‘i yoki farzandlari shajaraga hali kiritilmagan — "
+                                "qarindoshlar ularni keyin qo‘shishi mumkin.", st["small"]),
                       Spacer(1, 6)]
             for idx, pid in enumerate(described):
                 story += [Paragraph(f'<a name="shaxs-{pid}"/>', st["small"])] + person_entry(fam, pid, st, tree)
@@ -2132,14 +2130,10 @@ def person_entry(fam, pid, st, tree, show_children=True):
 
     head = [
         Paragraph(fam.label_for(pid), st["num"]),
-        Paragraph(clean(p.full_name) + (f" <font size='9' color='{A_HEX}'>· bosh shaxs</font>"
-                                         if pid == tree.root_person_id else ""), st["name"]),
+        Paragraph(clean(p.full_name), st["name"]),
     ]
     if life_span(p):
         head.append(Paragraph(clean(life_span(p)), st["years"]))
-    kin = fam.kinship(pid)
-    if kin:
-        head.append(Paragraph(f"{clean(genitive(fam.root.first_name))} {clean(kin)}", st["kin"]))
     head.append(Spacer(1, 4))
 
     facts = Paragraph(told, st["body"]) if told else None

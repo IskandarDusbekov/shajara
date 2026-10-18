@@ -48,6 +48,19 @@
         </select>
       </div>
     </div>
+    <div class="pf-row">
+      <div>
+        <label class="pf-label" for="id_district">Tuman</label>
+        <input class="stack-input" id="id_district" type="text" name="district" placeholder="Tuman yoki shahar"
+               value="{{ region_form.district.value|default:'' }}">
+      </div>
+      <div>
+        <label class="pf-label" for="id_phone">Telefon</label>
+        <input class="stack-input" id="id_phone" type="tel" name="phone" placeholder="+998901234567"
+               value="{{ region_form.phone.value|default:'' }}">
+        {% if region_form.phone.errors %}<div class="form-error">{{ region_form.phone.errors|join:" " }}</div>{% endif %}
+      </div>
+    </div>
     <div class="pf-savebar" style="margin-top:18px;">
       <button class="pf-btn pf-btn-primary" type="submit">{% include "shajara/_icon.html" with name="check" %}Saqlash</button>
     </div>

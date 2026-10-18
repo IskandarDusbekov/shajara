@@ -20,6 +20,7 @@ urlpatterns = [
     path("robots.txt", public_views.robots_view, name="robots"),
     path("shajaralarim/", views.my_trees_view, name="my_trees"),
     path("royxatdan-otish/", views.register_view, name="register"),
+    path("royxatdan-otish/username/", views.username_suggest_view, name="username_suggest"),
     path("kirish/", views.ShajaraLoginView.as_view(), name="login"),
     path("chiqish/", views.logout_view, name="logout"),
     path("profil/", views.profile_view, name="profile"),
