@@ -52,6 +52,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 11h6"/></svg>
           <span>Kutubxona</span>
         </a>
+        <a class="topbar-link{% if page == 'top_trees' %} is-current{% endif %}" href="{% url 'top_trees' %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a5 5 0 0 0 5-5V4H7v6a5 5 0 0 0 5 5z"/><path d="M12 15v4M8 21h8M5 4H3v2a3 3 0 0 0 3 3M19 4h2v2a3 3 0 0 1-3 3"/></svg>
+          <span>Eng katta</span>
+        </a>
         <a data-tour="nav-maps" class="topbar-link{% if page == 'maps' or page == 'map_detail' or page == 'map_create' or page == 'map_settings' %} is-current{% endif %}" href="{% url 'maps' %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.3-7-11.5a7 7 0 0 1 14 0C19 14.7 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
           <span>Xaritalar</span>
@@ -163,6 +167,10 @@
       <a class="menu-item{% if page == 'public_trees' %} is-current{% endif %}" href="{% url 'public_trees' %}">
         <svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 11h6"/></svg>
         <span>Kutubxona</span>
+      </a>
+      <a class="menu-item{% if page == 'top_trees' %} is-current{% endif %}" href="{% url 'top_trees' %}">
+        <svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a5 5 0 0 0 5-5V4H7v6a5 5 0 0 0 5 5z"/><path d="M12 15v4M8 21h8M5 4H3v2a3 3 0 0 0 3 3M19 4h2v2a3 3 0 0 1-3 3"/></svg>
+        <span>Eng katta shajaralar</span>
       </a>
       <a class="menu-item{% if page == 'maps' %} is-current{% endif %}" href="{% url 'maps' %}">
         <svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.3-7-11.5a7 7 0 0 1 14 0C19 14.7 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
