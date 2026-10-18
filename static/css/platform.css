@@ -1084,7 +1084,7 @@ html:not(.app-light) .pd-when { color: #e9c869; border-color: rgba(201,162,39,.3
   .mt-section { margin-top: 18px; }
 }
 
-.reg-consent { margin: 4px 0 12px; font: 11.5px/1.5 var(--pf-sans); color: var(--pf-muted); text-align: left; }
+.reg-consent { margin: 8px 0 12px; padding: 10px 12px; border-radius: 10px; background: rgba(26,122,70,0.06); border: 1px solid var(--pf-line); font: 12px/1.55 var(--pf-sans); color: var(--pf-ink-2); text-align: left; }
 .reg-consent a { color: var(--pf-accent); font-weight: 600; }
 
 /* --- «fill it together» invite banner on a tree's About page --- */

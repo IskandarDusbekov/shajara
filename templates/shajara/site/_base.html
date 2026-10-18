@@ -43,6 +43,7 @@
       <a href="{% url 'landing' %}#qanday">Qanday ishlaydi</a>
       <a href="{% url 'landing' %}#imkoniyatlar">Imkoniyatlar</a>
       <a href="{% url 'open_index' %}"{% if request.resolver_match.url_name == 'open_index' or request.resolver_match.url_name == 'open_tree' or request.resolver_match.url_name == 'open_person' %} aria-current="page"{% endif %}>Tarixiy shajaralar</a>
+      <a href="{% url 'top_trees' %}"{% if request.resolver_match.url_name == 'top_trees' %} aria-current="page"{% endif %}>Eng katta shajaralar</a>
       <a href="{% url 'landing' %}#savollar">Savollar</a>
       <span class="nav-cta-mobile">
         {% if request.user.is_authenticated %}
