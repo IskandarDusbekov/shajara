@@ -48,7 +48,7 @@ def _tree_sizes(trees):
         except Exception:
             continue
         out.append({"name": t.name, "people": len(people), "families": len(families),
-                    "generations": len(set(levels.values())),
+                    "generations": len(set(levels.values())), "gratitude": t.gratitude_count,
                     "url": reverse("open_tree", args=[t.slug]) if t.is_open_page else ""})
     out.sort(key=lambda r: (r["people"], r["families"]), reverse=True)
     return out

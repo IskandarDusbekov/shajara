@@ -24,8 +24,8 @@ personal data and the page is kept out of search engines.{% endcomment %}
       <li class="top-row">
         <span class="top-rank">{{ forloop.counter }}</span>
         <span class="top-main">
-          {% if r.url %}<a class="top-name" href="{{ r.url }}">{{ r.name }}</a>{% else %}<span class="top-name">{{ r.name }}</span>{% endif %}
-          <span class="top-sub">{{ r.generations }} avlod · {{ r.families }} oila</span>
+          {% if r.url %}<a class="top-name" href="{{ r.url }}">{{ r.name }} →</a>{% else %}<span class="top-name">{{ r.name }}</span>{% endif %}
+          <span class="top-sub">{{ r.generations }} avlod · {{ r.families }} oila{% if r.gratitude %} · ♥ {{ r.gratitude }} rahmat{% endif %}</span>
         </span>
         <span class="top-count"><b>{{ r.people }}</b> kishi</span>
       </li>

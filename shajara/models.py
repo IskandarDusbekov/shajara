@@ -300,6 +300,22 @@ class Tree(models.Model):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        # A learning tree that is made public is published to the open
+        # (historical) pages at once, with its own address — no admin step
+        # needed. Family trees are never published this way.
+        if self.visibility == "public" and self.kind == "talimiy" and not self.slug:
+            from django.utils.text import slugify
+            base = slugify(self.name) or "shajara"
+            slug, n = base, 2
+            while Tree.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug, n = f"{base}-{n}", n + 1
+            self.slug = slug
+            self.is_featured = True
+            if not self.featured_at:
+                self.featured_at = timezone.now()
+        super().save(*args, **kwargs)
+
     @property
     def url_key(self):
         """What every {% url %} tag and redirect passes instead of the pk."""
