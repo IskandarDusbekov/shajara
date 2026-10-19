@@ -13,10 +13,39 @@ personal data and the page is kept out of search engines.{% endcomment %}
         {% if totals.family %}Jami {{ totals.family }} ta oilaviy{% endif %}{% if totals.learning %} va {{ totals.learning }} ta ochiq tarixiy shajara.{% else %}.{% endif %}</p>
     </header>
 
-    <nav class="pf-tabs" aria-label="Tur" style="justify-content:center; display:flex; gap:6px; margin:0 auto 22px; max-width:360px;">
-      <a class="pf-tab{% if kind == 'oilaviy' %} is-on{% endif %}" href="?tur=oilaviy">Oilaviy</a>
-      <a class="pf-tab{% if kind == 'talimiy' %} is-on{% endif %}" href="?tur=talimiy">Tarixiy</a>
+    <div class="seg-wrap">
+      <nav class="seg" aria-label="Tur">
+        <a class="seg-btn{% if kind == 'oilaviy' %} is-on{% endif %}" href="?tur=oilaviy">Oilaviy</a>
+        <a class="seg-btn{% if kind == 'talimiy' %} is-on{% endif %}" href="?tur=talimiy">Tarixiy</a>
+      </nav>
+    </div>
+
+    {% if champions %}
+    <h2 class="h4" style="text-align:center; margin:0 0 4px;">Har viloyatda eng katta shajara</h2>
+    <p class="top-hint" style="text-align:center;">Qaysi viloyat yetakchi? Viloyatni bosib, o'sha yerning reytingini ko'ring.</p>
+    <ul class="champ-grid">
+      {% for c in champions %}
+      <li class="champ-card{% if region == c.region %} is-on{% endif %}">
+        <a href="?tur={{ kind }}&amp;viloyat={{ c.region|urlencode }}">
+          <span class="champ-region">{{ c.region_short }}</span>
+          <span class="champ-name">{{ c.name }}</span>
+          <span class="champ-count"><b>{{ c.people }}</b> kishi</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+
+    <nav class="region-chips" aria-label="Viloyat">
+      <a class="region-chip{% if not region %} is-on{% endif %}" href="?tur={{ kind }}">Hammasi</a>
+      {% for c in champions %}
+      <a class="region-chip{% if region == c.region %} is-on{% endif %}" href="?tur={{ kind }}&amp;viloyat={{ c.region|urlencode }}">{{ c.region_short }}</a>
+      {% endfor %}
     </nav>
+    {% endif %}
+
+    {% if region %}
+    <p class="top-hint" style="text-align:center;">Tanlangan viloyat: <b>{{ region_short }}</b> · <a href="?tur={{ kind }}">hammasini ko'rsatish</a></p>
+    {% endif %}
 
     {% if rows %}
     <ol class="top-list">
@@ -25,9 +54,26 @@ personal data and the page is kept out of search engines.{% endcomment %}
         <span class="top-rank">{{ forloop.counter }}</span>
         <span class="top-main">
           {% if r.url %}<a class="top-name" href="{{ r.url }}">{{ r.name }} →</a>{% else %}<span class="top-name">{{ r.name }}</span>{% endif %}
-          <span class="top-sub">{{ r.generations }} avlod · {{ r.families }} oila{% if r.gratitude %} · ♥ {{ r.gratitude }} rahmat{% endif %}</span>
+          <span class="top-sub">{{ r.generations }} avlod · {{ r.families }} oila{% if r.region_short %} · {{ r.region_short }}{% endif %}</span>
         </span>
         <span class="top-count"><b>{{ r.people }}</b> kishi</span>
+        {% if user.is_authenticated %}
+        <form method="post" action="{% url 'top_trees_gratitude' r.key %}" class="rahmat-form">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ next_url }}">
+          <button type="submit" class="rahmat-btn{% if r.gave %} is-on{% endif %}"
+                  title="{% if r.gave %}Rahmatingizni qaytarib olish{% else %}Rahmat aytish{% endif %}"
+                  aria-pressed="{% if r.gave %}true{% else %}false{% endif %}">
+            <svg class="rahmat-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5l-1.3-1.17C6 15.1 3 12.4 3 9.07 3 6.5 5 4.5 7.5 4.5c1.4 0 2.75.66 3.6 1.7h1.8c.85-1.04 2.2-1.7 3.6-1.7C21 4.5 23 6.5 23 9.07c0 3.33-3 6.03-7.7 10.26L12 20.5z"/></svg>
+            <span class="rahmat-label">Rahmat</span><span class="rahmat-n">{{ r.gratitude }}</span>
+          </button>
+        </form>
+        {% else %}
+        <a class="rahmat-btn" href="{% url 'login' %}?next={{ next_url|urlencode }}" title="Rahmat aytish uchun kiring">
+          <svg class="rahmat-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5l-1.3-1.17C6 15.1 3 12.4 3 9.07 3 6.5 5 4.5 7.5 4.5c1.4 0 2.75.66 3.6 1.7h1.8c.85-1.04 2.2-1.7 3.6-1.7C21 4.5 23 6.5 23 9.07c0 3.33-3 6.03-7.7 10.26L12 20.5z"/></svg>
+          <span class="rahmat-label">Rahmat</span><span class="rahmat-n">{{ r.gratitude }}</span>
+        </a>
+        {% endif %}
       </li>
       {% endfor %}
     </ol>
@@ -36,7 +82,7 @@ personal data and the page is kept out of search engines.{% endcomment %}
       umumiy sonlar (shaxslar, oilalar, avlodlar) ko'rsatiladi — hech qanday shaxsiy ma'lumot chiqmaydi.</p>
     {% endif %}
     {% else %}
-    <p class="lead" style="text-align:center;">Hali shajaralar yetarli emas. <a href="{% url 'register' %}">Birinchi bo'ling →</a></p>
+    <p class="lead" style="text-align:center;">{% if region %}Bu viloyatda hali shajara yo'q. <a href="?tur={{ kind }}">Hammasini ko'ring</a> yoki <a href="{% url 'register' %}">birinchi bo'ling →</a>{% else %}Hali shajaralar yetarli emas. <a href="{% url 'register' %}">Birinchi bo'ling →</a>{% endif %}</p>
     {% endif %}
   </div>
 </section>

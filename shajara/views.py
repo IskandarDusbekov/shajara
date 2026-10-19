@@ -583,6 +583,24 @@ def toggle_gratitude_view(request, tree_key):
 
 @require_POST
 @login_required
+def toggle_gratitude_public_view(request, tree_key):
+    """Say 🙏 rahmat from the public "Eng katta shajaralar" leaderboard — works
+    for any tree there (not only ones the visitor can open), then returns to the
+    leaderboard. Family-tree details never load here; only the thank is toggled."""
+    tree = get_object_or_404(Tree, public_id=tree_key)
+    obj, created = TreeGratitude.objects.get_or_create(tree=tree, user=request.user)
+    if not created:
+        obj.delete()
+    else:
+        log_activity(request, "gratitude", tree=tree, detail=tree.name)
+    nxt = request.POST.get("next", "")
+    if nxt and url_has_allowed_host_and_scheme(nxt, {request.get_host()}, require_https=request.is_secure()):
+        return redirect(nxt)
+    return redirect("top_trees")
+
+
+@require_POST
+@login_required
 def add_comment_view(request, tree_key):
     tree = get_viewable_tree(request, tree_key)
     if not tree:

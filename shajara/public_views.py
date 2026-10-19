@@ -11,7 +11,7 @@ import re
 
 from django.conf import settings
 from django.core.cache import cache
-from django.db.models import F
+from django.db.models import Count, F
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 from django.templatetags.static import static
@@ -22,7 +22,8 @@ from django.views.decorators.cache import cache_control
 from . import seo as seo_tools
 from . import share_cards
 from .book import Lineage, life_span, long_date, ordinal_generation
-from .models import REGION_CHOICES, PageSeo, Person, PersonStory, QuizAttempt, SeoFile, Tree
+from .models import REGION_CHOICES, PageSeo, Person, PersonStory, QuizAttempt, SeoFile, Tree, TreeGratitude, UserProfile
+from .regions import REGION_NAMES, SHORT, person_region
 from .tree import compute_levels
 
 OPEN_CACHE_SECONDS = 600
@@ -38,44 +39,89 @@ def legal_view(request, page):
     return render(request, template, {})
 
 
-def _tree_sizes(trees):
+def _tree_sizes(trees, owner_regions):
     """How big each tree is — people, families (oila) and generations — worked
-    out from the links, biggest first."""
+    out from the links, biggest first. A tree's region is where its root person
+    was born; failing that, the region its owner chose for their account."""
     out = []
     for t in trees:
         try:
             levels, people, families = compute_levels(t.root_person)
         except Exception:
             continue
-        out.append({"name": t.name, "people": len(people), "families": len(families),
-                    "generations": len(set(levels.values())), "gratitude": t.gratitude_count,
+        region = person_region(t.root_person)[0] or owner_regions.get(t.owner_id, "")
+        out.append({"key": t.public_id, "name": t.name, "people": len(people),
+                    "families": len(families), "generations": len(set(levels.values())),
+                    "region": region, "region_short": SHORT.get(region, ""),
                     "url": reverse("open_tree", args=[t.slug]) if t.is_open_page else ""})
     out.sort(key=lambda r: (r["people"], r["families"]), reverse=True)
     return out
 
 
 def top_trees_view(request):
-    """A promotional leaderboard: the biggest trees by number of families.
-    Family trees show only their name and counts — never any personal data —
-    and the page is kept out of search engines."""
+    """A promotional leaderboard: the biggest trees by number of families,
+    with a champion per region ("the biggest tree in Samarqand") and a region
+    filter. Family trees show only their name and counts — never any personal
+    data — and the page is kept out of search engines.
+
+    The sizes are cached; the 🙏 counts and whether the signed-in visitor has
+    already thanked are read fresh, so the thank button always shows true."""
     kind = request.GET.get("tur", "oilaviy")
     if kind not in ("oilaviy", "talimiy"):
         kind = "oilaviy"
-    cache_key = f"top_trees:{kind}"
+    region = request.GET.get("viloyat", "")
+    if region not in REGION_NAMES:
+        region = ""
+
+    cache_key = f"top_trees:v2:{kind}"
     rows = cache.get(cache_key)
     if rows is None:
         if kind == "talimiy":
             qs = Tree.objects.filter(visibility="public", kind="talimiy")
         else:
             qs = Tree.objects.filter(kind="oilaviy")
-        rows = _tree_sizes(list(qs.select_related("root_person"))[:200])[:30]
+        trees = list(qs.select_related("root_person", "owner")[:200])
+        owner_regions = dict(
+            UserProfile.objects.filter(user_id__in={t.owner_id for t in trees})
+            .exclude(region="").values_list("user_id", "region"))
+        rows = _tree_sizes(trees, owner_regions)[:80]
         cache.set(cache_key, rows, OPEN_CACHE_SECONDS)
+
+    # The biggest tree of each region, biggest region first — the shareable
+    # "our region leads" hook and the region filter chips.
+    champions, seen = [], set()
+    for r in rows:
+        if r["region"] in REGION_NAMES and r["region"] not in seen:
+            seen.add(r["region"])
+            champions.append(r)
+    champions.sort(key=lambda r: (r["people"], r["families"]), reverse=True)
+
+    # Fresh 🙏 counts and this visitor's own thanks over the trees shown.
+    keys = [r["key"] for r in rows]
+    counts = dict(Tree.objects.filter(public_id__in=keys)
+                  .annotate(n=Count("gratitudes")).values_list("public_id", "n"))
+    gave = set()
+    if request.user.is_authenticated:
+        gave = set(TreeGratitude.objects.filter(tree__public_id__in=keys, user=request.user)
+                   .values_list("tree__public_id", flat=True))
+
+    shown = []
+    for r in rows:
+        if region and r["region"] != region:
+            continue
+        shown.append({**r, "gratitude": counts.get(r["key"], 0), "gave": r["key"] in gave})
+        if len(shown) >= 30:
+            break
+
     totals = {
         "family": Tree.objects.filter(kind="oilaviy").count(),
         "learning": Tree.objects.filter(visibility="public", kind="talimiy").count(),
     }
-    return render(request, "shajara/site/top_trees.html",
-                  {"rows": rows, "kind": kind, "totals": totals})
+    return render(request, "shajara/site/top_trees.html", {
+        "rows": shown, "champions": champions, "kind": kind,
+        "region": region, "region_short": SHORT.get(region, ""),
+        "totals": totals, "next_url": request.get_full_path(),
+    })
 
 
 # ---------------------------------------------------------------- helpers --

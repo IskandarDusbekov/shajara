@@ -24,6 +24,7 @@ urlpatterns = [
     path("maxfiylik/", public_views.legal_view, {"page": "maxfiylik"}, name="privacy"),
     path("shartnoma/", public_views.legal_view, {"page": "shartnoma"}, name="terms"),
     path("eng-katta-shajaralar/", public_views.top_trees_view, name="top_trees"),
+    path("eng-katta-shajaralar/<treekey:tree_key>/rahmat/", views.toggle_gratitude_public_view, name="top_trees_gratitude"),
     path("kirish/", views.ShajaraLoginView.as_view(), name="login"),
     path("chiqish/", views.logout_view, name="logout"),
     path("profil/", views.profile_view, name="profile"),

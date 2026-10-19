@@ -500,6 +500,50 @@ a.top-name:hover { color: var(--brand, #1a7a46); }
 .top-sub { font-size: 0.85rem; color: var(--muted); }
 .top-count { flex-shrink: 0; font-size: 0.95rem; color: var(--ink-2, #33423b); }
 .top-count b { font-size: 1.15rem; color: #1a7a46; }
+.top-hint { font-size: 0.9rem; color: var(--muted); max-width: 560px; margin: 0 auto 14px; }
+
+/* champion per region */
+.champ-grid { max-width: 760px; margin: 4px auto 18px; padding: 0; list-style: none;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.champ-card { margin: 0; }
+.champ-card a { display: flex; flex-direction: column; gap: 2px; height: 100%; padding: 12px 14px;
+  border: 1px solid var(--line, #e3ece6); border-radius: 14px; background: var(--card, #fff);
+  text-decoration: none; transition: border-color .15s, box-shadow .15s, transform .15s; }
+.champ-card a:hover { border-color: var(--brand, #1a7a46); box-shadow: 0 4px 14px rgba(26,122,70,.12); transform: translateY(-1px); }
+.champ-card.is-on a { border-color: var(--brand, #1a7a46); box-shadow: 0 0 0 1px var(--brand, #1a7a46); }
+.champ-region { font-size: 0.78rem; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; color: #1a7a46; }
+.champ-name { font-weight: 700; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.champ-count { font-size: 0.85rem; color: var(--muted); }
+.champ-count b { font-size: 1.05rem; color: var(--ink-2, #33423b); }
+
+/* Oilaviy / Tarixiy segmented toggle */
+.seg { display: inline-flex; gap: 4px; margin: 0 auto 22px; padding: 4px; border-radius: 999px;
+  border: 1px solid var(--line, #e3ece6); background: var(--card, #fff); }
+.seg-wrap { text-align: center; }
+.seg-btn { padding: 7px 20px; border-radius: 999px; font-size: 0.92rem; font-weight: 600; text-decoration: none;
+  color: var(--ink-2, #33423b); transition: background .15s, color .15s; }
+.seg-btn:hover { color: #1a7a46; }
+.seg-btn.is-on { background: #1a7a46; color: #fff; }
+
+/* region filter chips */
+.region-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 720px; margin: 0 auto 20px; }
+.region-chip { font-size: 0.85rem; padding: 5px 12px; border-radius: 999px; text-decoration: none;
+  border: 1px solid var(--line, #e3ece6); color: var(--ink-2, #33423b); background: var(--card, #fff); }
+.region-chip:hover { border-color: var(--brand, #1a7a46); color: #1a7a46; }
+.region-chip.is-on { background: #1a7a46; border-color: #1a7a46; color: #fff; }
+
+/* 🙏 rahmat button on the leaderboard */
+.rahmat-form { margin: 0; flex-shrink: 0; }
+.rahmat-btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 999px;
+  border: 1px solid var(--line, #e3ece6); background: var(--card, #fff); color: var(--ink-2, #33423b);
+  font: inherit; font-size: 0.9rem; cursor: pointer; text-decoration: none; transition: border-color .15s, background .15s; }
+.rahmat-btn:hover { border-color: #d9808a; background: #fdf1f3; color: #b23a46; }
+.rahmat-btn.is-on { border-color: #d64550; background: #fdeef0; color: #b23a46; }
+.rahmat-ic { width: 16px; height: 16px; flex-shrink: 0; fill: none; stroke: #b7808a; stroke-width: 1.8; }
+.rahmat-btn:hover .rahmat-ic { stroke: #d64550; }
+.rahmat-btn.is-on .rahmat-ic { fill: #d64550; stroke: #d64550; }
+.rahmat-label { font-weight: 600; }
+.rahmat-n { font-weight: 700; min-width: 0.6em; text-align: center; opacity: .85; }
 
 .footer-legal { display: inline-flex; flex-wrap: wrap; gap: 14px; }
 .footer-legal a { color: inherit; opacity: 0.85; text-decoration: none; }
