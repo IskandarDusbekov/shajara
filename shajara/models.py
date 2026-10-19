@@ -235,6 +235,22 @@ USER_ROLE_CHOICES = [
 
 LEARNER_ROLES = ("abituriyent", "talaba", "oqituvchi", "ixlosmand")
 
+# Where a new account first came from — worked out once, on the visitor's first
+# page, from a ?manba=/utm_source= tag or the referring site (see acquisition.py).
+SOURCE_CHOICES = [
+    ("instagram", "Instagram"),
+    ("telegram", "Telegram"),
+    ("facebook", "Facebook"),
+    ("youtube", "YouTube"),
+    ("tiktok", "TikTok"),
+    ("google", "Google"),
+    ("yandex", "Yandex"),
+    ("invite", "Taklif havolasi"),
+    ("referral", "Boshqa sayt"),
+    ("direct", "To'g'ridan-to'g'ri"),
+]
+SOURCE_LABELS = dict(SOURCE_CHOICES)
+
 
 def preview_upload_to(instance, filename):
     """Random names: the file is only ever handed out through a view that
@@ -423,8 +439,15 @@ class UserProfile(models.Model):
     district = models.CharField("Tumani", max_length=100, blank=True)
     phone = models.CharField("Telefon raqami", max_length=30, blank=True)
     role = models.CharField("Kimsiz", max_length=12, blank=True, choices=USER_ROLE_CHOICES)
+    source = models.CharField("Kelgan manbasi", max_length=20, blank=True, choices=SOURCE_CHOICES, db_index=True)
+    source_ref = models.CharField("Manba tafsiloti", max_length=120, blank=True,
+                                  help_text="Yo'naltirgan sayt yoki ?manba= qiymati")
     last_seen = models.DateTimeField("Oxirgi faollik", null=True, blank=True, db_index=True)
     tour_done = models.BooleanField("Tanishuv qo'llanmasi ko'rilgan", default=False)
+
+    @property
+    def source_label(self):
+        return SOURCE_LABELS.get(self.source, "Noma'lum")
 
     @property
     def is_online(self):

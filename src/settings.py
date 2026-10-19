@@ -95,6 +95,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'shajara.acquisition.AcquisitionMiddleware',
     'shajara.presence.PresenceMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]

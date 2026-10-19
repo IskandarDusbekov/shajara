@@ -189,6 +189,26 @@ a.list-row:hover { background: var(--a-hover); border-radius: 7px; }
 .dot-live { background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.18); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 
+/* growth / retention mini grid */
+.mini-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.mini { padding: 12px 14px; border: 1px solid var(--a-line); border-radius: 10px; background: var(--a-hover);
+  display: flex; flex-direction: column; gap: 3px; }
+.mini-value { font-size: 22px; font-weight: 700; color: var(--a-strong); font-variant-numeric: tabular-nums; }
+.mini-label { font-size: 12px; color: var(--a-muted); }
+.mini-label small { opacity: 0.75; }
+
+/* growth deltas and source tags */
+.up { color: var(--a-good); font-weight: 700; }
+.down { color: var(--a-bad); font-weight: 700; }
+.src-tag { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 6px;
+  color: var(--a-text); background: var(--a-hover); border: 1px solid var(--a-line); white-space: nowrap; }
+.src-instagram { color: #b02a6b; background: #fcebf3; border-color: transparent; }
+.src-telegram { color: #1b6aa5; background: #e8f3fb; border-color: transparent; }
+.src-facebook { color: #2a4b8d; background: #eaeff8; border-color: transparent; }
+.src-youtube, .src-tiktok { color: #a32a2a; background: #fbecec; border-color: transparent; }
+.src-google, .src-yandex { color: #1a7a46; background: #e7f5ec; border-color: transparent; }
+.src-invite { color: #8a5a1f; background: #fbf1df; border-color: transparent; }
+
 .score { display: inline-flex; align-items: center; justify-content: center; min-width: 50px; font-size: 12.5px; font-weight: 700;
   padding: 4px 8px; border-radius: 6px; font-variant-numeric: tabular-nums; }
 .score-top { color: #05361f; background: #86efac; }

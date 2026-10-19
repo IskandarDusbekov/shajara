@@ -23,6 +23,13 @@
     <option value="verified" {% if status == 'verified' %}selected{% endif %}>Email tasdiqlangan</option>
     <option value="unverified" {% if status == 'unverified' %}selected{% endif %}>Email tasdiqlanmagan</option>
   </select>
+  <select class="f-select" name="source" aria-label="Manba">
+    <option value="" {% if not source %}selected{% endif %}>Har qanday manba</option>
+    {% for key, label in sources %}
+    <option value="{{ key }}" {% if source == key %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+    <option value="unknown" {% if source == 'unknown' %}selected{% endif %}>Noma'lum</option>
+  </select>
   <select class="f-select" name="sort" aria-label="Saralash">
     <option value="joined" {% if sort == 'joined' %}selected{% endif %}>Yangi ro'yxatdan o'tganlar</option>
     <option value="login" {% if sort == 'login' %}selected{% endif %}>Oxirgi kirish</option>
@@ -38,7 +45,7 @@
   <div class="table-wrap">
     <table class="table">
       <thead>
-        <tr><th>Foydalanuvchi</th><th>Email</th><th class="num">Shajara</th><th class="num">Shaxs</th><th class="num">Amallar</th><th>Qo'shilgan</th><th>Oxirgi kirish</th><th>Holat</th></tr>
+        <tr><th>Foydalanuvchi</th><th>Email</th><th>Manba</th><th class="num">Shajara</th><th class="num">Shaxs</th><th class="num">Amallar</th><th>Qo'shilgan</th><th>Oxirgi kirish</th><th>Holat</th></tr>
       </thead>
       <tbody>
         {% for u in page %}
@@ -52,6 +59,7 @@
           <td class="nowrap cell-clip" title="{{ u.email }}">
             {% if u.email %}{{ u.email }}{% if u.profile.email_verified %} <span class="dot dot-ok" title="Tasdiqlangan"></span>{% endif %}{% else %}<span class="muted">—</span>{% endif %}
           </td>
+          <td class="nowrap">{% if u.profile.source %}<span class="src-tag src-{{ u.profile.source }}" title="{{ u.profile.source_ref }}">{{ u.profile.source_label }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
           <td class="num">{{ u.tree_count }}</td>
           <td class="num">{{ u.person_count }}</td>
           <td class="num">{{ u.activity_count }}</td>
@@ -66,7 +74,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="8" class="empty-line">Hech kim topilmadi.</td></tr>
+        <tr><td colspan="9" class="empty-line">Hech kim topilmadi.</td></tr>
         {% endfor %}
       </tbody>
     </table>

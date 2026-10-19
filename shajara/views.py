@@ -17,7 +17,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
-from . import photos, share_cards
+from . import acquisition, photos, share_cards
 from .activity import log_activity
 from .public_views import site_url, tree_stats
 from .emails import send_otp_email
@@ -142,8 +142,10 @@ def register_view(request):
         )
         user.set_password(cd["password1"])
         user.save()
+        source, source_ref = acquisition.for_signup(request.session)
         UserProfile.objects.create(user=user, region=cd.get("region", ""), district=cd.get("district", ""),
-                                   phone=cd.get("phone", ""), role=cd.get("role", ""))
+                                   phone=cd.get("phone", ""), role=cd.get("role", ""),
+                                   source=source, source_ref=source_ref)
         log_activity(request, "register", user=user,
                      detail=f"{user.get_full_name()} ({user.email or 'emailsiz'}){' · ' + cd['role'] if cd.get('role') else ''}")
         login(request, user, backend="django.contrib.auth.backends.ModelBackend")

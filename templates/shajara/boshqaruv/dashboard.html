@@ -84,6 +84,68 @@
 <div class="adm-grid-2">
   <section class="panel">
     <header class="panel-head">
+      <h2 class="panel-title">Eng katta shajaralar</h2>
+      <a class="panel-link" href="{% url 'boshqaruv:trees' %}?sort=people">Hammasi →</a>
+    </header>
+    <ul class="list">
+      {% for t in big_trees %}
+      <li>
+        <a class="list-row" href="{% url 'boshqaruv:tree_detail' t.pk %}">
+          <span class="avatar">{{ forloop.counter }}</span>
+          <span class="list-main"><b>{{ t.name }}</b><small>@{{ t.owner.username }}{% if t.kind == 'talimiy' %} · ta'limiy{% endif %}{% if t.linked_count %} · {{ t.linked_count }} bog'langan{% endif %}</small></span>
+          <span class="list-num"><b>{{ t.people_count }}</b> kishi</span>
+        </a>
+      </li>
+      {% empty %}
+      <li class="empty-line">Hali shajara yo'q.</li>
+      {% endfor %}
+    </ul>
+    <p class="panel-foot">Kishi soni — shajara ulangan butun oila tarmog'i bo'yicha.</p>
+  </section>
+
+  <section class="panel">
+    <header class="panel-head">
+      <h2 class="panel-title">Foydalanuvchilar qayerdan keldi</h2>
+      <span class="panel-meta">manba · +30 kun</span>
+    </header>
+    {% if source_rows %}
+    <ul class="hbars">
+      {% for s in source_rows %}
+      <li>
+        <a class="hbar-label" href="{% url 'boshqaruv:users' %}?source={{ s.key }}">{{ s.label }}</a>
+        <span class="hbar"><i style="width: {{ s.pct }}%"></i></span>
+        <b>{{ s.n }}{% if s.new %} <span class="up">+{{ s.new }}</span>{% endif %}</b>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty-line">Hali manba yozilmagan — yangi ro'yxatdan o'tishlardan to'planadi.</p>
+    {% endif %}
+    <p class="panel-foot">{% if source_unknown %}<b>{{ source_unknown }}</b> ta eski hisob manbasiz. {% endif %}Ulashish havolalariga <code>?manba=instagram</code> qo'shsangiz, aniq hisoblanadi.</p>
+  </section>
+</div>
+
+<section class="panel">
+  <header class="panel-head">
+    <h2 class="panel-title">O'sish va jalb qilish</h2>
+    <span class="panel-meta">faollik · konversiya</span>
+  </header>
+  <div class="mini-grid">
+    <div class="mini"><span class="mini-value">{{ stats.users_active_1 }}</span><span class="mini-label">Bugun faol (DAU)</span></div>
+    <div class="mini"><span class="mini-value">{{ stats.users_active_7 }}</span><span class="mini-label">Haftada faol (WAU)</span></div>
+    <div class="mini"><span class="mini-value">{{ stats.users_active_30 }}</span><span class="mini-label">Oyda faol (MAU)</span></div>
+    <div class="mini"><span class="mini-value">{{ stats.conversion_pct }}%</span><span class="mini-label">Shajara tuzganlar <small>({{ stats.users_with_tree }})</small></span></div>
+    <div class="mini"><span class="mini-value">{{ stats.stickiness_pct }}%</span><span class="mini-label">Yopishqoqlik (DAU/MAU)</span></div>
+    <div class="mini">
+      <span class="mini-value">{% if stats.users_growth_pct is not None %}<span class="{% if stats.users_growth_pct >= 0 %}up{% else %}down{% endif %}">{% if stats.users_growth_pct >= 0 %}+{% endif %}{{ stats.users_growth_pct }}%</span>{% else %}—{% endif %}</span>
+      <span class="mini-label">Oylik o'sish <small>({{ stats.users_new_30 }} / {{ stats.users_new_prev_30 }})</small></span>
+    </div>
+  </div>
+</section>
+
+<div class="adm-grid-2">
+  <section class="panel">
+    <header class="panel-head">
       <h2 class="panel-title">Ro'yxatdan o'tishlar</h2>
       <span class="panel-meta">so'nggi 30 kun</span>
     </header>

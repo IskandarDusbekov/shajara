@@ -15,6 +15,7 @@
       {% if member.is_superuser %}<span class="tag tag-admin">Superadmin</span>{% elif member.is_staff %}<span class="tag tag-admin">Admin</span>{% endif %}
       {% if profile.role %}<span class="tag tag-admin">{{ profile.get_role_display }}</span>{% endif %}
       {% if profile.region %}<span class="tag">{{ profile.region }}</span>{% endif %}
+      {% if profile.source %}<span class="tag src-tag src-{{ profile.source }}" title="{{ profile.source_ref|default:'' }}">Manba: {{ profile.source_label }}</span>{% endif %}
       <span class="tag">Ro'yxatdan o'tgan: {{ member.date_joined|date:"d.m.Y H:i" }}</span>
       <span class="tag">Oxirgi kirish: {{ member.last_login|date:"d.m.Y H:i"|default:"hech qachon" }}</span>
       {% if profile.is_online %}<span class="tag tag-good"><i class="dot dot-live"></i> Hozir onlayn</span>{% elif profile.last_seen %}<span class="tag">Saytda bo'lgan: {{ profile.last_seen|date:"d.m.Y H:i" }}</span>{% endif %}

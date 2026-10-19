@@ -26,8 +26,9 @@ from .activity import log_activity
 from .matching import FamilyGraph, run_matching
 from .merge import MergeConflict, execute_merge, preview_merge
 from .models import (
-    ACTIVITY_CHOICES, ActivityLog, ConnectionRequest, Family, MatchCandidate, MatchRun,
-    MergeRecord, Person, PersonStory, QuizAttempt, Tree, TreeComment, TreeMember, UserProfile,
+    ACTIVITY_CHOICES, SOURCE_CHOICES, SOURCE_LABELS, ActivityLog, ConnectionRequest, Family,
+    MatchCandidate, MatchRun, MergeRecord, Person, PersonStory, QuizAttempt, Tree, TreeComment,
+    TreeMember, UserProfile,
 )
 
 User = get_user_model()
@@ -117,6 +118,55 @@ def dashboard(request):
                  .filter(Q(tree_count__gt=0) | Q(person_count__gt=0))
                  .order_by("-person_count", "-tree_count")[:6])
 
+    # ---- growth & retention
+    day_ago, month_ago, two_months = now - timedelta(days=1), now - timedelta(days=30), now - timedelta(days=60)
+    stats["users_active_1"] = (ActivityLog.objects.filter(created_at__gte=day_ago)
+                               .exclude(user=None).values("user").distinct().count())
+    stats["users_active_30"] = (ActivityLog.objects.filter(created_at__gte=month_ago)
+                                .exclude(user=None).values("user").distinct().count())
+    users_with_tree = User.objects.filter(trees__isnull=False).distinct().count()
+    stats["users_with_tree"] = users_with_tree
+    stats["conversion_pct"] = round(users_with_tree / stats["users"] * 100) if stats["users"] else 0
+    stats["stickiness_pct"] = (round(stats["users_active_1"] / stats["users_active_30"] * 100)
+                               if stats["users_active_30"] else 0)
+    prev_30 = User.objects.filter(date_joined__gte=two_months, date_joined__lt=month_ago).count()
+    stats["users_new_prev_30"] = prev_30
+    stats["users_growth_pct"] = (round((stats["users_new_30"] - prev_30) / prev_30 * 100)
+                                 if prev_30 else None)
+
+    # ---- where users came from
+    src_all = dict(UserProfile.objects.values_list("source").annotate(n=Count("id")))
+    src_new = dict(UserProfile.objects.filter(user__date_joined__gte=month_ago)
+                   .values_list("source").annotate(n=Count("id")))
+    known_total = sum(n for key, n in src_all.items() if key) or 1
+    source_rows = []
+    for key, label in SOURCE_CHOICES:
+        n = src_all.get(key, 0)
+        if n:
+            source_rows.append({"key": key, "label": label, "n": n, "new": src_new.get(key, 0),
+                                "pct": round(n / known_total * 100)})
+    source_rows.sort(key=lambda r: r["n"], reverse=True)
+    source_unknown = src_all.get("", 0)
+
+    # ---- biggest trees (by people in their family network)
+    graph_trees = []
+    for comp, tlist in graph.trees_by_component.items():
+        size = sizes.get(comp, 0)
+        for t in tlist:
+            graph_trees.append((t.pk, size, len(tlist)))
+    graph_trees.sort(key=lambda x: x[1], reverse=True)
+    size_by_pk = {pk: size for pk, size, _ in graph_trees}
+    linked_by_pk = {pk: count - 1 for pk, _, count in graph_trees}
+    big_trees = list(Tree.objects.filter(pk__in=[pk for pk, _, _ in graph_trees[:6]])
+                     .select_related("owner", "root_person"))
+    for t in big_trees:
+        t.people_count = size_by_pk.get(t.pk, 0)
+        t.linked_count = linked_by_pk.get(t.pk, 0)
+    big_trees.sort(key=lambda t: t.people_count, reverse=True)
+    peak_tree = big_trees[0].people_count if big_trees else 1
+    for t in big_trees:
+        t.pct = round(t.people_count / (peak_tree or 1) * 100)
+
     u = get_unified(AUTO_MERGE_SCORE)
     regions = region_insights.build(u, AUTO_MERGE_SCORE)
     stats["online"] = regions["totals"]["online"]
@@ -153,6 +203,8 @@ def dashboard(request):
         "activity_days": _daily_series(ActivityLog.objects.all(), "created_at", 14),
         "top_actions": top_actions,
         "top_users": top_users,
+        "source_rows": source_rows, "source_unknown": source_unknown,
+        "big_trees": big_trees,
         "recent": ActivityLog.objects.select_related("user", "tree")[:12],
         "last_run": MatchRun.objects.first(),
         "top_matches": MatchCandidate.objects.filter(status="pending")
@@ -182,13 +234,16 @@ def _users_csv(request, qs):
     response.write("﻿")
     writer = csv.writer(response)
     writer.writerow(["ID", "Login", "Ism", "Familya", "Email", "Email tasdiqlangan", "Viloyat", "Rol",
-                     "Ro'yxatdan o'tgan", "Oxirgi kirish", "Shajaralar", "Shaxslar", "Faol", "Admin"])
+                     "Manba", "Manba tafsiloti", "Ro'yxatdan o'tgan", "Oxirgi kirish",
+                     "Shajaralar", "Shaxslar", "Faol", "Admin"])
     for u in qs.iterator():
         profile = getattr(u, "profile", None)
         writer.writerow([_csv_cell(x) for x in (
             u.pk, u.username, u.first_name, u.last_name, u.email,
             "ha" if profile and profile.email_verified else "yo'q",
             profile.region if profile else "", profile.role if profile else "",
+            SOURCE_LABELS.get(profile.source, "") if profile and profile.source else "",
+            profile.source_ref if profile else "",
             timezone.localtime(u.date_joined).strftime("%Y-%m-%d %H:%M"),
             timezone.localtime(u.last_login).strftime("%Y-%m-%d %H:%M") if u.last_login else "",
             u.tree_count, u.person_count, "ha" if u.is_active else "yo'q", "ha" if u.is_staff else "yo'q",
@@ -202,6 +257,7 @@ def user_list(request):
     q = (request.GET.get("q") or "").strip()
     status = request.GET.get("status", "all")
     sort = request.GET.get("sort", "joined")
+    source = request.GET.get("source", "")
 
     qs = User.objects.select_related("profile").annotate(
         tree_count=Count("trees", distinct=True),
@@ -212,6 +268,10 @@ def user_list(request):
     if q:
         qs = qs.filter(Q(username__icontains=q) | Q(first_name__icontains=q)
                        | Q(last_name__icontains=q) | Q(email__icontains=q))
+    if source == "unknown":
+        qs = qs.filter(Q(profile__source="") | Q(profile__isnull=True))
+    elif source in SOURCE_LABELS:
+        qs = qs.filter(profile__source=source)
     if status == "online":
         from .presence import online_since
         qs = qs.filter(profile__last_seen__gte=online_since())
@@ -232,6 +292,7 @@ def user_list(request):
 
     return render(request, "shajara/boshqaruv/users.html", {
         "section": "users", "page": _page(request, qs, 25), "q": q, "status": status, "sort": sort,
+        "source": source, "sources": SOURCE_CHOICES,
         "qs": _querystring(request), "total": qs.count(),
     })
 
